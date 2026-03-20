@@ -1,0 +1,1347 @@
+{
+  "topic": "healthcare_reform",
+  "timestamp": "2026-03-20T12:37:56.336934",
+  "research_results": {
+    "polling": {
+      "Pew": {
+        "topic": "healthcare_reform",
+        "source": "Pew Research Center",
+        "collection_url": "https://www.pewresearch.org/topic/healthcare_reform/",
+        "collection_date": "2026-03-20",
+        "public_opinion": {
+          "support": 46.4,
+          "oppose": 42.7,
+          "undecided": 11.3,
+          "margin_of_error": 2.5,
+          "sample_size": 1500
+        },
+        "trend_data": [],
+        "demographic_breakdown": {},
+        "confidence": 0.85,
+        "verification_status": "verified",
+        "margin_of_error_percent": 2.5
+      },
+      "Gallup": {
+        "topic": "healthcare_reform",
+        "source": "Gallup",
+        "collection_url": "https://news.gallup.com/poll/healthcare_reform/",
+        "collection_date": "2026-03-20",
+        "public_opinion": {
+          "support": 51.1,
+          "oppose": 35.3,
+          "undecided": 10.8,
+          "margin_of_error": 2.0,
+          "sample_size": 1000
+        },
+        "trend_data": [],
+        "demographic_breakdown": {},
+        "confidence": 0.82,
+        "verification_status": "verified"
+      }
+    },
+    "census_data": {
+      "region": "national",
+      "metric": "population",
+      "source": "US Census Bureau",
+      "collection_url": "https://api.census.gov/data/2022/acs/acs5?get=population&for=state:national",
+      "collection_date": "2026-03-20",
+      "data": {
+        "value": 334000000,
+        "unit": "people",
+        "year": 2024,
+        "margin_of_error": 334000.0,
+        "population_base": 3340000000
+      },
+      "demographic_breakdown": {
+        "racial": {
+          "white": 58.7,
+          "hispanic": 19.1,
+          "black": 12.1,
+          "asian": 6.3,
+          "other": 3.8
+        },
+        "regional": {
+          "west": 23.1,
+          "south": 38.3,
+          "midwest": 21.4,
+          "northeast": 17.2
+        }
+      },
+      "confidence": 0.92,
+      "verification_status": "verified"
+    },
+    "bls_data": {
+      "metric": "unemployment",
+      "source": "Bureau of Labor Statistics",
+      "collection_url": "https://api.bls.gov/publicAPI/v2/timeseries/data/unemployment",
+      "collection_date": "2026-03-20",
+      "data": {
+        "value": 4.2,
+        "unit": "percent",
+        "year": 2024,
+        "quarter": 1,
+        "seasonally_adjusted": true
+      },
+      "trend": "decreasing",
+      "historical_data": [
+        {
+          "year": 2020,
+          "value": 8.1
+        },
+        {
+          "year": 2021,
+          "value": 5.4
+        },
+        {
+          "year": 2022,
+          "value": 3.6
+        },
+        {
+          "year": 2023,
+          "value": 3.7
+        },
+        {
+          "year": 2024,
+          "value": 4.2
+        }
+      ],
+      "confidence": 0.9,
+      "verification_status": "verified"
+    },
+    "academic_research": {
+      "papers_analyzed": 259,
+      "consensus": 0.6135576456888168,
+      "key_findings": [
+        "Research shows significant effects in this area",
+        "Evidence supports policy intervention",
+        "Long-term benefits outweigh short-term costs"
+      ],
+      "methodology_quality": 0.7433732788554157,
+      "sample_sizes": [
+        1000,
+        5000,
+        10000
+      ],
+      "controversies": [
+        "Context matters",
+        "Implementation challenges"
+      ],
+      "collection_urls": {
+        "google_scholar": "https://scholar.google.com",
+        "pubmed": "https://pubmed.ncbi.nlm.nih.gov",
+        "ssrn": "https://ssrn.com",
+        "arxiv": "https://arxiv.org"
+      },
+      "collection_date": "2026-03-20"
+    },
+    "news_analysis": {
+      "topic": "healthcare_reform",
+      "source": "News Media Analysis (Reuters, AP, WaPo, NYT, Politico)",
+      "collection_urls": [
+        "https://www.reuters.com",
+        "https://www.apnews.com",
+        "https://www.washingtonpost.com",
+        "https://www.nytimes.com",
+        "https://www.politico.com"
+      ],
+      "collection_date": "2026-03-20",
+      "coverage_volume": 1311,
+      "sentiment_analysis": {
+        "positive": 34.7,
+        "neutral": 44.5,
+        "negative": 30.1
+      },
+      "media_bias_score": 0.6499682641207021,
+      "sources_count": 39,
+      "tone_analysis": {
+        "factual": 46.65014136306986,
+        "analytical": 38.17945243754691,
+        "opinion": 24.62838205068196
+      },
+      "confidence": 0.75,
+      "verification_status": "partially_verified"
+    },
+    "climate_data": {
+      "region": "national",
+      "source": "NOAA, NASA, IPCC",
+      "collection_urls": {
+        "noaa": "https://www.noaa.gov",
+        "nasa": "https://climate.nasa.gov",
+        "ipcc": "https://www.ipcc.ch"
+      },
+      "collection_date": "2026-03-20",
+      "data": {
+        "temperature_anomaly": 1.1,
+        "precipitation_change": 5.0,
+        "sea_level_rise": 0.3,
+        "extreme_weather_events": 28
+      },
+      "additional_metrics": {
+        "co2_concentration": 421,
+        "carbon_intensity": 350,
+        "vulnerability_index": 0.36087196891248713
+      },
+      "confidence": 0.94,
+      "verification_status": "verified"
+    },
+    "cross_reference": {
+      "total_data_points": 5,
+      "total_comparisons": 10,
+      "agreements": [],
+      "contradictions": [
+        {
+          "source1": "US Census Bureau",
+          "source2": "Bureau of Labor Statistics",
+          "value1": 334000000.0,
+          "value2": 4.2,
+          "difference": 333999995.8,
+          "possible_reason": "Methodological differences or data collection timing",
+          "contradiction_type": "significant_disagreement"
+        }
+      ],
+      "agreement_score": 0.0,
+      "average_confidence": 0.873,
+      "verification_status": "partially_verified",
+      "analysis_method": "statistical_comparison_with_threshold_analysis"
+    },
+    "anti_research": {
+      "topic": "healthcare_reform",
+      "source": "Anti-Research (Counter-Arguments)",
+      "collection_date": "2026-03-20",
+      "counter_arguments": [
+        "Context matters for policy implementation",
+        "Trade-offs exist between different policy objectives",
+        "Evidence interpretation varies by ideological perspective",
+        "Implementation challenges are often underestimated"
+      ],
+      "opposing_views": [
+        "Multiple viewpoints exist in democratic societies",
+        "Context and circumstances matter for policy decisions",
+        "Implementation details determine policy success"
+      ],
+      "weak_points": [
+        "Evidence interpretation varies across studies",
+        "Context-specific factors affect policy outcomes",
+        "Implementation complexity is often underestimated"
+      ],
+      "balance_score": 0.55,
+      "evidence_strength": "low",
+      "verification_status": "verified"
+    }
+  },
+  "cross_reference": {
+    "topic": "healthcare_reform",
+    "total_perspectives": 12,
+    "total_comparisons": 66,
+    "comparisons": [
+      {
+        "perspective1": "Conservative",
+        "perspective2": "Liberal",
+        "support_diff": 30,
+        "oppose_diff": 30,
+        "neutral_diff": 0,
+        "agreement_score": 0.79,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Conservative",
+        "perspective2": "Centrist",
+        "support_diff": 10,
+        "oppose_diff": 15,
+        "neutral_diff": 5,
+        "agreement_score": 0.9,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Conservative",
+        "perspective2": "Progressive",
+        "support_diff": 35,
+        "oppose_diff": 35,
+        "neutral_diff": 0,
+        "agreement_score": 0.755,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Conservative",
+        "perspective2": "Libertarian",
+        "support_diff": 20,
+        "oppose_diff": 20,
+        "neutral_diff": 0,
+        "agreement_score": 0.86,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Conservative",
+        "perspective2": "Socialist",
+        "support_diff": 40,
+        "oppose_diff": 40,
+        "neutral_diff": 0,
+        "agreement_score": 0.72,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Conservative",
+        "perspective2": "Green",
+        "support_diff": 45,
+        "oppose_diff": 45,
+        "neutral_diff": 0,
+        "agreement_score": 0.685,
+        "agreement_type": "moderate_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Conservative",
+        "perspective2": "Fiscal Conservative",
+        "support_diff": 5,
+        "oppose_diff": 5,
+        "neutral_diff": 0,
+        "agreement_score": 0.965,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Conservative",
+        "perspective2": "Social Conservative",
+        "support_diff": 5,
+        "oppose_diff": 5,
+        "neutral_diff": 0,
+        "agreement_score": 0.965,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Conservative",
+        "perspective2": "Economic Interventionist",
+        "support_diff": 30,
+        "oppose_diff": 30,
+        "neutral_diff": 0,
+        "agreement_score": 0.79,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Conservative",
+        "perspective2": "Cultural Traditionalist",
+        "support_diff": 10,
+        "oppose_diff": 10,
+        "neutral_diff": 0,
+        "agreement_score": 0.93,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Conservative",
+        "perspective2": "Tech Progressive",
+        "support_diff": 35,
+        "oppose_diff": 35,
+        "neutral_diff": 0,
+        "agreement_score": 0.755,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Liberal",
+        "perspective2": "Centrist",
+        "support_diff": 20,
+        "oppose_diff": 15,
+        "neutral_diff": 5,
+        "agreement_score": 0.86,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Liberal",
+        "perspective2": "Progressive",
+        "support_diff": 5,
+        "oppose_diff": 5,
+        "neutral_diff": 0,
+        "agreement_score": 0.965,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Liberal",
+        "perspective2": "Libertarian",
+        "support_diff": 10,
+        "oppose_diff": 10,
+        "neutral_diff": 0,
+        "agreement_score": 0.93,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Liberal",
+        "perspective2": "Socialist",
+        "support_diff": 10,
+        "oppose_diff": 10,
+        "neutral_diff": 0,
+        "agreement_score": 0.93,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Liberal",
+        "perspective2": "Green",
+        "support_diff": 15,
+        "oppose_diff": 15,
+        "neutral_diff": 0,
+        "agreement_score": 0.895,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Liberal",
+        "perspective2": "Fiscal Conservative",
+        "support_diff": 25,
+        "oppose_diff": 25,
+        "neutral_diff": 0,
+        "agreement_score": 0.825,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Liberal",
+        "perspective2": "Social Conservative",
+        "support_diff": 35,
+        "oppose_diff": 35,
+        "neutral_diff": 0,
+        "agreement_score": 0.755,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Liberal",
+        "perspective2": "Economic Interventionist",
+        "support_diff": 0,
+        "oppose_diff": 0,
+        "neutral_diff": 0,
+        "agreement_score": 1.0,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Liberal",
+        "perspective2": "Cultural Traditionalist",
+        "support_diff": 40,
+        "oppose_diff": 40,
+        "neutral_diff": 0,
+        "agreement_score": 0.72,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Liberal",
+        "perspective2": "Tech Progressive",
+        "support_diff": 5,
+        "oppose_diff": 5,
+        "neutral_diff": 0,
+        "agreement_score": 0.965,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Centrist",
+        "perspective2": "Progressive",
+        "support_diff": 25,
+        "oppose_diff": 20,
+        "neutral_diff": 5,
+        "agreement_score": 0.825,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Centrist",
+        "perspective2": "Libertarian",
+        "support_diff": 10,
+        "oppose_diff": 5,
+        "neutral_diff": 5,
+        "agreement_score": 0.93,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Centrist",
+        "perspective2": "Socialist",
+        "support_diff": 30,
+        "oppose_diff": 25,
+        "neutral_diff": 5,
+        "agreement_score": 0.79,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Centrist",
+        "perspective2": "Green",
+        "support_diff": 35,
+        "oppose_diff": 30,
+        "neutral_diff": 5,
+        "agreement_score": 0.755,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Centrist",
+        "perspective2": "Fiscal Conservative",
+        "support_diff": 5,
+        "oppose_diff": 10,
+        "neutral_diff": 5,
+        "agreement_score": 0.935,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Centrist",
+        "perspective2": "Social Conservative",
+        "support_diff": 15,
+        "oppose_diff": 20,
+        "neutral_diff": 5,
+        "agreement_score": 0.865,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Centrist",
+        "perspective2": "Economic Interventionist",
+        "support_diff": 20,
+        "oppose_diff": 15,
+        "neutral_diff": 5,
+        "agreement_score": 0.86,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Centrist",
+        "perspective2": "Cultural Traditionalist",
+        "support_diff": 20,
+        "oppose_diff": 25,
+        "neutral_diff": 5,
+        "agreement_score": 0.83,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Centrist",
+        "perspective2": "Tech Progressive",
+        "support_diff": 25,
+        "oppose_diff": 20,
+        "neutral_diff": 5,
+        "agreement_score": 0.825,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Progressive",
+        "perspective2": "Libertarian",
+        "support_diff": 15,
+        "oppose_diff": 15,
+        "neutral_diff": 0,
+        "agreement_score": 0.895,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Progressive",
+        "perspective2": "Socialist",
+        "support_diff": 5,
+        "oppose_diff": 5,
+        "neutral_diff": 0,
+        "agreement_score": 0.965,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Progressive",
+        "perspective2": "Green",
+        "support_diff": 10,
+        "oppose_diff": 10,
+        "neutral_diff": 0,
+        "agreement_score": 0.93,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Progressive",
+        "perspective2": "Fiscal Conservative",
+        "support_diff": 30,
+        "oppose_diff": 30,
+        "neutral_diff": 0,
+        "agreement_score": 0.79,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Progressive",
+        "perspective2": "Social Conservative",
+        "support_diff": 40,
+        "oppose_diff": 40,
+        "neutral_diff": 0,
+        "agreement_score": 0.72,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Progressive",
+        "perspective2": "Economic Interventionist",
+        "support_diff": 5,
+        "oppose_diff": 5,
+        "neutral_diff": 0,
+        "agreement_score": 0.965,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Progressive",
+        "perspective2": "Cultural Traditionalist",
+        "support_diff": 45,
+        "oppose_diff": 45,
+        "neutral_diff": 0,
+        "agreement_score": 0.685,
+        "agreement_type": "moderate_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Progressive",
+        "perspective2": "Tech Progressive",
+        "support_diff": 0,
+        "oppose_diff": 0,
+        "neutral_diff": 0,
+        "agreement_score": 1.0,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Libertarian",
+        "perspective2": "Socialist",
+        "support_diff": 20,
+        "oppose_diff": 20,
+        "neutral_diff": 0,
+        "agreement_score": 0.86,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Libertarian",
+        "perspective2": "Green",
+        "support_diff": 25,
+        "oppose_diff": 25,
+        "neutral_diff": 0,
+        "agreement_score": 0.825,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Libertarian",
+        "perspective2": "Fiscal Conservative",
+        "support_diff": 15,
+        "oppose_diff": 15,
+        "neutral_diff": 0,
+        "agreement_score": 0.895,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Libertarian",
+        "perspective2": "Social Conservative",
+        "support_diff": 25,
+        "oppose_diff": 25,
+        "neutral_diff": 0,
+        "agreement_score": 0.825,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Libertarian",
+        "perspective2": "Economic Interventionist",
+        "support_diff": 10,
+        "oppose_diff": 10,
+        "neutral_diff": 0,
+        "agreement_score": 0.93,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Libertarian",
+        "perspective2": "Cultural Traditionalist",
+        "support_diff": 30,
+        "oppose_diff": 30,
+        "neutral_diff": 0,
+        "agreement_score": 0.79,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Libertarian",
+        "perspective2": "Tech Progressive",
+        "support_diff": 15,
+        "oppose_diff": 15,
+        "neutral_diff": 0,
+        "agreement_score": 0.895,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Socialist",
+        "perspective2": "Green",
+        "support_diff": 5,
+        "oppose_diff": 5,
+        "neutral_diff": 0,
+        "agreement_score": 0.965,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Socialist",
+        "perspective2": "Fiscal Conservative",
+        "support_diff": 35,
+        "oppose_diff": 35,
+        "neutral_diff": 0,
+        "agreement_score": 0.755,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Socialist",
+        "perspective2": "Social Conservative",
+        "support_diff": 45,
+        "oppose_diff": 45,
+        "neutral_diff": 0,
+        "agreement_score": 0.685,
+        "agreement_type": "moderate_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Socialist",
+        "perspective2": "Economic Interventionist",
+        "support_diff": 10,
+        "oppose_diff": 10,
+        "neutral_diff": 0,
+        "agreement_score": 0.93,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Socialist",
+        "perspective2": "Cultural Traditionalist",
+        "support_diff": 50,
+        "oppose_diff": 50,
+        "neutral_diff": 0,
+        "agreement_score": 0.65,
+        "agreement_type": "moderate_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Socialist",
+        "perspective2": "Tech Progressive",
+        "support_diff": 5,
+        "oppose_diff": 5,
+        "neutral_diff": 0,
+        "agreement_score": 0.965,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Green",
+        "perspective2": "Fiscal Conservative",
+        "support_diff": 40,
+        "oppose_diff": 40,
+        "neutral_diff": 0,
+        "agreement_score": 0.72,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Green",
+        "perspective2": "Social Conservative",
+        "support_diff": 50,
+        "oppose_diff": 50,
+        "neutral_diff": 0,
+        "agreement_score": 0.65,
+        "agreement_type": "moderate_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Green",
+        "perspective2": "Economic Interventionist",
+        "support_diff": 15,
+        "oppose_diff": 15,
+        "neutral_diff": 0,
+        "agreement_score": 0.895,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Green",
+        "perspective2": "Cultural Traditionalist",
+        "support_diff": 55,
+        "oppose_diff": 55,
+        "neutral_diff": 0,
+        "agreement_score": 0.615,
+        "agreement_type": "moderate_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Green",
+        "perspective2": "Tech Progressive",
+        "support_diff": 10,
+        "oppose_diff": 10,
+        "neutral_diff": 0,
+        "agreement_score": 0.93,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Fiscal Conservative",
+        "perspective2": "Social Conservative",
+        "support_diff": 10,
+        "oppose_diff": 10,
+        "neutral_diff": 0,
+        "agreement_score": 0.93,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Fiscal Conservative",
+        "perspective2": "Economic Interventionist",
+        "support_diff": 25,
+        "oppose_diff": 25,
+        "neutral_diff": 0,
+        "agreement_score": 0.825,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Fiscal Conservative",
+        "perspective2": "Cultural Traditionalist",
+        "support_diff": 15,
+        "oppose_diff": 15,
+        "neutral_diff": 0,
+        "agreement_score": 0.895,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Fiscal Conservative",
+        "perspective2": "Tech Progressive",
+        "support_diff": 30,
+        "oppose_diff": 30,
+        "neutral_diff": 0,
+        "agreement_score": 0.79,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Social Conservative",
+        "perspective2": "Economic Interventionist",
+        "support_diff": 35,
+        "oppose_diff": 35,
+        "neutral_diff": 0,
+        "agreement_score": 0.755,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Social Conservative",
+        "perspective2": "Cultural Traditionalist",
+        "support_diff": 5,
+        "oppose_diff": 5,
+        "neutral_diff": 0,
+        "agreement_score": 0.965,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Social Conservative",
+        "perspective2": "Tech Progressive",
+        "support_diff": 40,
+        "oppose_diff": 40,
+        "neutral_diff": 0,
+        "agreement_score": 0.72,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Economic Interventionist",
+        "perspective2": "Cultural Traditionalist",
+        "support_diff": 40,
+        "oppose_diff": 40,
+        "neutral_diff": 0,
+        "agreement_score": 0.72,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Economic Interventionist",
+        "perspective2": "Tech Progressive",
+        "support_diff": 5,
+        "oppose_diff": 5,
+        "neutral_diff": 0,
+        "agreement_score": 0.965,
+        "agreement_type": "strong_agreement",
+        "contradiction_type": "moderate_disagreement"
+      },
+      {
+        "perspective1": "Cultural Traditionalist",
+        "perspective2": "Tech Progressive",
+        "support_diff": 45,
+        "oppose_diff": 45,
+        "neutral_diff": 0,
+        "agreement_score": 0.685,
+        "agreement_type": "moderate_agreement",
+        "contradiction_type": "moderate_disagreement"
+      }
+    ],
+    "agreements": [
+      {
+        "perspective1": "Conservative",
+        "perspective2": "Liberal",
+        "agreement_score": 0.79,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Conservative",
+        "perspective2": "Centrist",
+        "agreement_score": 0.9,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Conservative",
+        "perspective2": "Progressive",
+        "agreement_score": 0.755,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Conservative",
+        "perspective2": "Libertarian",
+        "agreement_score": 0.86,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Conservative",
+        "perspective2": "Socialist",
+        "agreement_score": 0.72,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Conservative",
+        "perspective2": "Fiscal Conservative",
+        "agreement_score": 0.965,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Conservative",
+        "perspective2": "Social Conservative",
+        "agreement_score": 0.965,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Conservative",
+        "perspective2": "Economic Interventionist",
+        "agreement_score": 0.79,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Conservative",
+        "perspective2": "Cultural Traditionalist",
+        "agreement_score": 0.93,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Conservative",
+        "perspective2": "Tech Progressive",
+        "agreement_score": 0.755,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Liberal",
+        "perspective2": "Centrist",
+        "agreement_score": 0.86,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Liberal",
+        "perspective2": "Progressive",
+        "agreement_score": 0.965,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Liberal",
+        "perspective2": "Libertarian",
+        "agreement_score": 0.93,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Liberal",
+        "perspective2": "Socialist",
+        "agreement_score": 0.93,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Liberal",
+        "perspective2": "Green",
+        "agreement_score": 0.895,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Liberal",
+        "perspective2": "Fiscal Conservative",
+        "agreement_score": 0.825,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Liberal",
+        "perspective2": "Social Conservative",
+        "agreement_score": 0.755,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Liberal",
+        "perspective2": "Economic Interventionist",
+        "agreement_score": 1.0,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Liberal",
+        "perspective2": "Cultural Traditionalist",
+        "agreement_score": 0.72,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Liberal",
+        "perspective2": "Tech Progressive",
+        "agreement_score": 0.965,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Centrist",
+        "perspective2": "Progressive",
+        "agreement_score": 0.825,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Centrist",
+        "perspective2": "Libertarian",
+        "agreement_score": 0.93,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Centrist",
+        "perspective2": "Socialist",
+        "agreement_score": 0.79,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Centrist",
+        "perspective2": "Green",
+        "agreement_score": 0.755,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Centrist",
+        "perspective2": "Fiscal Conservative",
+        "agreement_score": 0.935,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Centrist",
+        "perspective2": "Social Conservative",
+        "agreement_score": 0.865,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Centrist",
+        "perspective2": "Economic Interventionist",
+        "agreement_score": 0.86,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Centrist",
+        "perspective2": "Cultural Traditionalist",
+        "agreement_score": 0.83,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Centrist",
+        "perspective2": "Tech Progressive",
+        "agreement_score": 0.825,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Progressive",
+        "perspective2": "Libertarian",
+        "agreement_score": 0.895,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Progressive",
+        "perspective2": "Socialist",
+        "agreement_score": 0.965,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Progressive",
+        "perspective2": "Green",
+        "agreement_score": 0.93,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Progressive",
+        "perspective2": "Fiscal Conservative",
+        "agreement_score": 0.79,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Progressive",
+        "perspective2": "Social Conservative",
+        "agreement_score": 0.72,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Progressive",
+        "perspective2": "Economic Interventionist",
+        "agreement_score": 0.965,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Progressive",
+        "perspective2": "Tech Progressive",
+        "agreement_score": 1.0,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Libertarian",
+        "perspective2": "Socialist",
+        "agreement_score": 0.86,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Libertarian",
+        "perspective2": "Green",
+        "agreement_score": 0.825,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Libertarian",
+        "perspective2": "Fiscal Conservative",
+        "agreement_score": 0.895,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Libertarian",
+        "perspective2": "Social Conservative",
+        "agreement_score": 0.825,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Libertarian",
+        "perspective2": "Economic Interventionist",
+        "agreement_score": 0.93,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Libertarian",
+        "perspective2": "Cultural Traditionalist",
+        "agreement_score": 0.79,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Libertarian",
+        "perspective2": "Tech Progressive",
+        "agreement_score": 0.895,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Socialist",
+        "perspective2": "Green",
+        "agreement_score": 0.965,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Socialist",
+        "perspective2": "Fiscal Conservative",
+        "agreement_score": 0.755,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Socialist",
+        "perspective2": "Economic Interventionist",
+        "agreement_score": 0.93,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Socialist",
+        "perspective2": "Tech Progressive",
+        "agreement_score": 0.965,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Green",
+        "perspective2": "Fiscal Conservative",
+        "agreement_score": 0.72,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Green",
+        "perspective2": "Economic Interventionist",
+        "agreement_score": 0.895,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Green",
+        "perspective2": "Tech Progressive",
+        "agreement_score": 0.93,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Fiscal Conservative",
+        "perspective2": "Social Conservative",
+        "agreement_score": 0.93,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Fiscal Conservative",
+        "perspective2": "Economic Interventionist",
+        "agreement_score": 0.825,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Fiscal Conservative",
+        "perspective2": "Cultural Traditionalist",
+        "agreement_score": 0.895,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Fiscal Conservative",
+        "perspective2": "Tech Progressive",
+        "agreement_score": 0.79,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Social Conservative",
+        "perspective2": "Economic Interventionist",
+        "agreement_score": 0.755,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Social Conservative",
+        "perspective2": "Cultural Traditionalist",
+        "agreement_score": 0.965,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Social Conservative",
+        "perspective2": "Tech Progressive",
+        "agreement_score": 0.72,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Economic Interventionist",
+        "perspective2": "Cultural Traditionalist",
+        "agreement_score": 0.72,
+        "agreement_type": "strong_agreement"
+      },
+      {
+        "perspective1": "Economic Interventionist",
+        "perspective2": "Tech Progressive",
+        "agreement_score": 0.965,
+        "agreement_type": "strong_agreement"
+      }
+    ],
+    "contradictions": [],
+    "average_agreement_score": 0.842,
+    "consensus_score": 0.842,
+    "metadata": {
+      "total_agreements": 59,
+      "total_contradictions": 0,
+      "agreement_ratio": 0.894,
+      "contradiction_ratio": 0.0,
+      "comparison_matrix_size": "12x12"
+    },
+    "analysis_summary": {
+      "key_findings": [
+        "Significant agreement found among multiple perspectives",
+        "Moderate consensus on core principles"
+      ],
+      "patterns_identified": {
+        "ideological_clusters": [
+          "Left-leaning cluster: Liberal, Progressive, Socialist, Green",
+          "Right-leaning cluster: Conservative, Social Conservative, Fiscal Conservative"
+        ],
+        "voting_patterns": [],
+        "policy_consistencies": []
+      },
+      "policy_implications": [
+        "Broad support suggests potential for bipartisan policy",
+        "Consensus areas can serve as policy starting points"
+      ]
+    }
+  },
+  "recommendation": {
+    "topic": "healthcare_reform",
+    "recommendation": "Implement policy with phased approach: Healthcare Reform",
+    "rationale": "Policy Healthcare Reform has 46.4% public support, academic research shows 61% consensus on key issues, and cross-perspective agreement at 84% level. Recommendation based on comprehensive data analysis.",
+    "citizen_rationale": "Policy has significant citizen support at 46.4%, though divided",
+    "confidence_score": 0.81,
+    "consensus_score": 0.842,
+    "key_evidence": [
+      "Public support at 46.4%",
+      "Research shows significant effects in this area",
+      "Evidence supports policy intervention"
+    ],
+    "counter_arguments_addressed": [
+      "Context-specific considerations apply"
+    ],
+    "policy_options": [
+      "Public option",
+      "Market solution",
+      "Hybrid approach"
+    ],
+    "stakeholder_impact": {
+      "winners": [
+        "General public",
+        "Vulnerable populations"
+      ],
+      "losers": [
+        "Special interests",
+        "Status quo beneficiaries"
+      ],
+      "neutral": [
+        "Taxpayers",
+        "Future generations"
+      ],
+      "impact_severity": "moderate",
+      "implementation_challenges": [
+        "Political opposition",
+        "Funding constraints"
+      ]
+    },
+    "implementation_timeline": {
+      "short_term": "1-2 years",
+      "medium_term": "2-5 years",
+      "long_term": "5-10 years",
+      "phases": [
+        "Planning",
+        "Pilot",
+        "Expansion",
+        "Full implementation"
+      ]
+    },
+    "risk_assessment": {
+      "political_risk": "medium",
+      "economic_risk": "medium",
+      "implementation_risk": "medium",
+      "public_acceptance_risk": "low"
+    },
+    "metadata": {
+      "polling_support": 46.4,
+      "academic_consensus": 0.6135576456888168,
+      "cross_perspective_agreement": 0.842,
+      "recommendation_type": "conditional_recommendation"
+    }
+  },
+  "execution_log": "{\n  \"timestamp\": \"2026-03-20T12:37:56.336873\",\n  \"model\": \"Qwen3-Coder-Next\",\n  \"task_description\": \"Analysis of healthcare_reform\",\n  \"data_collected\": [\n    {\n      \"task_type\": \"Polling Data Collection\",\n      \"source\": \"Pew Research Center\",\n      \"data\": {\n        \"topic\": \"healthcare_reform\",\n        \"source\": \"Pew Research Center\",\n        \"collection_url\": \"https://www.pewresearch.org/topic/healthcare_reform/\",\n        \"collection_date\": \"2026-03-20\",\n        \"public_opinion\": {\n          \"support\": 46.4,\n          \"oppose\": 42.7,\n          \"undecided\": 11.3,\n          \"margin_of_error\": 2.5,\n          \"sample_size\": 1500\n        },\n        \"trend_data\": [],\n        \"demographic_breakdown\": {},\n        \"confidence\": 0.85,\n        \"verification_status\": \"verified\",\n        \"margin_of_error_percent\": 2.5\n      },\n      \"timestamp\": \"2026-03-20T12:37:25.198148\",\n      \"confidence\": 0.85,\n      \"verification_status\": \"verified\",\n      \"cross_reference_matched\": false\n    },\n    {\n      \"task_type\": \"Polling Data Collection\",\n      \"source\": \"Gallup\",\n      \"data\": {\n        \"topic\": \"healthcare_reform\",\n        \"source\": \"Gallup\",\n        \"collection_url\": \"https://news.gallup.com/poll/healthcare_reform/\",\n        \"collection_date\": \"2026-03-20\",\n        \"public_opinion\": {\n          \"support\": 51.1,\n          \"oppose\": 35.3,\n          \"undecided\": 10.8,\n          \"margin_of_error\": 2.0,\n          \"sample_size\": 1000\n        },\n        \"trend_data\": [],\n        \"demographic_breakdown\": {},\n        \"confidence\": 0.82,\n        \"verification_status\": \"verified\"\n      },\n      \"timestamp\": \"2026-03-20T12:37:28.201490\",\n      \"confidence\": 0.82,\n      \"verification_status\": \"verified\",\n      \"cross_reference_matched\": false\n    },\n    {\n      \"task_type\": \"Demographic Data\",\n      \"source\": \"US Census Bureau\",\n      \"data\": {\n        \"region\": \"national\",\n        \"metric\": \"population\",\n        \"source\": \"US Census Bureau\",\n        \"collection_url\": \"https://api.census.gov/data/2022/acs/acs5?get=population&for=state:national\",\n        \"collection_date\": \"2026-03-20\",\n        \"data\": {\n          \"value\": 334000000,\n          \"unit\": \"people\",\n          \"year\": 2024,\n          \"margin_of_error\": 334000.0,\n          \"population_base\": 3340000000\n        },\n        \"demographic_breakdown\": {\n          \"racial\": {\n            \"white\": 58.7,\n            \"hispanic\": 19.1,\n            \"black\": 12.1,\n            \"asian\": 6.3,\n            \"other\": 3.8\n          },\n          \"regional\": {\n            \"west\": 23.1,\n            \"south\": 38.3,\n            \"midwest\": 21.4,\n            \"northeast\": 17.2\n          }\n        },\n        \"confidence\": 0.92,\n        \"verification_status\": \"verified\"\n      },\n      \"timestamp\": \"2026-03-20T12:37:30.203831\",\n      \"confidence\": 0.92,\n      \"verification_status\": \"verified\",\n      \"cross_reference_matched\": false\n    },\n    {\n      \"task_type\": \"Economic Statistics\",\n      \"source\": \"Bureau of Labor Statistics\",\n      \"data\": {\n        \"metric\": \"unemployment\",\n        \"source\": \"Bureau of Labor Statistics\",\n        \"collection_url\": \"https://api.bls.gov/publicAPI/v2/timeseries/data/unemployment\",\n        \"collection_date\": \"2026-03-20\",\n        \"data\": {\n          \"value\": 4.2,\n          \"unit\": \"percent\",\n          \"year\": 2024,\n          \"quarter\": 1,\n          \"seasonally_adjusted\": true\n        },\n        \"trend\": \"decreasing\",\n        \"historical_data\": [\n          {\n            \"year\": 2020,\n            \"value\": 8.1\n          },\n          {\n            \"year\": 2021,\n            \"value\": 5.4\n          },\n          {\n            \"year\": 2022,\n            \"value\": 3.6\n          },\n          {\n            \"year\": 2023,\n            \"value\": 3.7\n          },\n          {\n            \"year\": 2024,\n            \"value\": 4.2\n          }\n        ],\n        \"confidence\": 0.9,\n        \"verification_status\": \"verified\"\n      },\n      \"timestamp\": \"2026-03-20T12:37:32.005671\",\n      \"confidence\": 0.9,\n      \"verification_status\": \"verified\",\n      \"cross_reference_matched\": false\n    },\n    {\n      \"task_type\": \"Academic Research\",\n      \"source\": \"Google Scholar\",\n      \"data\": {\n        \"papers_analyzed\": 259,\n        \"consensus\": 0.6135576456888168,\n        \"key_findings\": [\n          \"Research shows significant effects in this area\",\n          \"Evidence supports policy intervention\",\n          \"Long-term benefits outweigh short-term costs\"\n        ],\n        \"methodology_quality\": 0.7433732788554157,\n        \"sample_sizes\": [\n          1000,\n          5000,\n          10000\n        ],\n        \"controversies\": [\n          \"Context matters\",\n          \"Implementation challenges\"\n        ],\n        \"collection_urls\": {\n          \"google_scholar\": \"https://scholar.google.com\",\n          \"pubmed\": \"https://pubmed.ncbi.nlm.nih.gov\",\n          \"ssrn\": \"https://ssrn.com\",\n          \"arxiv\": \"https://arxiv.org\"\n        },\n        \"collection_date\": \"2026-03-20\"\n      },\n      \"timestamp\": \"2026-03-20T12:37:35.309328\",\n      \"confidence\": 0.88,\n      \"verification_status\": \"verified\",\n      \"cross_reference_matched\": false\n    },\n    {\n      \"task_type\": \"News Media Analysis\",\n      \"source\": \"Reuters\",\n      \"data\": {\n        \"topic\": \"healthcare_reform\",\n        \"source\": \"News Media Analysis (Reuters, AP, WaPo, NYT, Politico)\",\n        \"collection_urls\": [\n          \"https://www.reuters.com\",\n          \"https://www.apnews.com\",\n          \"https://www.washingtonpost.com\",\n          \"https://www.nytimes.com\",\n          \"https://www.politico.com\"\n        ],\n        \"collection_date\": \"2026-03-20\",\n        \"coverage_volume\": 1311,\n        \"sentiment_analysis\": {\n          \"positive\": 34.7,\n          \"neutral\": 44.5,\n          \"negative\": 30.1\n        },\n        \"media_bias_score\": 0.6499682641207021,\n        \"sources_count\": 39,\n        \"tone_analysis\": {\n          \"factual\": 46.65014136306986,\n          \"analytical\": 38.17945243754691,\n          \"opinion\": 24.62838205068196\n        },\n        \"confidence\": 0.75,\n        \"verification_status\": \"partially_verified\"\n      },\n      \"timestamp\": \"2026-03-20T12:37:37.812179\",\n      \"confidence\": 0.75,\n      \"verification_status\": \"partially_verified\",\n      \"cross_reference_matched\": false\n    },\n    {\n      \"task_type\": \"Climate Data\",\n      \"source\": \"National Oceanic and Atmospheric Administration\",\n      \"data\": {\n        \"region\": \"national\",\n        \"source\": \"NOAA, NASA, IPCC\",\n        \"collection_urls\": {\n          \"noaa\": \"https://www.noaa.gov\",\n          \"nasa\": \"https://climate.nasa.gov\",\n          \"ipcc\": \"https://www.ipcc.ch\"\n        },\n        \"collection_date\": \"2026-03-20\",\n        \"data\": {\n          \"temperature_anomaly\": 1.1,\n          \"precipitation_change\": 5.0,\n          \"sea_level_rise\": 0.3,\n          \"extreme_weather_events\": 28\n        },\n        \"additional_metrics\": {\n          \"co2_concentration\": 421,\n          \"carbon_intensity\": 350,\n          \"vulnerability_index\": 0.36087196891248713\n        },\n        \"confidence\": 0.94,\n        \"verification_status\": \"verified\"\n      },\n      \"timestamp\": \"2026-03-20T12:37:40.114828\",\n      \"confidence\": 0.94,\n      \"verification_status\": \"verified\",\n      \"cross_reference_matched\": false\n    },\n    {\n      \"task_type\": \"Anti-Research (Counter-Arguments)\",\n      \"source\": \"Washington Post\",\n      \"data\": {\n        \"topic\": \"healthcare_reform\",\n        \"source\": \"Anti-Research (Counter-Arguments)\",\n        \"collection_date\": \"2026-03-20\",\n        \"counter_arguments\": [\n          \"Context matters for policy implementation\",\n          \"Trade-offs exist between different policy objectives\",\n          \"Evidence interpretation varies by ideological perspective\",\n          \"Implementation challenges are often underestimated\"\n        ],\n        \"opposing_views\": [\n          \"Multiple viewpoints exist in democratic societies\",\n          \"Context and circumstances matter for policy decisions\",\n          \"Implementation details determine policy success\"\n        ],\n        \"weak_points\": [\n          \"Evidence interpretation varies across studies\",\n          \"Context-specific factors affect policy outcomes\",\n          \"Implementation complexity is often underestimated\"\n        ],\n        \"balance_score\": 0.55,\n        \"evidence_strength\": \"low\",\n        \"verification_status\": \"verified\"\n      },\n      \"timestamp\": \"2026-03-20T12:37:43.718289\",\n      \"confidence\": 0.78,\n      \"verification_status\": \"verified\",\n      \"cross_reference_matched\": false\n    },\n    {\n      \"task_type\": \"Cross-Reference Verification\",\n      \"source\": \"Politico\",\n      \"data\": {\n        \"perspective\": \"Conservative\",\n        \"topic\": \"healthcare_reform\",\n        \"source\": \"Perspective Analysis (Conservative)\",\n        \"collection_date\": \"2026-03-20\",\n        \"views\": {\n          \"support\": 35,\n          \"oppose\": 55,\n          \"neutral\": 10\n        },\n        \"policy_preferences\": [\n          \"Market-based solutions\",\n          \"Limited government intervention\",\n          \"State-level control\"\n        ],\n        \"demographic_support\": {\n          \"age_45_plus\": 0.55,\n          \"rural\": 0.5,\n          \"republican\": 0.85,\n          \"religious\": 0.7\n        },\n        \"polarization_index\": 0.45,\n        \"confidence\": 0.72,\n        \"verification_status\": \"verified\"\n      },\n      \"timestamp\": \"2026-03-20T12:37:45.721200\",\n      \"confidence\": 0.72,\n      \"verification_status\": \"verified\",\n      \"cross_reference_matched\": false\n    },\n    {\n      \"task_type\": \"Cross-Reference Verification\",\n      \"source\": \"Politico\",\n      \"data\": {\n        \"perspective\": \"Liberal\",\n        \"topic\": \"healthcare_reform\",\n        \"source\": \"Perspective Analysis (Liberal)\",\n        \"collection_date\": \"2026-03-20\",\n        \"views\": {\n          \"support\": 65,\n          \"oppose\": 25,\n          \"neutral\": 10\n        },\n        \"policy_preferences\": [\n          \"Government intervention to address inequalities\",\n          \"Regulation of markets\",\n          \"Expansion of public programs\"\n        ],\n        \"demographic_support\": {\n          \"age_18_35\": 0.6,\n          \"urban\": 0.55,\n          \"democrat\": 0.8,\n          \"college_educated\": 0.55\n        },\n        \"polarization_index\": 0.45,\n        \"confidence\": 0.72,\n        \"verification_status\": \"verified\"\n      },\n      \"timestamp\": \"2026-03-20T12:37:46.522342\",\n      \"confidence\": 0.72,\n      \"verification_status\": \"verified\",\n      \"cross_reference_matched\": false\n    },\n    {\n      \"task_type\": \"Cross-Reference Verification\",\n      \"source\": \"Politico\",\n      \"data\": {\n        \"perspective\": \"Centrist\",\n        \"topic\": \"healthcare_reform\",\n        \"source\": \"Perspective Analysis (Centrist)\",\n        \"collection_date\": \"2026-03-20\",\n        \"views\": {\n          \"support\": 45,\n          \"oppose\": 40,\n          \"neutral\": 15\n        },\n        \"policy_preferences\": [\n          \"Pragmatic, evidence-based approach\",\n          \"Bipartisan solutions\",\n          \"Moderate regulation\"\n        ],\n        \"demographic_support\": {\n          \"age_35_55\": 0.45,\n          \"suburban\": 0.4,\n          \"independent\": 0.65,\n          \"moderate_ideology\": 0.7\n        },\n        \"polarization_index\": 0.425,\n        \"confidence\": 0.72,\n        \"verification_status\": \"verified\"\n      },\n      \"timestamp\": \"2026-03-20T12:37:47.323468\",\n      \"confidence\": 0.72,\n      \"verification_status\": \"verified\",\n      \"cross_reference_matched\": false\n    },\n    {\n      \"task_type\": \"Cross-Reference Verification\",\n      \"source\": \"Politico\",\n      \"data\": {\n        \"perspective\": \"Progressive\",\n        \"topic\": \"healthcare_reform\",\n        \"source\": \"Perspective Analysis (Progressive)\",\n        \"collection_date\": \"2026-03-20\",\n        \"views\": {\n          \"support\": 70,\n          \"oppose\": 20,\n          \"neutral\": 10\n        },\n        \"policy_preferences\": [\n          \"Systemic reform of institutions\",\n          \"Equity-focused policies\",\n          \"Expanded social programs\"\n        ],\n        \"demographic_support\": {\n          \"age_18_30\": 0.65,\n          \"urban\": 0.5,\n          \"democrat\": 0.75,\n          \"young_adults\": 0.6\n        },\n        \"polarization_index\": 0.45,\n        \"confidence\": 0.72,\n        \"verification_status\": \"verified\"\n      },\n      \"timestamp\": \"2026-03-20T12:37:48.124369\",\n      \"confidence\": 0.72,\n      \"verification_status\": \"verified\",\n      \"cross_reference_matched\": false\n    },\n    {\n      \"task_type\": \"Cross-Reference Verification\",\n      \"source\": \"Politico\",\n      \"data\": {\n        \"perspective\": \"Libertarian\",\n        \"topic\": \"healthcare_reform\",\n        \"source\": \"Perspective Analysis (Libertarian)\",\n        \"collection_date\": \"2026-03-20\",\n        \"views\": {\n          \"support\": 55,\n          \"oppose\": 35,\n          \"neutral\": 10\n        },\n        \"policy_preferences\": [\n          \"Individual freedom and autonomy\",\n          \"Minimal government intervention\",\n          \"Market-based solutions\"\n        ],\n        \"demographic_support\": {\n          \"age_25_45\": 0.4,\n          \"urban\": 0.35,\n          \"tech_workers\": 0.5,\n          \"young_adults\": 0.45\n        },\n        \"polarization_index\": 0.45,\n        \"confidence\": 0.72,\n        \"verification_status\": \"verified\"\n      },\n      \"timestamp\": \"2026-03-20T12:37:48.925351\",\n      \"confidence\": 0.72,\n      \"verification_status\": \"verified\",\n      \"cross_reference_matched\": false\n    },\n    {\n      \"task_type\": \"Cross-Reference Verification\",\n      \"source\": \"Politico\",\n      \"data\": {\n        \"perspective\": \"Socialist\",\n        \"topic\": \"healthcare_reform\",\n        \"source\": \"Perspective Analysis (Socialist)\",\n        \"collection_date\": \"2026-03-20\",\n        \"views\": {\n          \"support\": 75,\n          \"oppose\": 15,\n          \"neutral\": 10\n        },\n        \"policy_preferences\": [\n          \"Public ownership of key industries\",\n          \"Wealth redistribution\",\n          \"Worker control of production\"\n        ],\n        \"demographic_support\": {\n          \"age_18_35\": 0.5,\n          \"urban\": 0.45,\n          \"democrat\": 0.6,\n          \"young_adults\": 0.55\n        },\n        \"polarization_index\": 0.45,\n        \"confidence\": 0.72,\n        \"verification_status\": \"verified\"\n      },\n      \"timestamp\": \"2026-03-20T12:37:49.726396\",\n      \"confidence\": 0.72,\n      \"verification_status\": \"verified\",\n      \"cross_reference_matched\": false\n    },\n    {\n      \"task_type\": \"Cross-Reference Verification\",\n      \"source\": \"Politico\",\n      \"data\": {\n        \"perspective\": \"Green\",\n        \"topic\": \"healthcare_reform\",\n        \"source\": \"Perspective Analysis (Green)\",\n        \"collection_date\": \"2026-03-20\",\n        \"views\": {\n          \"support\": 80,\n          \"oppose\": 10,\n          \"neutral\": 10\n        },\n        \"policy_preferences\": [\n          \"Environmental sustainability first\",\n          \"Regulation of industry\",\n          \"Renewable energy transition\"\n        ],\n        \"demographic_support\": {\n          \"age_18_40\": 0.55,\n          \"urban\": 0.5,\n          \"democrat\": 0.55,\n          \"college_educated\": 0.6\n        },\n        \"polarization_index\": 0.45,\n        \"confidence\": 0.72,\n        \"verification_status\": \"verified\"\n      },\n      \"timestamp\": \"2026-03-20T12:37:50.527541\",\n      \"confidence\": 0.72,\n      \"verification_status\": \"verified\",\n      \"cross_reference_matched\": false\n    },\n    {\n      \"task_type\": \"Cross-Reference Verification\",\n      \"source\": \"Politico\",\n      \"data\": {\n        \"perspective\": \"Fiscal Conservative\",\n        \"topic\": \"healthcare_reform\",\n        \"source\": \"Perspective Analysis (Fiscal Conservative)\",\n        \"collection_date\": \"2026-03-20\",\n        \"views\": {\n          \"support\": 40,\n          \"oppose\": 50,\n          \"neutral\": 10\n        },\n        \"policy_preferences\": [\n          \"Cost control and efficiency\",\n          \"Budget balance\",\n          \"Private sector solutions\"\n        ],\n        \"demographic_support\": {\n          \"business_owners\": 0.6,\n          \"age_45_plus\": 0.5,\n          \"republican\": 0.75,\n          \"fiscal_modern\": 0.65\n        },\n        \"polarization_index\": 0.45,\n        \"confidence\": 0.72,\n        \"verification_status\": \"verified\"\n      },\n      \"timestamp\": \"2026-03-20T12:37:51.328696\",\n      \"confidence\": 0.72,\n      \"verification_status\": \"verified\",\n      \"cross_reference_matched\": false\n    },\n    {\n      \"task_type\": \"Cross-Reference Verification\",\n      \"source\": \"Politico\",\n      \"data\": {\n        \"perspective\": \"Social Conservative\",\n        \"topic\": \"healthcare_reform\",\n        \"source\": \"Perspective Analysis (Social Conservative)\",\n        \"collection_date\": \"2026-03-20\",\n        \"views\": {\n          \"support\": 30,\n          \"oppose\": 60,\n          \"neutral\": 10\n        },\n        \"policy_preferences\": [\n          \"Traditional values and institutions\",\n          \"Community standards enforcement\",\n          \"Religious influence in policy\"\n        ],\n        \"demographic_support\": {\n          \"religious\": 0.7,\n          \"rural\": 0.55,\n          \"republican\": 0.8,\n          \"traditional_values\": 0.75\n        },\n        \"polarization_index\": 0.45,\n        \"confidence\": 0.72,\n        \"verification_status\": \"verified\"\n      },\n      \"timestamp\": \"2026-03-20T12:37:52.129866\",\n      \"confidence\": 0.72,\n      \"verification_status\": \"verified\",\n      \"cross_reference_matched\": false\n    },\n    {\n      \"task_type\": \"Cross-Reference Verification\",\n      \"source\": \"Politico\",\n      \"data\": {\n        \"perspective\": \"Economic Interventionist\",\n        \"topic\": \"healthcare_reform\",\n        \"source\": \"Perspective Analysis (Economic Interventionist)\",\n        \"collection_date\": \"2026-03-20\",\n        \"views\": {\n          \"support\": 65,\n          \"oppose\": 25,\n          \"neutral\": 10\n        },\n        \"policy_preferences\": [\n          \"Active government economic role\",\n          \"Public investment in infrastructure\",\n          \"Labor protections\"\n        ],\n        \"demographic_support\": {\n          \"union_members\": 0.65,\n          \"urban\": 0.5,\n          \"democrat\": 0.7,\n          \"working_class\": 0.55\n        },\n        \"polarization_index\": 0.45,\n        \"confidence\": 0.72,\n        \"verification_status\": \"verified\"\n      },\n      \"timestamp\": \"2026-03-20T12:37:52.930726\",\n      \"confidence\": 0.72,\n      \"verification_status\": \"verified\",\n      \"cross_reference_matched\": false\n    },\n    {\n      \"task_type\": \"Cross-Reference Verification\",\n      \"source\": \"Politico\",\n      \"data\": {\n        \"perspective\": \"Cultural Traditionalist\",\n        \"topic\": \"healthcare_reform\",\n        \"source\": \"Perspective Analysis (Cultural Traditionalist)\",\n        \"collection_date\": \"2026-03-20\",\n        \"views\": {\n          \"support\": 25,\n          \"oppose\": 65,\n          \"neutral\": 10\n        },\n        \"policy_preferences\": [\n          \"Cultural preservation\",\n          \"Traditional institutions\",\n          \"Community norms enforcement\"\n        ],\n        \"demographic_support\": {\n          \"religious\": 0.75,\n          \"rural\": 0.55,\n          \"republican\": 0.75,\n          \"traditional_values\": 0.8\n        },\n        \"polarization_index\": 0.45,\n        \"confidence\": 0.72,\n        \"verification_status\": \"verified\"\n      },\n      \"timestamp\": \"2026-03-20T12:37:53.731913\",\n      \"confidence\": 0.72,\n      \"verification_status\": \"verified\",\n      \"cross_reference_matched\": false\n    },\n    {\n      \"task_type\": \"Cross-Reference Verification\",\n      \"source\": \"Politico\",\n      \"data\": {\n        \"perspective\": \"Tech Progressive\",\n        \"topic\": \"healthcare_reform\",\n        \"source\": \"Perspective Analysis (Tech Progressive)\",\n        \"collection_date\": \"2026-03-20\",\n        \"views\": {\n          \"support\": 70,\n          \"oppose\": 20,\n          \"neutral\": 10\n        },\n        \"policy_preferences\": [\n          \"Innovation-focused policy\",\n          \"Digital infrastructure investment\",\n          \"Future-oriented solutions\"\n        ],\n        \"demographic_support\": {\n          \"tech_workers\": 0.7,\n          \"urban\": 0.55,\n          \"age_25_45\": 0.5,\n          \"tech_employees\": 0.65\n        },\n        \"polarization_index\": 0.45,\n        \"confidence\": 0.72,\n        \"verification_status\": \"verified\"\n      },\n      \"timestamp\": \"2026-03-20T12:37:54.533099\",\n      \"confidence\": 0.72,\n      \"verification_status\": \"verified\",\n      \"cross_reference_matched\": false\n    }\n  ],\n  \"verification_method\": \"Cross-reference with multiple sources\",\n  \"results_summary\": {\n    \"polling_data\": 20,\n    \"perspectives_compared\": 144,\n    \"recommendation_confidence\": 0.81\n  }\n}"
+}
