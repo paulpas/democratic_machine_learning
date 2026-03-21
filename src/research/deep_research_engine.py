@@ -20,6 +20,13 @@ from src.logging.verbose_logger import (
     reset_logger,
 )
 
+try:
+    from src.llm.integration import LLMClient
+
+    LLM_AVAILABLE = True
+except ImportError:
+    LLM_AVAILABLE = False
+
 
 class ResearchDepth(Enum):
     """Levels of research depth."""
@@ -61,16 +68,27 @@ class ConceptNode:
 class DeepResearchEngine:
     """Engine that performs deep, multi-layered research on policy topics."""
 
-    def __init__(self, verbose_logger: Optional[VerboseLogger] = None):
+    def __init__(
+        self, verbose_logger: Optional[VerboseLogger] = None, use_llm: bool = True
+    ):
         """Initialize the deep research engine.
 
         Args:
             verbose_logger: Optional verbose logger for tracking reasoning
+            use_llm: Whether to use LLM for analysis
         """
         self.verbose_logger = verbose_logger
         self.concepts: Dict[str, ConceptNode] = {}
         self.questions: Dict[str, ResearchQuestion] = {}
         self.knowledge_graph: Dict[str, List[str]] = {}
+
+        # Initialize LLM client if available
+        self.llm_client: Optional[LLMClient] = None
+        if use_llm and LLM_AVAILABLE:
+            try:
+                self.llm_client = LLMClient()
+            except Exception as e:
+                print(f"Warning: Could not initialize LLM client: {e}")
 
     def decompose_topic(self, topic: str) -> List[ResearchQuestion]:
         """Decompose a policy topic into fundamental research questions.

@@ -26,11 +26,11 @@
         "categories_analyzed": 9,
         "total_questions": 35,
         "questions_resolved": 35,
-        "overall_confidence": 0.758,
+        "overall_confidence": 0.752,
         "category_synthesis": {
           "historical_context": {
             "questions_answered": 3,
-            "average_confidence": 0.758,
+            "average_confidence": 0.7520000000000001,
             "key_findings": [
               "What is the historical precedent for this policy?",
               "How has this issue been addressed in the past?",
@@ -47,7 +47,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What is the historical precedent for this policy?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -59,13 +59,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What is the historical precedent for this policy?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What is the historical precedent for this policy?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -77,7 +77,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on How has this issue been addressed in the past?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -89,19 +89,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on How has this issue been addressed in the past?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on How has this issue been addressed in the past?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "economic_impact": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "What are the direct economic costs?",
               "What are the indirect economic effects?",
@@ -118,7 +118,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What are the direct economic costs?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -130,13 +130,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What are the direct economic costs?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What are the direct economic costs?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -148,7 +148,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What are the indirect economic effects?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -160,19 +160,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What are the indirect economic effects?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What are the indirect economic effects?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "social_impact": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "How will this affect different demographic groups?",
               "What are the equity implications?",
@@ -189,7 +189,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on How will this affect different demographic groups?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -201,13 +201,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on How will this affect different demographic groups?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on How will this affect different demographic groups?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -219,7 +219,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What are the equity implications?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -231,19 +231,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What are the equity implications?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What are the equity implications?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "legal_considerations": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "What constitutional considerations exist?",
               "What existing laws govern this domain?",
@@ -260,7 +260,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What constitutional considerations exist?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -272,13 +272,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What constitutional considerations exist?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What constitutional considerations exist?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -290,7 +290,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What existing laws govern this domain?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -302,19 +302,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What existing laws govern this domain?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What existing laws govern this domain?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "implementation": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "What infrastructure is needed for implementation?",
               "What are the administrative requirements?",
@@ -331,7 +331,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What infrastructure is needed for implementation?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -343,13 +343,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What infrastructure is needed for implementation?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What infrastructure is needed for implementation?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -361,7 +361,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What are the administrative requirements?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -373,19 +373,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What are the administrative requirements?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What are the administrative requirements?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "stakeholder_analysis": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "Who are the primary stakeholders?",
               "How will each stakeholder group be affected?",
@@ -402,7 +402,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on Who are the primary stakeholders?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -414,13 +414,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on Who are the primary stakeholders?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on Who are the primary stakeholders?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -432,7 +432,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on How will each stakeholder group be affected?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -444,19 +444,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on How will each stakeholder group be affected?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on How will each stakeholder group be affected?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "evidence_base": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "What empirical evidence exists?",
               "What do experts recommend?",
@@ -473,7 +473,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What empirical evidence exists?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -485,13 +485,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What empirical evidence exists?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What empirical evidence exists?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -503,7 +503,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What do experts recommend?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -515,19 +515,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What do experts recommend?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What do experts recommend?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "risk_analysis": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "What are the potential negative outcomes?",
               "What are the failure modes?",
@@ -544,7 +544,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What are the potential negative outcomes?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -556,13 +556,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What are the potential negative outcomes?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What are the potential negative outcomes?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -574,7 +574,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What are the failure modes?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -586,19 +586,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What are the failure modes?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What are the failure modes?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "topic_specific": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "What specific healthcare services should be covered?",
               "How should healthcare providers be compensated?",
@@ -615,7 +615,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What specific healthcare services should be covered?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -627,13 +627,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What specific healthcare services should be covered?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What specific healthcare services should be covered?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -645,7 +645,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on How should healthcare providers be compensated?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -657,22 +657,22 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on How should healthcare providers be compensated?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on How should healthcare providers be compensated?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           }
         },
-        "timestamp": "2026-03-20T19:26:41.837328"
+        "timestamp": "2026-03-20T19:42:32.282176"
       },
-      "timestamp": "2026-03-20T19:26:41.838743"
+      "timestamp": "2026-03-20T19:42:32.283630"
     },
-    "logger": "output/logs/deep_research_healthcarereform_20260320_192637.log"
+    "logger": "output/logs/deep_research_healthcarereform_20260320_194228.log"
   },
   {
     "topic": "climate_change_policy",
@@ -701,11 +701,11 @@
         "categories_analyzed": 9,
         "total_questions": 35,
         "questions_resolved": 35,
-        "overall_confidence": 0.758,
+        "overall_confidence": 0.752,
         "category_synthesis": {
           "historical_context": {
             "questions_answered": 3,
-            "average_confidence": 0.758,
+            "average_confidence": 0.7520000000000001,
             "key_findings": [
               "What is the historical precedent for this policy?",
               "How has this issue been addressed in the past?",
@@ -722,7 +722,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What is the historical precedent for this policy?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -734,13 +734,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What is the historical precedent for this policy?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What is the historical precedent for this policy?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -752,7 +752,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on How has this issue been addressed in the past?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -764,19 +764,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on How has this issue been addressed in the past?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on How has this issue been addressed in the past?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "economic_impact": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "What are the direct economic costs?",
               "What are the indirect economic effects?",
@@ -793,7 +793,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What are the direct economic costs?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -805,13 +805,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What are the direct economic costs?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What are the direct economic costs?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -823,7 +823,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What are the indirect economic effects?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -835,19 +835,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What are the indirect economic effects?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What are the indirect economic effects?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "social_impact": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "How will this affect different demographic groups?",
               "What are the equity implications?",
@@ -864,7 +864,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on How will this affect different demographic groups?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -876,13 +876,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on How will this affect different demographic groups?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on How will this affect different demographic groups?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -894,7 +894,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What are the equity implications?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -906,19 +906,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What are the equity implications?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What are the equity implications?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "legal_considerations": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "What constitutional considerations exist?",
               "What existing laws govern this domain?",
@@ -935,7 +935,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What constitutional considerations exist?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -947,13 +947,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What constitutional considerations exist?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What constitutional considerations exist?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -965,7 +965,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What existing laws govern this domain?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -977,19 +977,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What existing laws govern this domain?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What existing laws govern this domain?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "implementation": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "What infrastructure is needed for implementation?",
               "What are the administrative requirements?",
@@ -1006,7 +1006,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What infrastructure is needed for implementation?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -1018,13 +1018,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What infrastructure is needed for implementation?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What infrastructure is needed for implementation?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -1036,7 +1036,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What are the administrative requirements?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -1048,19 +1048,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What are the administrative requirements?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What are the administrative requirements?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "stakeholder_analysis": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "Who are the primary stakeholders?",
               "How will each stakeholder group be affected?",
@@ -1077,7 +1077,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on Who are the primary stakeholders?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -1089,13 +1089,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on Who are the primary stakeholders?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on Who are the primary stakeholders?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -1107,7 +1107,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on How will each stakeholder group be affected?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -1119,19 +1119,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on How will each stakeholder group be affected?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on How will each stakeholder group be affected?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "evidence_base": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "What empirical evidence exists?",
               "What do experts recommend?",
@@ -1148,7 +1148,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What empirical evidence exists?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -1160,13 +1160,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What empirical evidence exists?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What empirical evidence exists?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -1178,7 +1178,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What do experts recommend?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -1190,19 +1190,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What do experts recommend?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What do experts recommend?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "risk_analysis": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "What are the potential negative outcomes?",
               "What are the failure modes?",
@@ -1219,7 +1219,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What are the potential negative outcomes?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -1231,13 +1231,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What are the potential negative outcomes?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What are the potential negative outcomes?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -1249,7 +1249,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What are the failure modes?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -1261,19 +1261,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What are the failure modes?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What are the failure modes?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "topic_specific": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "What specific emissions targets are needed?",
               "What sectors should be regulated?",
@@ -1290,7 +1290,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What specific emissions targets are needed?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -1302,13 +1302,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What specific emissions targets are needed?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What specific emissions targets are needed?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -1320,7 +1320,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What sectors should be regulated?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -1332,22 +1332,22 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What sectors should be regulated?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What sectors should be regulated?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           }
         },
-        "timestamp": "2026-03-20T19:26:46.024346"
+        "timestamp": "2026-03-20T19:42:36.469742"
       },
-      "timestamp": "2026-03-20T19:26:46.025811"
+      "timestamp": "2026-03-20T19:42:36.471160"
     },
-    "logger": "output/logs/deep_research_healthcarereform_20260320_192637.log"
+    "logger": "output/logs/deep_research_healthcarereform_20260320_194228.log"
   },
   {
     "topic": "education_funding",
@@ -1376,11 +1376,11 @@
         "categories_analyzed": 9,
         "total_questions": 35,
         "questions_resolved": 35,
-        "overall_confidence": 0.758,
+        "overall_confidence": 0.752,
         "category_synthesis": {
           "historical_context": {
             "questions_answered": 3,
-            "average_confidence": 0.758,
+            "average_confidence": 0.7520000000000001,
             "key_findings": [
               "What is the historical precedent for this policy?",
               "How has this issue been addressed in the past?",
@@ -1397,7 +1397,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What is the historical precedent for this policy?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -1409,13 +1409,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What is the historical precedent for this policy?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What is the historical precedent for this policy?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -1427,7 +1427,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on How has this issue been addressed in the past?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -1439,19 +1439,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on How has this issue been addressed in the past?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on How has this issue been addressed in the past?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "economic_impact": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "What are the direct economic costs?",
               "What are the indirect economic effects?",
@@ -1468,7 +1468,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What are the direct economic costs?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -1480,13 +1480,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What are the direct economic costs?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What are the direct economic costs?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -1498,7 +1498,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What are the indirect economic effects?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -1510,19 +1510,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What are the indirect economic effects?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What are the indirect economic effects?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "social_impact": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "How will this affect different demographic groups?",
               "What are the equity implications?",
@@ -1539,7 +1539,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on How will this affect different demographic groups?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -1551,13 +1551,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on How will this affect different demographic groups?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on How will this affect different demographic groups?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -1569,7 +1569,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What are the equity implications?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -1581,19 +1581,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What are the equity implications?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What are the equity implications?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "legal_considerations": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "What constitutional considerations exist?",
               "What existing laws govern this domain?",
@@ -1610,7 +1610,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What constitutional considerations exist?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -1622,13 +1622,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What constitutional considerations exist?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What constitutional considerations exist?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -1640,7 +1640,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What existing laws govern this domain?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -1652,19 +1652,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What existing laws govern this domain?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What existing laws govern this domain?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "implementation": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "What infrastructure is needed for implementation?",
               "What are the administrative requirements?",
@@ -1681,7 +1681,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What infrastructure is needed for implementation?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -1693,13 +1693,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What infrastructure is needed for implementation?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What infrastructure is needed for implementation?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -1711,7 +1711,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What are the administrative requirements?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -1723,19 +1723,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What are the administrative requirements?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What are the administrative requirements?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "stakeholder_analysis": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "Who are the primary stakeholders?",
               "How will each stakeholder group be affected?",
@@ -1752,7 +1752,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on Who are the primary stakeholders?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -1764,13 +1764,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on Who are the primary stakeholders?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on Who are the primary stakeholders?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -1782,7 +1782,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on How will each stakeholder group be affected?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -1794,19 +1794,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on How will each stakeholder group be affected?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on How will each stakeholder group be affected?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "evidence_base": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "What empirical evidence exists?",
               "What do experts recommend?",
@@ -1823,7 +1823,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What empirical evidence exists?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -1835,13 +1835,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What empirical evidence exists?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What empirical evidence exists?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -1853,7 +1853,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What do experts recommend?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -1865,19 +1865,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What do experts recommend?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What do experts recommend?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "risk_analysis": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "What are the potential negative outcomes?",
               "What are the failure modes?",
@@ -1894,7 +1894,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What are the potential negative outcomes?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -1906,13 +1906,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What are the potential negative outcomes?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What are the potential negative outcomes?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -1924,7 +1924,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What are the failure modes?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -1936,19 +1936,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What are the failure modes?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What are the failure modes?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "topic_specific": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "What grade levels does this cover?",
               "What curriculum standards apply?",
@@ -1965,7 +1965,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What grade levels does this cover?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -1977,13 +1977,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What grade levels does this cover?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What grade levels does this cover?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -1995,7 +1995,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What curriculum standards apply?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -2007,22 +2007,22 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What curriculum standards apply?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What curriculum standards apply?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           }
         },
-        "timestamp": "2026-03-20T19:26:50.230080"
+        "timestamp": "2026-03-20T19:42:40.658830"
       },
-      "timestamp": "2026-03-20T19:26:50.231621"
+      "timestamp": "2026-03-20T19:42:40.660383"
     },
-    "logger": "output/logs/deep_research_healthcarereform_20260320_192637.log"
+    "logger": "output/logs/deep_research_healthcarereform_20260320_194228.log"
   },
   {
     "topic": "immigration_reform",
@@ -2051,11 +2051,11 @@
         "categories_analyzed": 9,
         "total_questions": 35,
         "questions_resolved": 35,
-        "overall_confidence": 0.758,
+        "overall_confidence": 0.752,
         "category_synthesis": {
           "historical_context": {
             "questions_answered": 3,
-            "average_confidence": 0.758,
+            "average_confidence": 0.7520000000000001,
             "key_findings": [
               "What is the historical precedent for this policy?",
               "How has this issue been addressed in the past?",
@@ -2072,7 +2072,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What is the historical precedent for this policy?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -2084,13 +2084,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What is the historical precedent for this policy?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What is the historical precedent for this policy?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -2102,7 +2102,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on How has this issue been addressed in the past?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -2114,19 +2114,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on How has this issue been addressed in the past?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on How has this issue been addressed in the past?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "economic_impact": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "What are the direct economic costs?",
               "What are the indirect economic effects?",
@@ -2143,7 +2143,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What are the direct economic costs?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -2155,13 +2155,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What are the direct economic costs?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What are the direct economic costs?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -2173,7 +2173,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What are the indirect economic effects?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -2185,19 +2185,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What are the indirect economic effects?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What are the indirect economic effects?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "social_impact": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "How will this affect different demographic groups?",
               "What are the equity implications?",
@@ -2214,7 +2214,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on How will this affect different demographic groups?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -2226,13 +2226,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on How will this affect different demographic groups?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on How will this affect different demographic groups?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -2244,7 +2244,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What are the equity implications?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -2256,19 +2256,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What are the equity implications?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What are the equity implications?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "legal_considerations": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "What constitutional considerations exist?",
               "What existing laws govern this domain?",
@@ -2285,7 +2285,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What constitutional considerations exist?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -2297,13 +2297,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What constitutional considerations exist?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What constitutional considerations exist?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -2315,7 +2315,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What existing laws govern this domain?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -2327,19 +2327,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What existing laws govern this domain?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What existing laws govern this domain?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "implementation": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "What infrastructure is needed for implementation?",
               "What are the administrative requirements?",
@@ -2356,7 +2356,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What infrastructure is needed for implementation?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -2368,13 +2368,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What infrastructure is needed for implementation?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What infrastructure is needed for implementation?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -2386,7 +2386,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What are the administrative requirements?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -2398,19 +2398,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What are the administrative requirements?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What are the administrative requirements?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "stakeholder_analysis": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "Who are the primary stakeholders?",
               "How will each stakeholder group be affected?",
@@ -2427,7 +2427,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on Who are the primary stakeholders?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -2439,13 +2439,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on Who are the primary stakeholders?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on Who are the primary stakeholders?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -2457,7 +2457,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on How will each stakeholder group be affected?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -2469,19 +2469,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on How will each stakeholder group be affected?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on How will each stakeholder group be affected?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "evidence_base": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "What empirical evidence exists?",
               "What do experts recommend?",
@@ -2498,7 +2498,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What empirical evidence exists?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -2510,13 +2510,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What empirical evidence exists?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What empirical evidence exists?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -2528,7 +2528,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What do experts recommend?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -2540,19 +2540,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What do experts recommend?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What do experts recommend?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "risk_analysis": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "What are the potential negative outcomes?",
               "What are the failure modes?",
@@ -2569,7 +2569,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What are the potential negative outcomes?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -2581,13 +2581,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What are the potential negative outcomes?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What are the potential negative outcomes?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -2599,7 +2599,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What are the failure modes?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -2611,19 +2611,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What are the failure modes?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What are the failure modes?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "topic_specific": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "What visa categories are affected?",
               "What border security measures are needed?",
@@ -2640,7 +2640,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What visa categories are affected?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -2652,13 +2652,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What visa categories are affected?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What visa categories are affected?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -2670,7 +2670,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What border security measures are needed?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -2682,22 +2682,22 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What border security measures are needed?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What border security measures are needed?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           }
         },
-        "timestamp": "2026-03-20T19:26:54.419642"
+        "timestamp": "2026-03-20T19:42:44.844537"
       },
-      "timestamp": "2026-03-20T19:26:54.421135"
+      "timestamp": "2026-03-20T19:42:44.845966"
     },
-    "logger": "output/logs/deep_research_healthcarereform_20260320_192637.log"
+    "logger": "output/logs/deep_research_healthcarereform_20260320_194228.log"
   },
   {
     "topic": "economic_policy",
@@ -2726,11 +2726,11 @@
         "categories_analyzed": 9,
         "total_questions": 35,
         "questions_resolved": 35,
-        "overall_confidence": 0.758,
+        "overall_confidence": 0.752,
         "category_synthesis": {
           "historical_context": {
             "questions_answered": 3,
-            "average_confidence": 0.758,
+            "average_confidence": 0.7520000000000001,
             "key_findings": [
               "What is the historical precedent for this policy?",
               "How has this issue been addressed in the past?",
@@ -2747,7 +2747,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What is the historical precedent for this policy?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -2759,13 +2759,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What is the historical precedent for this policy?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What is the historical precedent for this policy?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -2777,7 +2777,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on How has this issue been addressed in the past?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -2789,19 +2789,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on How has this issue been addressed in the past?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on How has this issue been addressed in the past?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "economic_impact": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "What are the direct economic costs?",
               "What are the indirect economic effects?",
@@ -2818,7 +2818,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What are the direct economic costs?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -2830,13 +2830,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What are the direct economic costs?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What are the direct economic costs?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -2848,7 +2848,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What are the indirect economic effects?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -2860,19 +2860,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What are the indirect economic effects?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What are the indirect economic effects?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "social_impact": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "How will this affect different demographic groups?",
               "What are the equity implications?",
@@ -2889,7 +2889,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on How will this affect different demographic groups?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -2901,13 +2901,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on How will this affect different demographic groups?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on How will this affect different demographic groups?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -2919,7 +2919,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What are the equity implications?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -2931,19 +2931,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What are the equity implications?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What are the equity implications?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "legal_considerations": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "What constitutional considerations exist?",
               "What existing laws govern this domain?",
@@ -2960,7 +2960,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What constitutional considerations exist?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -2972,13 +2972,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What constitutional considerations exist?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What constitutional considerations exist?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -2990,7 +2990,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What existing laws govern this domain?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -3002,19 +3002,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What existing laws govern this domain?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What existing laws govern this domain?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "implementation": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "What infrastructure is needed for implementation?",
               "What are the administrative requirements?",
@@ -3031,7 +3031,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What infrastructure is needed for implementation?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -3043,13 +3043,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What infrastructure is needed for implementation?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What infrastructure is needed for implementation?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -3061,7 +3061,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What are the administrative requirements?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -3073,19 +3073,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What are the administrative requirements?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What are the administrative requirements?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "stakeholder_analysis": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "Who are the primary stakeholders?",
               "How will each stakeholder group be affected?",
@@ -3102,7 +3102,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on Who are the primary stakeholders?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -3114,13 +3114,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on Who are the primary stakeholders?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on Who are the primary stakeholders?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -3132,7 +3132,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on How will each stakeholder group be affected?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -3144,19 +3144,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on How will each stakeholder group be affected?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on How will each stakeholder group be affected?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "evidence_base": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "What empirical evidence exists?",
               "What do experts recommend?",
@@ -3173,7 +3173,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What empirical evidence exists?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -3185,13 +3185,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What empirical evidence exists?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What empirical evidence exists?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -3203,7 +3203,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What do experts recommend?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -3215,19 +3215,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What do experts recommend?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What do experts recommend?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "risk_analysis": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "What are the potential negative outcomes?",
               "What are the failure modes?",
@@ -3244,7 +3244,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What are the potential negative outcomes?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -3256,13 +3256,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What are the potential negative outcomes?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What are the potential negative outcomes?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -3274,7 +3274,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What are the failure modes?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -3286,19 +3286,19 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What are the failure modes?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What are the failure modes?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           },
           "topic_specific": {
             "questions_answered": 4,
-            "average_confidence": 0.758,
+            "average_confidence": 0.752,
             "key_findings": [
               "What specific economic indicators matter?",
               "Which sectors benefit most?",
@@ -3315,7 +3315,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on What specific economic indicators matter?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -3327,13 +3327,13 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on What specific economic indicators matter?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on What specific economic indicators matter?",
-                "confidence": 0.74
+                "confidence": 0.77
               },
               {
                 "source_type": "academic",
@@ -3345,7 +3345,7 @@
                 "source_type": "government",
                 "description": "Government reports and statistics",
                 "finding": "Evidence from government perspective on Which sectors benefit most?",
-                "confidence": 0.77
+                "confidence": 0.7
               },
               {
                 "source_type": "international",
@@ -3357,21 +3357,21 @@
                 "source_type": "expert",
                 "description": "Expert opinions and recommendations",
                 "finding": "Evidence from expert perspective on Which sectors benefit most?",
-                "confidence": 0.75
+                "confidence": 0.76
               },
               {
                 "source_type": "affected",
                 "description": "Views of affected populations",
                 "finding": "Evidence from affected perspective on Which sectors benefit most?",
-                "confidence": 0.74
+                "confidence": 0.77
               }
             ]
           }
         },
-        "timestamp": "2026-03-20T19:26:58.623944"
+        "timestamp": "2026-03-20T19:42:49.034322"
       },
-      "timestamp": "2026-03-20T19:26:58.625433"
+      "timestamp": "2026-03-20T19:42:49.036043"
     },
-    "logger": "output/logs/deep_research_healthcarereform_20260320_192637.log"
+    "logger": "output/logs/deep_research_healthcarereform_20260320_194228.log"
   }
 ]
