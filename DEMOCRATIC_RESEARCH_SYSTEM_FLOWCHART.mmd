@@ -1,0 +1,97 @@
+flowchart TD
+    A[Start: User requests comprehensive policy analysis] --> B{Initialize Research System}
+    B --> C[Load Enhanced Democratic Research Engine]
+    C --> D[Connect to LLM Endpoint: http://localhost:8080]
+    D --> E{LLM Available?}
+    E -->|Yes| F[LLM Enhancement Active: Deep Research Mode]
+    E -->|No| G[Use Enhanced Fallback Research]
+    F --> H[Begin Multi-Level Recursive Research Process]
+    G --> H
+    
+    %% Level 1: Domain Analysis
+    H --> H1[Level 1: Primary Domain Analysis]
+    H1 --> H1a[Define Primary Policy Domain]
+    H1a --> H1b[Specify Policy Parameters and Objectives]
+    H1b --> H1c[Identify Stakeholder Groups and Affected Populations]
+    H1c --> H1d[Establish Research Questions and Hypotheses]
+    H1d --> H1e[Execute LLM-Enhanced Contextual Analysis]
+    H1e --> H1f[Generate Initial Research Framework]
+    H1f --> H1g[Identify Key Sub-Domains for Investigation]
+    H1g --> H1h[Flag Sub-Domains for Level 2 Research]
+    
+    %% Level 2: Sub-Domain Analysis
+    H1h --> H2[Level 2: Sub-Domain Investigation]
+    H2 --> H2a[For each flagged sub-domain:]
+    H2a --> H2b[Define Sub-Domain Scope and Boundaries]
+    H2b --> H2c[Identify Related Sub-Sub-Domains]
+    H2c --> H2d[Establish Sub-Domain Research Questions]
+    H2d --> H2e[Execute LLM-Enhanced Sub-Domain Analysis]
+    H2e --> H2f[Generate Sub-Domain Findings]
+    H2f --> H2g[Identify Key Sub-Sub-Domains for Investigation]
+    H2g --> H2h[Flag Sub-Sub-Domains for Level 3 Research]
+    
+    %% Level 3: Sub-Sub-Domain Analysis
+    H2h --> H3[Level 3: Sub-Sub-Domain Investigation]
+    H3 --> H3a[For each flagged sub-sub-domain:]
+    H3a --> H3b[Define Sub-Sub-Domain Scope]
+    H3b --> H3c[Identify Key Variables and Relationships]
+    H3c --> H3d[Establish Sub-Sub-Domain Research Questions]
+    H3d --> H3e[Execute LLM-Enhanced Sub-Sub-Domain Analysis]
+    H3e --> H3f[Generate Sub-Sub-Domain Findings]
+    H3f --> H3g[Identify Areas Needing Further Investigation]
+    H3g --> H3h[Flag for Level 4 Research if needed]
+    
+    %% Level 4: Deep Dive Analysis (Optional)
+    H3h --> H4[Level 4: Deep Dive Investigation]
+    H4 --> H4a[For critical areas requiring deepest analysis:]
+    H4a --> H4b[Define Micro-Level Scope]
+    H4b --> H4c[Identify Key Mechanisms and Relationships]
+    H4c --> H4d[Establish Micro-Level Research Questions]
+    H4d --> H4e[Execute LLM-Enhanced Micro-Analysis]
+    H4e --> H4f[Generate Micro-Level Findings]
+    H4f --> H4g[Synthesize Findings Across All Levels]
+    
+    %% Synthesis Phase
+    H1g --> S[Synthesis Phase]
+    H2g --> S
+    H3g --> S
+    H4g --> S
+    S --> SA[Cross-Level Integration and Analysis]
+    SA --> SB[Identify Patterns Across Research Levels]
+    SB --> SC[Resolve Contradictions Between Levels]
+    SC --> SD[Build Hierarchical Understanding]
+    SD --> SE[Develop Integrated Policy Recommendations]
+    SE --> SF[Create Evidence-Based Implementation Roadmap]
+    SF --> SG[Generate Policy Impact Projections]
+    SG --> SH[Formulate Legislative Language]
+    SH --> SI[Prepare Congressional Briefing Materials]
+    
+    %% Quality Assurance
+    SI --> QA[Quality Assurance Review]
+    QA --> QB[Check for Logical Consistency]
+    QB --> QC[Validate Evidence Chains]
+    QC --> QD[Assess Practical Feasibility]
+    QD --> QE[Review for Bias and Completeness]
+    QE --> QF[Finalize Research Report]
+    
+    %% Output
+    QF --> O1[Generate Comprehensive Whitepaper]
+    O1 --> O2[Create Executive Summary]
+    O2 --> O3[Prepare Technical Appendices]
+    O3 --> O4[Generate Policy Brief Variants]
+    O4 --> O5[Create Presentation Materials]
+    O5 --> O6[Deliver Final Research Package]
+    
+    %% Styling
+    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+    classDef decision fill:#fff3e0,stroke:#ef6c00,stroke-width:2px;
+    classDef llm fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px;
+    classDef research fill:#fce4ec,stroke:#c2185b,stroke-width:2px;
+    classDef synthesis fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px;
+    classDef output fill:#e8faf6,stroke:#00695c,stroke-width:2px;
+    
+    class A,B,C,D,E,F,G,H,H1,H1a,H1b,H1c,H1d,H1e,H1f,H1g,H1h,H2,H2a,H2b,H2c,H2d,H2e,H2f,H2g,H2h,H3,H3a,H3b,H3c,H3d,H3e,H3f,H3g,H3h,H4,H4a,H4b,H4c,H4d,H4e,H4f,H4g process;
+    class H1e,H2e,H3e,H4e llm;
+    class H1f,H1g,H1h,H2f,H2g,H2h,H3f,H3g,H3h,H4f research;
+    class SA,SB,SC,SD,SE,SF,SG,SH,SI synthesis;
+    class O1,O2,O3,O4,O5,O6,QA,QB,QC,QD,QE,QF output;
