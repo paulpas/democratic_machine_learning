@@ -1,0 +1,56 @@
+flowchart TD
+    A[Start: User runs ./run_all_domains.sh] --> B{Initialize System}
+    B --> C[Load Enhanced DecisionEngine]
+    C --> D[Connect to LLM Endpoint: http://localhost:8080]
+    D --> E{LLM Available?}
+    E -->|Yes| F[LLM Enhancement Active]
+    E -->|No| G[Use Fallback Reasoning]
+    F --> H[Process Each Policy Domain]
+    G --> H
+    H --> I[Economy Domain]
+    H --> J[Healthcare Domain]
+    H --> K[Education Domain]
+    H --> L[Immigration Domain]
+    H --> M[Climate Domain]
+    H --> N[Infrastructure Domain]
+    I --> O[Create Policy Object]
+    J --> O
+    K --> O
+    L --> O
+    M --> O
+    N --> O
+    O --> P[Create Voter Panel]
+    P --> Q[Expert Voters: Domain Specialists]
+    P --> R[Stakeholder Reps: Interest Groups]
+    P --> S[Public Reps: Cross-section]
+    Q --> T[Set Preferences Based on Expertise]
+    R --> T
+    S --> T
+    T --> U[Run Trust-Weighted Decision Analysis]
+    U --> V{LLM Available?}
+    V -->|Yes| W[LLM-Enhanced Policy Context Analysis]
+    V -->|No| Y[Use Fallback Analysis]
+    W --> Z[Generate Detailed Reasoning: 5KB+ Analysis]
+    Z --> AA[Extract Key Insights & Recommendations]
+    Y --> AA
+    AA --> AB[Apply Trust-Weighted Voting]
+    AB --> AC[Check Fairness Constraints: 30% Min Satisfaction, 40% Max Disparity]
+    AC --> AD[Screen for Anti-Patterns: Power Concentration, Elite Capture, etc.]
+    AD --> AE[Generate Final Decision Report]
+    AE --> AF[Save to: output/us_<domain>_governance_model.md]
+    AF --> AG[Next Domain]
+    AG --> AH{All Domains Processed?}
+    AH -->|No| H
+    AH -->|Yes| AI[Complete: All Reports Generated]
+    AI --> AJ[End: System Ready for Use]
+    
+    %% Styling
+    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+    classDef decision fill:#fff3e0,stroke:#ef6c00,stroke-width:2px;
+    classDef llm fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px;
+    classDef output fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px;
+    
+    class B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z,AA,AB,AC,AD,AE,AF,AG,AH,AI,AJ process;
+    class U,V,W,X,Y,Z,AA,AB,AC,AD llm;
+    class AF,AI,AJ output;
+    class AB,AC,AD decision;

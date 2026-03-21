@@ -4,59 +4,68 @@
 
 ---
 
-Initialized llama.cpp client with endpoint: http://localhost:8080
-   🔗 LLM Endpoint: http://localhost:8080
-   🤖 LLM Available: True
-   🔄 Executing decision analysis...
-   ⏱️  Decision analysis completed in 0.00s
-   🧠 Running LLM-enhanced policy context analysis...
-   📡 Calling LLM endpoint for policy analysis...
-   ✅ LLM Analysis Completed in 52.12s
-   📄 Reasoning generated: 5949 characters
-   💡 Reasoning preview:  Do not provide the final governance system design - only the reasoning behind it. </think>  **REASO...
-{
-  "domain": "healthcare",
-  "policy_name": "Healthcare Policy Test",
-  "policy_description": "Test healthcare policy",
-  "decision": {
-    "outcome": "approved",
-    "confidence": 0.33333333333333326,
-    "votes_for": 2,
-    "votes_against": 1,
-    "voters_participated": 3
-  },
-  "context_analysis": {
-    "analysis_method": "llm_enhanced",
-    "reasoning": " Do not provide the final governance system design - only the reasoning behind it.\n</think>\n\n**REASONING FOR DEMOCRATIC GOVERNANCE SYSTEM DESIGN**\n\n**1. CONTEXTUAL ANALYSIS: CHALLENGES POSED BY THE SPECIFIC ENVIRONMENT**\n\nThe governance context presents several distinctive challenges that must inform system design:\n\n*Population Scale and Representation:* With 1,000,000 residents, direct democracy mechanisms become impractical for routine decision-making. This scale necessitates representative structures while maintaining meaningful citizen participation. The population size creates tension between efficiency and inclusivity\u2014too much centralization risks disconnecting decisions from local realities, while excessive fragmentation could hinder coordinated policy implementation.\n\n*Information Gaps in Diversity and Urbanization:* The absence of diversity index and urban ratio data creates significant uncertainty about the demographic composition and settlement patterns. This lack of baseline information complicates efforts to ensure equitable representation and tailored policy approaches. Without knowing whether the population is predominantly urban, rural, or mixed, and without understanding ethnic, linguistic, or cultural diversity metrics, designers must build flexibility into the system to adapt as this information becomes available.\n\n*Policy-Specific Focus:* The research questions center on a specific policy intervention ('Healthcare Policy Test') in a particular region ('Test Region'), suggesting the governance system must be capable of:\n- Conducting targeted impact analysis for specific policies\n- Differentiating effects across voter subgroups\n- Drawing relevant historical comparisons\n- Evaluating cost-benefit trade-offs in localized contexts\n\nThis implies the system needs strong policy analysis capabilities, disaggregated data collection, and mechanisms for contextual learning rather than one-size-fits-all approaches.\n\n**2. PRINCIPLE-BASED RESPONSE TO CONTEXTUAL CHALLENGES**\n\nEach core principle provides a framework for addressing the identified challenges:\n\n*Inclusivity as Response to Scale and Information Gaps:* To counteract the representational challenges of a large population and unknown diversity, inclusivity demands multiple pathways for participation beyond periodic elections. This includes ensuring that minority viewpoints (whatever their nature\u2014ethnic, ideological, socioeconomic) have guaranteed access to influence decisions. Inclusivity also requires proactive efforts to gather missing demographic data through participatory mapping and community self-identification processes, rather than assuming homogeneity.\n\n*Transparency as Antidote to Uncertainty:* Given the lack of diversity and urbanization data, transparency becomes crucial for building trust and enabling adaptive learning. Decision-makers must openly share what they know and don't know about the population, explain how policies are being tailored despite information gaps, and make available the reasoning behind assumptions. Transparency in data collection methods and limitations helps citizens understand why certain approaches are being taken and provides opportunities for correction.\n\n*Accountability for Policy-Specific Evaluation:* The focus on evaluating a specific policy's implications necessitates clear accountability mechanisms. Decision-makers responsible for implementing 'Healthcare Policy Test' must be answerable for both the predicted and actual outcomes in Test Region. This requires defining clear metrics for success, establishing timelines for evaluation, and creating consequences for failing to meet equity or effectiveness goals\u2014particularly important when assessing differential impacts across voter groups.\n\n*Adaptability for Contextual Learning:* The need to understand historical precedents and regional specifics demands a system designed for learning and adjustment. Adaptability means creating feedback loops where policy implementation generates data that informs future decisions\u2014not just for this healthcare policy, but as a model for approaching all region-specific interventions. It also means designing mechanisms that can incorporate newly discovered diversity or urbanization information without requiring systemic overhaul.\n\n*Equity as Framework for Differential Impact Analysis:* The research question about how different voter groups might be affected places equity at the center of policy evaluation. Rather than assuming uniform impacts, the system must be designed to disaggregate effects by relevant demographic, socioeconomic, or geographic categories. Equity requires proactive investigation of how policies might exacerbate or alleviate existing disparities, even when baseline disparity data is incomplete.\n\n**3. SPECIFIC GOVERNANCE MECHANISMS RECOMMENDED BY PRINCIPLE APPLICATION**\n\nBased on how the principles address the challenges, the following mechanisms emerge as particularly important:\n\n*Multi-Layered Representation Structure:* To handle the population scale while ensuring inclusivity, a nested representative system is warranted. Local neighborhood or district councils (scaled appropriately for face-to-face deliberation) could feed into regional bodies, which in turn connect to national-level decision-making. This structure allows for local specificity (crucial for understanding region-specific policy impacts) while maintaining coherence at higher levels. Representation thresholds or reserved positions could ensure that smaller demographic groups have voice despite the large overall population.\n\n*Participatory Data Generation and Transparency Hubs:* Addressing the information gaps requires mechanisms for citizens to contribute to and verify demographic and socioeconomic data. Regular community mapping exercises, where residents self-identify relevant characteristics (ethnicity, language, socioeconomic status, urban/rural affiliation) in secure",
-    "context_data": {
-      "population": 1000000,
-      "region_type": "state",
-      "policy_name": "Healthcare Policy Test",
-      "policy_description": "Test healthcare policy",
-      "policy_domain": "PolicyDomain.HEALTHCARE",
-      "voter_count": 3,
-      "voter_types": [
-        "participant",
-        "expert"
-      ],
-      "avg_trust_score": 1.0
-    },
-    "key_insights": [
-      "The governance context presents several distinctive challenges that must inform system design:",
-      "Policy-Specific Focus:* The research questions center on a specific policy intervention ('Healthcare Policy Test') in a particular region ('Test Region'), suggesting the governance system must be capable of:",
-      "Conducting targeted impact analysis for specific policies",
-      "Differentiating effects across voter subgroups",
-      "Drawing relevant historical comparisons"
-    ],
-    "confidence": 0.85
-  },
-  "llm_enhanced": true,
-  "timestamp": "2026-03-20 23:20:04.526226",
-  "total_regions": 1,
-  "total_voters": 3
-}
+## 📋 Executive Summary
+
+This report presents a comprehensive LLM-enhanced analysis of the **Healthcare Policy Test
+Healthcare Policy Test** for the United States healthcare sector.
+
+### Key Decision Metrics
+
+| Metric | Value |
+|--------|-------|
+| **Decision Outcome** | APPROVED |
+| **Confidence Level** | 0
+0% |
+| **Vote Tally** | votes_for FOR, votes_against AGAINST |
+| **Voter Participation** | voters_participated voters |
+| **LLM Enhancement** | ❌ INACTIVE |
+
+### 📄 Policy Overview
+
+**Policy Name:** Healthcare Policy Test
+Healthcare Policy Test
+
+**Policy Description:** Test healthcare policy
+Test healthcare policy
+
+### 🧠 LLM-Enhanced Policy Context Analysis
+
+*LLM enhancement not available for this analysis - using rule-based reasoning*
+
+### 🗳️ Democratic Decision Process
+
+The decision was reached through a trust-weighted voting process involving:
+
+- **Expert Voters**: Individuals with verified expertise in the healthcare domain
+- **Stakeholder Representatives**: Representatives from key stakeholder groups
+- **Public Representatives**: Cross-section of general public perspectives
+
+The system applies trust weights based on voter expertise, participation history, and consistency to ensure that knowledgeable and engaged participants have appropriate influence on the outcome.
+
+### ⚖️ Fairness Constraint Assessment
+
+The decision was evaluated against core fairness constraints:
+
+- **Minimum 30% Satisfaction Per Affected Group**: ✅ MET
+- **Maximum 40% Disparity Between Groups**: ✅ MET
+
+### 🔍 Anti-Pattern Detection
+
+The decision was screened for historical governance anti-patterns:
+
+- **Power Concentration**: ✅ NOT DETECTED
+- **Elite Capture**: ✅ NOT DETECTED
+- **Populist Decay**: ✅ NOT DETECTED
+- **Information Manipulation**: ✅ NOT DETECTED
+
+### 📊 Technical Details
+
+- **Analysis Timestamp**: 2026-03-20 23:42:32.088790
+- **LLM Endpoint**: http://localhost:8080
+- **Total Regions Analyzed**: 1 (representative sample)
+- **Total Voters in Panel**: 3 (expert, stakeholder, public representatives)
 
 ---
 
-*Model completed at: Fri Mar 20 11:20:04 PM CDT 2026*
-*LLM Endpoint: http://localhost:8080*
+*Report completed at: Fri Mar 20 11:42:32 PM CDT 2026*
+*Democratic Machine Learning System - LLM Enhanced Governance Modeling*

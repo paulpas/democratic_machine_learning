@@ -4,55 +4,68 @@
 
 ---
 
-Initialized llama.cpp client with endpoint: http://localhost:8080
-   🔗 LLM Endpoint: http://localhost:8080
-   🤖 LLM Available: True
-   🔄 Executing decision analysis...
-   ⏱️  Decision analysis completed in 0.00s
-   🧠 Running LLM-enhanced policy context analysis...
-   📡 Calling LLM endpoint for policy analysis...
-   ✅ LLM Analysis Completed in 50.66s
-   📄 Reasoning generated: 6458 characters
-   💡 Reasoning preview:  Do not make any final decisions - focus on the reasoning process itself. </think>  # Democratic Gov...
-{
-  "domain": "education",
-  "policy_name": "Education Policy Test",
-  "policy_description": "Test education policy",
-  "decision": {
-    "outcome": "approved",
-    "confidence": 0.33333333333333326,
-    "votes_for": 2,
-    "votes_against": 1,
-    "voters_participated": 3
-  },
-  "context_analysis": {
-    "analysis_method": "llm_enhanced",
-    "reasoning": " Do not make any final decisions - focus on the reasoning process itself.\n</think>\n\n# Democratic Governance System Design Reasoning\n\n## 1. Contextual Challenge Analysis\n\n### Demographic and Social Challenges\nThe region Test Region with population 1000000 presents significant governance challenges due to its scale and potential heterogeneity. At this population level, direct democracy becomes impractical, necessitating representative structures that must balance responsiveness with deliberative quality. The absence of diversity index and urban ratio data creates uncertainty about social cleavages that might affect policy implementation and voter alignment.\n\n### Policy-Specific Challenges\nThe 'Education Policy Test' raises particular governance considerations given education's role in social mobility, intergenerational equity, and long-term societal development. Education policies typically affect different demographic groups unevenly - potentially creating winners and losers based on socioeconomic status, geographic location, age cohorts, and existing educational attainment levels. The policy's implications for resource allocation, curriculum standards, access provisions, and accountability mechanisms all require careful democratic consideration.\n\n### Temporal and Implementation Challenges\nEducation policies often have delayed effects, creating misalignment between electoral cycles and policy outcomes. This temporal disconnect poses accountability challenges, as voters may struggle to connect policy decisions with long-term results. Additionally, education policy implementation typically involves multiple stakeholders (teachers, administrators, parents, students) creating complex principal-agent problems.\n\n## 2. Principle-Based Response to Challenges\n\n### Inclusivity Addressing Representation Gaps\nTo counter potential exclusion of minority viewpoints in education policy debates, the system must ensure proportional representation of affected stakeholders. This includes not only geographic representation but also functional representation of education system participants (educators, parents across different school types, students where age-appropriate, and community representatives). Special attention must be given to groups historically marginalized in educational decision-making.\n\n### Transparency Mitigating Information Asymmetry\nGiven the technical nature of education policy, transparency mechanisms must go beyond simple disclosure to include explanatory components that make complex educational concepts accessible to diverse voter groups. This includes clear articulation of policy trade-offs, evidence bases, and implementation timelines. Transparency should extend to the policy development process itself, showing how different inputs were considered and weighted.\n\n### Accountability Addressing Delayed Feedback Loops\nTraditional electoral accountability is insufficient for education policies with long time horizons. The system must incorporate intermediate accountability measures, including regular progress reporting against defined metrics, independent evaluations, and mechanisms for course correction. Accountability should be distributed across policymakers, implementers, and oversight bodies rather than concentrated solely on elected officials.\n\n### Adaptability Handling Implementation Uncertainty\nEducation policy implementation rarely proceeds exactly as planned due to unforeseen contextual factors. The governance system must build in formal adaptation mechanisms - pilot programs, sunset clauses, mandatory review periods, and clear triggers for policy revision. This adaptability must be balanced against the need for stability that educational institutions require for effective long-term planning.\n\n### Equity Preventing Disparate Impacts\nEducation policies often exacerbate existing inequalities if not carefully designed. The system must require equity impact assessments as part of policy development, with specific attention to how different socioeconomic, geographic, and demographic groups might experience differential benefits or burdens. Equity considerations should be integrated throughout the policy lifecycle, not treated as an afterthought.\n\n## 3. Recommended Governance Mechanisms\n\n### Deliberative Mini-Publics for Policy Development\nGiven the technical complexity and value-laden nature of education policy, a stratified citizen jury representing the region's demographic diversity should be convened to examine the policy proposal. This body would receive expert testimony, deliberate over an extended period, and provide considered recommendations. The stratification should ensure representation across education stakeholder groups, not just general demographics.\n\n### Multi-Stakeholder Policy Implementation Councils\nImplementation oversight should involve standing councils that include representatives from teacher unions, parent associations (stratified by school type and socioeconomic indicators), student representatives (where age-appropriate), administrative officials, and community organizations. These councils would have formal authority to monitor implementation, identify emerging issues, and recommend adjustments.\n\n### Tiered Accountability Framework\nAccountability should operate at multiple levels: \n1) Policy level: Regular independent evaluations against stated educational outcomes\n2) Implementation level: School-based reporting mechanisms with community oversight\n3) Political level: Legislative oversight committees with education expertise\n4) Judicial level: Constitutional or statutory education rights enforcement mechanisms\n\n### Adaptive Policy Design with Built-in Review Triggers\nThe policy should incorporate specific, measurable indicators that trigger automatic review processes when thresholds are crossed. These might include equity metrics (disaggregated outcome gaps), resource utilization efficiency, or stakeholder satisfaction measures. Review processes should have defined timelines and required consultation procedures.\n\n### Transparent Evidence Base and Policy Rationale\nAll education policy proposals should be accompanied by an accessible evidence dossier summarizing relevant research, cost-benefit analyses, equity impact assessments, and implementation lessons from comparable jurisdictions. This dossier should be available in multiple formats and languages appropriate to the region's population.\n\n## 4. Anti-Pattern",
-    "context_data": {
-      "population": 1000000,
-      "region_type": "state",
-      "policy_name": "Education Policy Test",
-      "policy_description": "Test education policy",
-      "policy_domain": "PolicyDomain.EDUCATION",
-      "voter_count": 3,
-      "voter_types": [
-        "participant",
-        "expert"
-      ],
-      "avg_trust_score": 1.0
-    },
-    "key_insights": [
-      "Accountability should operate at multiple levels:"
-    ],
-    "confidence": 0.85
-  },
-  "llm_enhanced": true,
-  "timestamp": "2026-03-20 23:20:55.555013",
-  "total_regions": 1,
-  "total_voters": 3
-}
+## 📋 Executive Summary
+
+This report presents a comprehensive LLM-enhanced analysis of the **Education Policy Test
+Education Policy Test** for the United States education sector.
+
+### Key Decision Metrics
+
+| Metric | Value |
+|--------|-------|
+| **Decision Outcome** | APPROVED |
+| **Confidence Level** | 0
+0% |
+| **Vote Tally** | votes_for FOR, votes_against AGAINST |
+| **Voter Participation** | voters_participated voters |
+| **LLM Enhancement** | ❌ INACTIVE |
+
+### 📄 Policy Overview
+
+**Policy Name:** Education Policy Test
+Education Policy Test
+
+**Policy Description:** Test education policy
+Test education policy
+
+### 🧠 LLM-Enhanced Policy Context Analysis
+
+*LLM enhancement not available for this analysis - using rule-based reasoning*
+
+### 🗳️ Democratic Decision Process
+
+The decision was reached through a trust-weighted voting process involving:
+
+- **Expert Voters**: Individuals with verified expertise in the education domain
+- **Stakeholder Representatives**: Representatives from key stakeholder groups
+- **Public Representatives**: Cross-section of general public perspectives
+
+The system applies trust weights based on voter expertise, participation history, and consistency to ensure that knowledgeable and engaged participants have appropriate influence on the outcome.
+
+### ⚖️ Fairness Constraint Assessment
+
+The decision was evaluated against core fairness constraints:
+
+- **Minimum 30% Satisfaction Per Affected Group**: ✅ MET
+- **Maximum 40% Disparity Between Groups**: ✅ MET
+
+### 🔍 Anti-Pattern Detection
+
+The decision was screened for historical governance anti-patterns:
+
+- **Power Concentration**: ✅ NOT DETECTED
+- **Elite Capture**: ✅ NOT DETECTED
+- **Populist Decay**: ✅ NOT DETECTED
+- **Information Manipulation**: ✅ NOT DETECTED
+
+### 📊 Technical Details
+
+- **Analysis Timestamp**: 2026-03-20 23:43:25.432676
+- **LLM Endpoint**: http://localhost:8080
+- **Total Regions Analyzed**: 1 (representative sample)
+- **Total Voters in Panel**: 3 (expert, stakeholder, public representatives)
 
 ---
 
-*Model completed at: Fri Mar 20 11:20:55 PM CDT 2026*
-*LLM Endpoint: http://localhost:8080*
+*Report completed at: Fri Mar 20 11:43:25 PM CDT 2026*
+*Democratic Machine Learning System - LLM Enhanced Governance Modeling*
