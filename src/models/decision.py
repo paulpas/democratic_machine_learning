@@ -1,7 +1,7 @@
 """Data models for decisions in the democratic decision-making system."""
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from datetime import datetime
 
 
@@ -19,6 +19,7 @@ class Decision:
     votes_for: int = 0
     votes_against: int = 0
     timestamp: Optional[datetime] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         """Validate decision data after initialization."""

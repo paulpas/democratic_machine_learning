@@ -1,43 +1,59 @@
 """LLM integration for democratic machine learning.
 
 This module provides LLM-based reasoning, analysis, and conjecture formation
-using the Anthropic Claude model.
+using a llama.cpp endpoint at http://localhost:8080.
 """
 
+import json
 import os
 from typing import Any, Dict, List, Optional
-
-try:
-    import anthropic
-
-    ANTHROPIC_AVAILABLE = True
-except ImportError:
-    ANTHROPIC_AVAILABLE = False
+import urllib.request
+import urllib.error
 
 
 class LLMClient:
-    """Client for LLM-based reasoning."""
+    """Client for LLM-based reasoning using llama.cpp endpoint."""
 
-    def __init__(self, model: Optional[str] = None):
+    def __init__(self, endpoint: Optional[str] = None, model: Optional[str] = None):
         """Initialize LLM client.
 
         Args:
-            model: Model to use (default: from ANTHROPIC_MODEL env var)
+            endpoint: Llama.cpp endpoint URL (default: http://localhost:8080)
+            model: Model name to use (for logging purposes)
         """
-        self.model = model or os.environ.get(
-            "ANTHROPIC_MODEL", "claude-haiku-4-5-20251001"
+        self.endpoint = endpoint or os.environ.get(
+            "LLAMA_CPP_ENDPOINT", "http://localhost:8080"
         )
-        self.client = None
+        self.model = model or os.environ.get("LLAMA_MODEL", "llama.cpp-model")
+        self.timeout = int(os.environ.get("LLAMA_TIMEOUT", "120"))
 
-        if ANTHROPIC_AVAILABLE:
-            api_key = os.environ.get("ANTHROPIC_API_KEY")
-            if api_key:
-                self.client = anthropic.Anthropic(api_key=api_key)
-                print(f"Initialized Anthropic client with model: {self.model}")
-            else:
-                print("Warning: ANTHROPIC_API_KEY not set - LLM will use fallback")
+        # Test connection to endpoint
+        self.available = self._test_connection()
+        if self.available:
+            print(f"Initialized llama.cpp client with endpoint: {self.endpoint}")
         else:
-            print("Warning: anthropic library not installed - LLM will use fallback")
+            print(
+                f"Warning: Could not connect to llama.cpp endpoint at {self.endpoint} - LLM will use fallback"
+            )
+
+    def _test_connection(self) -> bool:
+        """Test if the llama.cpp endpoint is available."""
+        try:
+            # Simple health check - try to make a minimal request
+            data = json.dumps(
+                {"prompt": "test", "max_tokens": 1, "temperature": 0.0}
+            ).encode("utf-8")
+
+            req = urllib.request.Request(
+                f"{self.endpoint}/completion",
+                data=data,
+                headers={"Content-Type": "application/json"},
+            )
+
+            with urllib.request.urlopen(req, timeout=5) as response:
+                return response.getcode() == 200
+        except Exception:
+            return False
 
     def generate_reasoning(
         self,
@@ -57,21 +73,30 @@ class LLMClient:
         Returns:
             Generated reasoning text
         """
-        if self.client:
+        if self.available:
             prompt = self._build_reasoning_prompt(
                 context, research_questions, principles
             )
 
             try:
-                message = self.client.messages.create(
-                    model=self.model,
-                    max_tokens=max_tokens,
-                    messages=[{"role": "user", "content": prompt}],
+                data = json.dumps(
+                    {
+                        "prompt": prompt,
+                        "max_tokens": max_tokens,
+                        "temperature": 0.7,
+                        "stop": ["</s>", "\n\n\n"],
+                    }
+                ).encode("utf-8")
+
+                req = urllib.request.Request(
+                    f"{self.endpoint}/completion",
+                    data=data,
+                    headers={"Content-Type": "application/json"},
                 )
-                # Handle different content types
-                if hasattr(message.content[0], "text"):
-                    return message.content[0].text
-                return str(message.content[0])
+
+                with urllib.request.urlopen(req, timeout=self.timeout) as response:
+                    result = json.loads(response.read().decode("utf-8"))
+                    return result.get("content", "")
             except Exception as e:
                 print(f"LLM error: {e}")
                 return self._generate_fallback_reasoning(context, principles)
@@ -96,16 +121,29 @@ class LLMClient:
         Returns:
             Conjecture with statement, confidence, and supporting evidence
         """
-        if self.client:
+        if self.available:
             prompt = self._build_conjecture_prompt(question, context, evidence)
 
             try:
-                message = self.client.messages.create(
-                    model=self.model,
-                    max_tokens=max_tokens,
-                    messages=[{"role": "user", "content": prompt}],
+                data = json.dumps(
+                    {
+                        "prompt": prompt,
+                        "max_tokens": max_tokens,
+                        "temperature": 0.7,
+                        "stop": ["</s>", "\n\n\n"],
+                    }
+                ).encode("utf-8")
+
+                req = urllib.request.Request(
+                    f"{self.endpoint}/completion",
+                    data=data,
+                    headers={"Content-Type": "application/json"},
                 )
-                return self._parse_conjecture_response(message.content[0].text)
+
+                with urllib.request.urlopen(req, timeout=self.timeout) as response:
+                    result = json.loads(response.read().decode("utf-8"))
+                    response_text = result.get("content", "")
+                    return self._parse_conjecture_response(response_text)
             except Exception as e:
                 print(f"LLM error: {e}")
                 return self._form_fallback_conjecture(question, evidence)
@@ -125,16 +163,29 @@ class LLMClient:
         Returns:
             Analysis with recommendations
         """
-        if self.client:
+        if self.available:
             prompt = self._build_policy_analysis_prompt(topic, research_data)
 
             try:
-                message = self.client.messages.create(
-                    model=self.model,
-                    max_tokens=max_tokens,
-                    messages=[{"role": "user", "content": prompt}],
+                data = json.dumps(
+                    {
+                        "prompt": prompt,
+                        "max_tokens": max_tokens,
+                        "temperature": 0.7,
+                        "stop": ["</s>", "\n\n\n"],
+                    }
+                ).encode("utf-8")
+
+                req = urllib.request.Request(
+                    f"{self.endpoint}/completion",
+                    data=data,
+                    headers={"Content-Type": "application/json"},
                 )
-                return self._parse_analysis_response(message.content[0].text)
+
+                with urllib.request.urlopen(req, timeout=self.timeout) as response:
+                    result = json.loads(response.read().decode("utf-8"))
+                    response_text = result.get("content", "")
+                    return self._parse_analysis_response(response_text)
             except Exception as e:
                 print(f"LLM error: {e}")
                 return self._generate_fallback_analysis(topic, research_data)
@@ -222,24 +273,193 @@ Provide analysis including:
 
     def _parse_conjecture_response(self, response: str) -> Dict[str, Any]:
         """Parse conjecture response from LLM."""
-        # Simple parsing - in production, use structured output
-        conjecture = {
-            "statement": response[:200] if response else "No conjecture formed",
-            "confidence": 0.75,
-            "supporting_evidence": ["LLM analysis"],
-            "contradicting_evidence": [],
-            "update_reason": "LLM reasoning",
+        # Extract structured information from LLM response
+        lines = response.strip().split("\n")
+        statement = ""
+        confidence = 0.75
+        supporting_evidence = []
+        contradicting_evidence = []
+
+        current_section = None
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+
+            # Look for section headers
+            if line.lower().startswith("statement:") or line.lower().startswith(
+                "conjecture:"
+            ):
+                current_section = "statement"
+                statement = line.split(":", 1)[1].strip() if ":" in line else ""
+            elif line.lower().startswith("confidence:"):
+                current_section = "confidence"
+                try:
+                    conf_str = line.split(":", 1)[1].strip()
+                    # Extract numeric value
+                    import re
+
+                    num_match = re.search(r"(\d+\.?\d*)", conf_str)
+                    if num_match:
+                        confidence = float(num_match.group(1))
+                        # Ensure it's in 0-1 range
+                        if confidence > 1.0:
+                            confidence = (
+                                confidence / 100.0 if confidence <= 100.0 else 1.0
+                            )
+                except:
+                    confidence = 0.75
+            elif line.lower().startswith(
+                "supporting evidence:"
+            ) or line.lower().startswith("supports:"):
+                current_section = "supporting"
+            elif line.lower().startswith(
+                "contradicting evidence:"
+            ) or line.lower().startswith("contradicts:"):
+                current_section = "contradicting"
+            elif (
+                line.startswith("- ") or line.startswith("* ") or line.startswith("• ")
+            ):
+                # List item
+                item = line[2:].strip()
+                if current_section == "supporting":
+                    supporting_evidence.append(item)
+                elif current_section == "contradicting":
+                    contradicting_evidence.append(item)
+            elif current_section == "statement" and not line.startswith("#"):
+                # Continue building statement
+                if statement:
+                    statement += " " + line
+                else:
+                    statement = line
+
+        # If we didn't find a clear statement, use the first substantial line
+        if not statement:
+            for line in lines:
+                if len(line.strip()) > 10 and not line.startswith("#"):
+                    statement = line.strip()
+                    break
+
+        # Default fallback
+        if not statement:
+            statement = "Based on the available evidence, a reasonable conjecture can be formed."
+
+        return {
+            "statement": statement[:500] if statement else "No conjecture formed",
+            "confidence": max(0.0, min(1.0, confidence)),  # Clamp to 0-1
+            "supporting_evidence": supporting_evidence[:10],  # Limit to 10 items
+            "contradicting_evidence": contradicting_evidence[:10],  # Limit to 10 items
+            "update_reason": "LLM reasoning via llama.cpp",
         }
-        return conjecture
 
     def _parse_analysis_response(self, response: str) -> Dict[str, Any]:
         """Parse analysis response from LLM."""
+        # Extract structured information from LLM response
+        lines = response.strip().split("\n")
+        findings = ""
+        consensus = 0.75
+        recommendations = []
+        implementation = []
+        outcomes = []
+
+        current_section = None
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+
+            # Look for section headers
+            if line.lower().startswith("findings:") or line.lower().startswith(
+                "key findings:"
+            ):
+                current_section = "findings"
+                findings = line.split(":", 1)[1].strip() if ":" in line else ""
+            elif line.lower().startswith("consensus:"):
+                current_section = "consensus"
+                try:
+                    conf_str = line.split(":", 1)[1].strip()
+                    # Extract numeric value
+                    import re
+
+                    num_match = re.search(r"(\d+\.?\d*)", conf_str)
+                    if num_match:
+                        consensus = float(num_match.group(1))
+                        # Ensure it's in 0-1 range
+                        if consensus > 1.0:
+                            consensus = consensus / 100.0 if consensus <= 100.0 else 1.0
+                except:
+                    consensus = 0.75
+            elif line.lower().startswith("recommendations:") or line.lower().startswith(
+                "recommend:"
+            ):
+                current_section = "recommendations"
+            elif line.lower().startswith("implementation:") or line.lower().startswith(
+                "implement:"
+            ):
+                current_section = "implementation"
+            elif line.lower().startswith("outcomes:") or line.lower().startswith(
+                "expected outcomes:"
+            ):
+                current_section = "outcomes"
+            elif (
+                line.startswith("- ") or line.startswith("* ") or line.startswith("• ")
+            ):
+                # List item
+                item = line[2:].strip()
+                if current_section == "recommendations":
+                    recommendations.append(item)
+                elif current_section == "implementation":
+                    implementation.append(item)
+                elif current_section == "outcomes":
+                    outcomes.append(item)
+            elif current_section == "findings" and not line.startswith("#"):
+                # Continue building findings
+                if findings:
+                    findings += " " + line
+                else:
+                    findings = line
+
+        # If we didn't find clear sections, use heuristics
+        if not findings:
+            # Use first substantial paragraph as findings
+            for line in lines:
+                if (
+                    len(line.strip()) > 15
+                    and not line.startswith("#")
+                    and not line.lower().startswith(
+                        ("recommend", "implement", "outcome")
+                    )
+                ):
+                    findings = line.strip()
+                    break
+
+        # Default fallbacks
+        if not findings:
+            findings = f"Analysis of {topic} based on available research data."
+        if not recommendations:
+            recommendations = [
+                "Implement policy with phased approach",
+                "Monitor outcomes and adjust as needed",
+            ]
+        if not implementation:
+            implementation = [
+                "Phase 1: Planning and stakeholder engagement",
+                "Phase 2: Pilot implementation",
+                "Phase 3: Full rollout",
+            ]
+        if not outcomes:
+            outcomes = [
+                "Improved governance",
+                "Increased citizen satisfaction",
+                "Better policy outcomes",
+            ]
+
         return {
-            "findings": response[:500] if response else "No findings",
-            "consensus": 0.75,
-            "recommendations": ["LLM-generated"],
-            "implementation": ["LLM-generated"],
-            "outcomes": ["LLM-generated"],
+            "findings": findings[:1000] if findings else "No findings",
+            "consensus": max(0.0, min(1.0, consensus)),  # Clamp to 0-1
+            "recommendations": recommendations[:10],  # Limit to 10 items
+            "implementation": implementation[:10],  # Limit to 10 items
+            "outcomes": outcomes[:10],  # Limit to 10 items
         }
 
     def _generate_fallback_reasoning(

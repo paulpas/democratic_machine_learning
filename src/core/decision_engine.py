@@ -1,11 +1,19 @@
 """Core decision engine for democratic decision-making."""
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple, Any
 from src.models.voter import Voter, VoterType
 from src.models.policy import Policy
 from src.models.region import Region
 from src.models.decision import Decision
 from src.utils.metrics import FairnessMetrics
+from src.policy.policy_tree import PolicyTree, PolicyHierarchyLevel
+from src.history.anti_patterns import AntiPatternDatabase
+from src.security.trust_system import (
+    TrustScorer,
+    EvidenceValidator,
+    SocialInfluenceAnalyzer,
+)
+from src.llm.integration import LLMClient
 
 
 class DecisionEngine:
@@ -23,6 +31,20 @@ class DecisionEngine:
         self.regions: Dict[str, Region] = {}
         self.decisions: List[Decision] = []
         self.fairness_metrics = FairnessMetrics()
+
+        # Initialize LLM client for intelligent analysis
+        self.llm_client = LLMClient()
+
+        # Initialize anti-pattern database
+        self.anti_pattern_db = AntiPatternDatabase()
+
+        # Initialize policy tree and anti-pattern detection
+        self.policy_tree = PolicyTree(self.anti_pattern_db)
+
+        # Initialize trust and security systems
+        self.trust_scorer = TrustScorer()
+        self.evidence_validator = EvidenceValidator()
+        self.influence_analyzer = SocialInfluenceAnalyzer()
 
     def register_voter(self, voter: Voter) -> None:
         """Register a voter in the system."""
@@ -57,6 +79,7 @@ class DecisionEngine:
         if not region:
             raise ValueError(f"Region {region_id} not found")
 
+        # Get voters in region
         voters_in_region = [
             v
             for v in self.voters.values()
@@ -118,3 +141,212 @@ class DecisionEngine:
                 return False
 
         return True
+
+    def build_policy_tree_for_domain(
+        self, domain: str, legislation_data: Dict
+    ) -> PolicyTree:
+        """Build a policy tree for a specific domain using legislation data.
+
+        Args:
+            domain: Policy domain (e.g., 'immigration', 'healthcare')
+            legislation_data: Dictionary of legislation to scan
+
+        Returns:
+            PolicyTree: Built policy tree with anti-pattern detection
+        """
+        # Clear existing tree for this domain
+        self.policy_tree = PolicyTree(self.anti_pattern_db)
+
+        # Add policies from legislation data
+        for policy_id, policy_data in legislation_data.items():
+            # Extract policy information
+            name = policy_data.get("name", f"Policy {policy_id}")
+            description = policy_data.get("description", "")
+            level_str = policy_data.get("level", "national")
+
+            # Map string level to enum
+            level_mapping = {
+                "national": PolicyHierarchyLevel.NATIONAL,
+                "state": PolicyHierarchyLevel.STATE,
+                "county": PolicyHierarchyLevel.COUNTY,
+                "municipal": PolicyHierarchyLevel.MUNICIPAL,
+                "local": PolicyHierarchyLevel.LOCAL,
+            }
+            level = level_mapping.get(level_str.lower(), PolicyHierarchyLevel.NATIONAL)
+
+            # Add policy to tree
+            parent_id = policy_data.get("parent_id")
+            self.policy_tree.add_policy(
+                policy_id=policy_id,
+                name=name,
+                description=description,
+                level=level,
+                parent_id=parent_id,
+            )
+
+            # Add legislation references if provided
+            if "legislation_references" in policy_data:
+                for ref in policy_data["legislation_references"]:
+                    policy_node = self.policy_tree.nodes.get(policy_id)
+                    if policy_node:
+                        policy_node.add_legislation(ref)
+
+        # Scan for anti-patterns in the legislation data
+        self.policy_tree.scan_for_anti_patterns(legislation_data)
+
+        return self.policy_tree
+
+    def detect_anti_patterns_in_decisions(self, decision_data: Dict) -> List[str]:
+        """Detect anti-patterns in decision data.
+
+        Args:
+            decision_data: Dictionary containing decision metrics
+
+        Returns:
+            List of detected anti-pattern IDs
+        """
+        patterns = self.anti_pattern_db.detect_patterns(decision_data)
+        return [p.pattern_id for p in patterns]
+
+    def get_trusted_voters(self, min_trust: float = 0.7) -> List[Voter]:
+        """Get voters with trust scores above threshold.
+
+        Args:
+            min_trust: Minimum trust threshold (0-1)
+
+        Returns:
+            List of trusted Voter objects
+        """
+        voter_list = list(self.voters.values())
+        return self.trust_scorer.get_trusted_voters(voter_list, min_trust)
+
+    def analyze_decision_for_manipulation(
+        self, voter: Voter
+    ) -> Tuple[bool, float, bool, float]:
+        """Analyze a voter for bot activity and manipulation.
+
+        Args:
+            voter: Voter to analyze
+
+        Returns:
+            Tuple of (is_bot, bot_confidence, is_manipulated, manipulation_confidence)
+        """
+        is_bot, bot_confidence = self.influence_analyzer.detect_bot(voter)
+        is_manipulated, manipulation_confidence = (
+            self.influence_analyzer.detect_manipulation(voter)
+        )
+        return is_bot, bot_confidence, is_manipulated, manipulation_confidence
+
+    def _analyze_policy_context(
+        self, policy: Policy, region: Region, voters: List[Voter]
+    ) -> Dict[str, Any]:
+        """Analyze policy context using LLM for enhanced understanding.
+
+        Args:
+            policy: Policy being decided on
+            region: Region where decision is being made
+            voters: List of voters in the region
+
+        Returns:
+            Dictionary containing LLM-analyzed policy context
+        """
+        if not self.llm_client.available:
+            return {
+                "analysis_method": "fallback",
+                "context_summary": f"Policy {policy.name} in region {region.name}",
+                "key_factors": [
+                    "policy_impact",
+                    "voter_demographics",
+                    "regional_context",
+                ],
+            }
+
+        try:
+            # Prepare context for LLM analysis
+            context_data = {
+                "population": region.population,
+                "region_type": region.region_type,
+                "policy_name": policy.name,
+                "policy_description": policy.description,
+                "policy_domain": str(policy.domain),
+                "voter_count": len(voters),
+                "voter_types": list(set([v.voter_type.value for v in voters])),
+                "avg_trust_score": sum(
+                    [self.trust_scorer.calculate_trust_score(v) for v in voters]
+                )
+                / max(len(voters), 1),
+            }
+
+            research_questions = [
+                f"What are the key implications of policy '{policy.name}' for region {region.name}?",
+                f"How might different voter groups in this region be affected by this policy?",
+                f"What historical precedents exist for similar policies in similar contexts?",
+                f"What are the potential benefits and drawbacks of this policy for this specific region?",
+            ]
+
+            principles = [
+                "Inclusivity: Ensure all voter groups have fair representation",
+                "Transparency: Make decision-making process open and understandable",
+                "Accountability: Ensure decision-makers are responsible for outcomes",
+                "Adaptability: Allow policies to evolve based on results and feedback",
+                "Equity: Fair distribution of benefits and burdens across all groups",
+            ]
+
+            reasoning = self.llm_client.generate_reasoning(
+                context=context_data,
+                research_questions=research_questions,
+                principles=principles,
+                max_tokens=1024,
+            )
+
+            return {
+                "analysis_method": "llm_enhanced",
+                "reasoning": reasoning,
+                "context_data": context_data,
+                "key_insights": self._extract_key_insights(reasoning),
+                "confidence": 0.85,
+            }
+        except Exception as e:
+            print(f"LLM policy context analysis error: {e}")
+            return {
+                "analysis_method": "fallback_error",
+                "error": str(e),
+                "context_summary": f"Policy {policy.name} in region {region.name}",
+            }
+
+    def _extract_key_insights(self, reasoning: str) -> List[str]:
+        """Extract key insights from LLM reasoning text.
+
+        Args:
+            reasoning: Reasoning text from LLM
+
+        Returns:
+            List of key insights extracted from the reasoning
+        """
+        insights = []
+        lines = reasoning.split("\n")
+
+        for line in lines:
+            line = line.strip()
+            # Look for bullet points, numbered lists, or strong statements
+            if (
+                line.startswith("- ")
+                or line.startswith("* ")
+                or any(line.startswith(f"{i}.") for i in range(1, 10))
+                or (line.endswith(":") and len(line) > 10)
+            ):
+                insight = line.lstrip("- *0123456789. ")
+                if insight and len(insight) > 10:
+                    insights.append(insight)
+            elif len(line) > 20 and (
+                "key" in line.lower()
+                or "important" in line.lower()
+                or "crucial" in line.lower()
+                or "essential" in line.lower()
+            ):
+                # Extract sentences that seem important
+                if line.endswith(".") and len(line) > 15:
+                    insights.append(line)
+
+        # Limit to top 5 insights
+        return insights[:5]
