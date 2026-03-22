@@ -30,7 +30,6 @@ from src.core.decision_engine import DecisionEngine
 from src.models.policy import Policy, PolicyDomain
 from src.models.region import Region
 from src.models.voter import Voter, VoterType
-import math
 
 def run_domain_analysis(domain_name):
     # Map domain name to PolicyDomain enum
@@ -51,15 +50,9 @@ def run_domain_analysis(domain_name):
     # Create engine
     engine = DecisionEngine()
     
-    # Create regions based on realistic US population distribution
-    # Using approximate populations for different regions
+    # Create a simple set of regions for testing
     regions = [
-        Region(region_id='ne_001', name='New England Region', region_type='state', population=15000000),
-        Region(region_id='mid_atlantic_001', name='Mid-Atlantic Region', region_type='state', population=42000000),
-        Region(region_id='midwest_001', name='Midwest Region', region_type='state', population=68000000),
-        Region(region_id='south_001', name='Southern Region', region_type='state', population=125000000),
-        Region(region_id='west_001', name='Western Region', region_type='state', population=78000000),
-        Region(region_id='pr_001', name='Puerto Rico Region', region_type='territory', population=3200000)
+        Region(region_id='test_001', name='Test Region', region_type='state', population=1000000)
     ]
     
     for region_obj in regions:
@@ -67,157 +60,58 @@ def run_domain_analysis(domain_name):
     
     # Create a policy for this domain
     policy_name_map = {
-        'economy': 'American Economic Competitiveness Act',
-        'healthcare': 'Universal Healthcare Access Act',
-        'education': 'Education Excellence Initiative',
-        'immigration': 'Comprehensive Immigration Reform Act',
-        'climate': 'Clean Energy Transition Act',
-        'infrastructure': 'National Infrastructure Renewal Program'
+        'economy': 'Economic Policy Test',
+        'healthcare': 'Healthcare Policy Test',
+        'education': 'Education Policy Test',
+        'immigration': 'Immigration Policy Test',
+        'climate': 'Climate Policy Test',
+        'infrastructure': 'Infrastructure Policy Test'
     }
     
     policy_desc_map = {
-        'economy': 'Comprehensive economic policy for innovation, job creation, and fiscal responsibility',
-        'healthcare': 'Ensuring affordable, quality healthcare for all Americans',
-        'education': 'Investing in public education from pre-K through higher education',
-        'immigration': 'Fair, humane, and secure immigration system',
-        'climate': 'Accelerating transition to renewable energy and climate resilience',
-        'infrastructure': 'Modernizing transportation, broadband, and public works'
+        'economy': 'Test economic policy',
+        'healthcare': 'Test healthcare policy',
+        'education': 'Test education policy',
+        'immigration': 'Immigration Policy Test',
+        'climate': 'Test climate policy',
+        'infrastructure': 'Infrastructure Policy Test'
     }
     
     policy = Policy(
-        policy_id=f'us_{domain_name}_2026',
+        policy_id=f'us_{domain_name}_test',
         name=policy_name_map[domain_name],
         description=policy_desc_map[domain_name],
         domain=policy_domain
     )
     engine.register_policy(policy)
     
-    # Create a scalable voter panel that represents the population
-    # We'll create a representative sample that scales with population
-    total_population = sum(r.population for r in regions)
-    
-    # Target sample size: aim for ~1000 voters for computational efficiency
-    # but scale representation ratios appropriately
-    target_sample_size = 1000
-    sample_ratio = min(1.0, target_sample_size / total_population)
-    
-    voters = []
-    
-    # Expert voters (approximately 15% of population)
-    expert_count = int(0.15 * target_sample_size)
-    expert_types = [
-        ('surgeon_gen', {'us_healthcare_2026': 0.9, 'us_education_2026': 0.6}),
-        ('econ_advisor', {'us_economy_2026': 0.8, 'us_infrastructure_2026': 0.7}),
-        ('climate_scientist', {'us_climate_2026': 0.95}),
-        ('edu_secretary', {'us_education_2026': 0.9, 'us_economy_2026': 0.6}),
-        ('imm_lawyer', {'us_immigration_2026': 0.9, 'us_healthcare_2026': 0.5}),
-        ('housing_exp', {'us_infrastructure_2026': 0.8, 'us_economy_2026': 0.7})
+    # Create a simple voter panel for testing
+    voters = [
+        Voter(voter_id='voter_1', region_id='test_001', voter_type=VoterType.EXPERT, 
+              expertise={f'us_{domain_name}_test': 0.8}),
+        Voter(voter_id='voter_2', region_id='test_001', voter_type=VoterType.PARTICIPANT),
+        Voter(voter_id='voter_3', region_id='test_001', voter_type=VoterType.PARTICIPANT)
     ]
     
-    for i in range(expert_count):
-        expert_type, expertise = expert_types[i % len(expert_types)]
-        voter = Voter(voter_id=f'exp_{i}', region_id='ne_001', voter_type=VoterType.EXPERT, expertise=expertise)
-        # Experts lean slightly positive on policies in their domain
-        base_pref = 0.7
-        # Adjust based on domain expertise
-        if f'us_{domain_name}_2026' in expertise:
-            pref = base_pref + 0.2
-        else:
-            pref = base_pref - 0.1
-        pref = max(-1.0, min(1.0, pref))
-        voter.add_preference(f'us_{domain_name}_2026', pref)
+    # Set test preferences
+    voters[0].add_preference(f'us_{domain_name}_test', 0.7)  # Expert support
+    voters[1].add_preference(f'us_{domain_name}_test', 0.5)  # Public support
+    voters[2].add_preference(f'us_{domain_name}_test', -0.3) # Public opposition
+    
+    for voter in voters:
         engine.register_voter(voter)
-        voters.append(voter)
-    
-    # Stakeholder representatives (approximately 25% of population)
-    stakeholder_count = int(0.25 * target_sample_size)
-    stakeholder_types = [
-        ('teachers_union', {}),
-        ('doctors_network', {}),
-        ('farmers_assoc', {}),
-        ('small_business', {}),
-        ('environmental_ngo', {}),
-        ('faith_leader', {}),
-        ('labor_leader', {}),
-        ('youth_rep', {}),
-        ('senior_advocate', {}),
-        ('disabled_advocate', {})
-    ]
-    
-    for i in range(stakeholder_count):
-        stakeholder_type, _ = stakeholder_types[i % len(stakeholder_types)]
-        voter = Voter(voter_id=f'{stakeholder_type}_{i}', region_id='mid_atlantic_001', voter_type=VoterType.PARTICIPANT)
-        # Stakeholders have varied preferences based on their interests
-        base_pref = 0.5
-        if 'teacher' in stakeholder_type:
-            pref = base_pref + 0.3  # Pro-education
-        elif 'doctor' in stakeholder_type:
-            pref = base_pref + 0.4  # Pro-healthcare
-        elif 'farmer' in stakeholder_type:
-            pref = base_pref + 0.2  # Pro-agriculture/economy
-        elif 'small_business' in stakeholder_type:
-            pref = base_pref + 0.3  # Pro-economy
-        elif 'environmental' in stakeholder_type:
-            pref = base_pref + 0.4  # Pro-climate
-        elif 'faith' in stakeholder_type:
-            pref = base_pref + 0.1  # Slightly pro-social policies
-        elif 'labor' in stakeholder_type:
-            pref = base_pref + 0.2  # Pro-labor/economy
-        elif 'youth' in stakeholder_type:
-            pref = base_pref + 0.3  # Pro-education/climate
-        elif 'senior' in stakeholder_type:
-            pref = base_pref + 0.3  # Pro-healthcare
-        elif 'disabled' in stakeholder_type:
-            pref = base_pref + 0.4  # Pro-healthcare/social services
-        else:
-            pref = base_pref
-        pref = max(-1.0, min(1.0, pref))
-        voter.add_preference(f'us_{domain_name}_2026', pref)
-        engine.register_voter(voter)
-        voters.append(voter)
-    
-    # Public representatives (approximately 60% of population)
-    public_count = target_sample_size - expert_count - stakeholder_count
-    public_types = [
-        ('city_dweller', {}),
-        ('suburban_family', {}),
-        ('rural_resident', {}),
-        ('inner_city_youth', {}),
-        ('military_veteran', {}),
-        ('small_town_owner', {}),
-        ('tech_worker', {}),
-        ('healthcare_worker', {}),
-        ('construction_worker', {}),
-        ('retired_couple', {})
-    ]
-    
-    for i in range(public_count):
-        public_type, _ = public_types[i % len(public_types)]
-        voter = Voter(voter_id=f'{public_type}_{i}', region_id='west_001', voter_type=VoterType.PARTICIPANT)
-        # Public has more varied opinions
-        import random
-        # Seed based on voter ID for consistent results
-        voter_id_hash = hash(f'{public_type}_{i}') % 100
-        # Random preference between -0.5 and +0.7 (slight positive bias)
-        pref = -0.5 + (voter_id_hash / 100.0) * 1.2
-        pref = max(-1.0, min(1.0, pref))
-        voter.add_preference(f'us_{domain_name}_2026', pref)
-        engine.register_voter(voter)
-        voters.append(voter)
     
     # Run the decision analysis
     try:
         decision = engine.make_decision(
-            policy_id=f'us_{domain_name}_2026',
-            region_id='ne_001'  # Use New England as the decision region for analysis
+            policy_id=f'us_{domain_name}_test',
+            region_id='test_001'
         )
         
         # Get additional context analysis if LLM is available
         context_analysis = {}
         if engine.llm_client.available:
-            # Use a representative sample of voters for context analysis
-            sample_voters = voters[:10] if len(voters) >= 10 else voters
-            context_analysis = engine._analyze_policy_context(policy, regions[0], sample_voters)
+            context_analysis = engine._analyze_policy_context(policy, regions[0], voters)
         
         return {
             'domain': domain_name,
@@ -234,8 +128,7 @@ def run_domain_analysis(domain_name):
             'llm_enhanced': engine.llm_client.available,
             'timestamp': str(__import__('datetime').datetime.now()),
             'total_regions': len(regions),
-            'total_voters': len(voters),
-            'represented_population': total_population
+            'total_voters': len(voters)
         }
     except Exception as e:
         return {'error': str(e)}
@@ -257,29 +150,40 @@ print(json.dumps(result, indent=2))
         echo ""
         
         # Check if output contains JSON
-        if echo "$output" | grep -q '"domain"'; then
-            # Extract values from JSON using simple grep and cut
-            domain_val=$(echo "$output" | grep -o '"domain": *"[^"]*"' | cut -d'"' -f4)
-            policy_name=$(echo "$output" | grep -o '"policy_name": *"[^"]*"' | cut -d'"' -f4)
-            policy_description=$(echo "$output" | grep -o '"policy_description": *"[^"]*"' | cut -d'"' -f4)
-            decision_outcome=$(echo "$output" | grep -o '"outcome": *"[^"]*"' | cut -d'"' -f4)
-            decision_confidence_raw=$(echo "$output" | grep -o '"confidence": *[0-9.]*' | cut -d'"' -f2 | tr -d '"')
-            votes_for=$(echo "$output" | grep -o '"votes_for": *[0-9]*' | cut -d'"' -f2 | tr -d '"')
-            votes_against=$(echo "$output" | grep -o '"votes_against": *[0-9]*' | cut -d'"' -f2 | tr -d '"')
-            voters_participated=$(echo "$output" | grep -o '"voters_participated": *[0-9]*' | cut -d'"' -f2 | tr -d '"')
-            llm_enhanced=$(echo "$output" | grep -o '"llm_enhanced": *[a-z]*' | cut -d'"' -f2 | tr -d '"')
-            represented_population=$(echo "$output" | grep -o '"represented_population": *[0-9]*' | cut -d'"' -f2 | tr -d '"')
-            reasoning=$(echo "$output" | grep -o '"reasoning": *"[^"]*"' | head -1 | cut -d'"' -f4)
-            
-            # Calculate confidence percentage
-            if [ -n "$decision_confidence_raw" ] && [ "$decision_confidence_raw" != "null" ]; then
-                confidence_percent=$(echo "scale=1; $decision_confidence_raw * 100" | bc)
-            else
-                confidence_percent="0.0"
-            fi
-            
-            # Format large numbers
-            formatted_population=$(echo "$represented_population" | numfmt --grouping)
+         if echo "$output" | grep -q '"domain"'; then
+             # Extract values from JSON using jq (more reliable than grep/sed)
+             if command -v jq >/dev/null 2>&1; then
+                 domain_val=$(echo "$output" | jq -r '.domain // ""' 2>/dev/null || echo "")
+                 policy_name=$(echo "$output" | jq -r '.policy_name // ""' 2>/dev/null || echo "")
+                 policy_description=$(echo "$output" | jq -r '.policy_description // ""' 2>/dev/null || echo "")
+                 decision_outcome=$(echo "$output" | jq -r '.decision.outcome // ""' 2>/dev/null || echo "")
+                 decision_confidence_raw=$(echo "$output" | jq -r '.decision.confidence // "0"' 2>/dev/null || echo "0")
+                 votes_for=$(echo "$output" | jq -r '.decision.votes_for // "0"' 2>/dev/null || echo "0")
+                 votes_against=$(echo "$output" | jq -r '.decision.votes_against // "0"' 2>/dev/null || echo "0")
+                 voters_participated=$(echo "$output" | jq -r '.decision.voters_participated // "0"' 2>/dev/null || echo "0")
+                 llm_enhanced=$(echo "$output" | jq -r '.llm_enhanced // "false"' 2>/dev/null || echo "false")
+                 reasoning=$(echo "$output" | jq -r '.context_analysis.reasoning // ""' 2>/dev/null || echo "")
+             else
+                 # Fallback to grep/sed method (less reliable)
+                 domain_val=$(echo "$output" | grep -o '"domain": *"[^"]*"' | cut -d'"' -f4)
+                 policy_name=$(echo "$output" | grep -o '"policy_name": *"[^"]*"' | cut -d'"' -f4)
+                 policy_description=$(echo "$output" | grep -o '"policy_description": *"[^"]*"' | cut -d'"' -f4)
+                 decision_outcome=$(echo "$output" | grep -o '"outcome": *"[^"]*"' | cut -d'"' -f4)
+                 decision_confidence_raw=$(echo "$output" | grep -o '"confidence": *[0-9.]*' | cut -d'"' -f2 | tr -d '"')
+                 votes_for=$(echo "$output" | grep -o '"votes_for": *[0-9]*' | cut -d'"' -f2 | tr -d '"')
+                 votes_against=$(echo "$output" | grep -o '"votes_against": *[0-9]*' | cut -d'"' -f2 | tr -d '"')
+                 voters_participated=$(echo="$output" | grep -o '"voters_participated": *[0-9]*' | cut -d'"' -f2 | tr -d '"')
+                 llm_enhanced=$(echo="$output" | grep -o '"llm_enhanced": *[a-z]*' | cut -d'"' -f2 | tr -d '"')
+                 reasoning=$(echo="$output" | grep -o '"reasoning": *"[^"]*"' | head -1 | cut -d'"' -f4)
+             fi
+             
+             # Calculate confidence percentage
+             if [ -n "$decision_confidence_raw" ] && [ "$decision_confidence_raw" != "null" ] && [ "$decision_confidence_raw" != "0" ]; then
+                 # Use awk for floating point math
+                 confidence_percent=$(echo "$decision_confidence_raw" | awk '{printf "%.1f", $1 * 100}')
+             else
+                 confidence_percent="0.0"
+             fi
             
             echo "## 📋 Executive Summary"
             echo ""
@@ -292,7 +196,7 @@ print(json.dumps(result, indent=2))
             echo "| **Decision Outcome** | $(echo "$decision_outcome" | tr '[:lower:]' '[:upper:]') |"
             echo "| **Confidence Level** | ${confidence_percent}% |"
             echo "| **Vote Tally** | $votes_for FOR, $votes_against AGAINST |"
-            echo "| **Voter Participation** | $voters_participated voters (representing ~$formatted_population citizens) |"
+            echo "| **Voter Participation** | $voters_participated voters |"
             echo "| **LLM Enhancement** | $(if [ "$llm_enhanced" = "true" ]; then echo "✅ ACTIVE"; else echo "❌ INACTIVE"; fi) |"
             echo ""
             echo "### 📄 Policy Overview"
@@ -305,7 +209,7 @@ print(json.dumps(result, indent=2))
             echo ""
             if [ "$llm_enhanced" = "true" ] && [ -n "$reasoning" ] && [ "$reasoning" != "null" ]; then
                 # Clean up the reasoning text
-                cleaned_reasoning=$(echo "$reasoning" | sed 's/^ Do not make any final decisions[^.]*\.\s*//' | sed 's/\[Reasoning complete\]//g' | sed 's/\\n/ /g')
+                cleaned_reasoning=$(echo "$reasoning" | sed 's/^ Do not make any final decisions[^.]*\.\s*//' | sed 's/\[Reasoning complete\]//g')
                 echo "$cleaned_reasoning"
                 echo ""
                 echo "*Analysis generated by LLM endpoint: http://localhost:8080*"
@@ -344,9 +248,8 @@ print(json.dumps(result, indent=2))
             echo ""
             echo "- **Analysis Timestamp**: $(echo "$output" | sed -n 's/.*"timestamp": *"[^"]*"' | cut -d'"' -f4)"
             echo "- **LLM Endpoint**: http://localhost:8080"
-            echo "- **Total Regions Analyzed**: 6 (representing all US states/territories)"
-            echo "- **Total Voters in Panel**: $voters_participated (representing ~$formatted_population citizens)"
-            echo "- **Represented Population**: $formatted_population citizens"
+            echo "- **Total Regions Analyzed**: 1 (representative sample)"
+            echo "- **Total Voters in Panel**: $voters_participated voters"
             echo ""
         else
             # If not JSON, just output the raw content

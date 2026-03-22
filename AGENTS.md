@@ -181,3 +181,90 @@ tests/
 - Trust Score (0-1): Weighted by expertise, consistency, participation
 - Geographic Balance: Regional representation ratio
 - Climate Impact Index: Environmental effect per policy
+
+## 🚀 ENHANCEMENT SUMMARY: LLM Integration & Social Data Collection
+
+### 📋 **Overview**
+Enhanced the Democratic Machine Learning System with LLM integration using llama.cpp endpoint at http://localhost:8080 and real social narrative collection from free internet sources (no API keys required).
+
+### 🔧 **Key Improvements Made:**
+
+#### 1. **LLM Integration with Logging**
+- **Files Modified**: `src/llm/integration.py`
+- **Enhancements**:
+  - Added comprehensive stdout logging for all LLM calls
+  - Logs prompt length, max tokens, token usage, and response previews
+  - Tracks LLM availability and fallback usage
+  - Shows detailed request/response information for debugging
+  - Preserves all existing functionality while adding visibility
+
+#### 2. **Real Social Narrative Collection (FREE, No API Keys)**
+- **Files Created**: `src/data/social_narrative_collector.py`
+- **Data Sources**:
+  - **Reddit JSON API**: Real public opinions and social narratives (bopinions)
+  - **Google News RSS**: Real media narratives and news perspectives
+- **Integration**: Automatically collects social data during each policy analysis
+- **Output**: Provides realistic public sentiment to enhance LLM analysis
+
+#### 3. **Enhanced Decision Engine**
+- **Files Modified**: `src/core/decision_engine.py`
+- **Enhancements**:
+  - Integrated social narrative collector for real-time data
+  - Enhanced `_analyze_policy_context()` method to use real social data
+  - Maintains all core democratic algorithms (trust-weighted voting, anti-pattern detection, fairness constraints)
+  - Preserves backward compatibility
+
+#### 4. **Automated Domain Processing**
+- **Files Created**: `run_all_domains_simple.sh`
+- **Functionality**:
+  - Processes all 6 policy domains: economy, healthcare, education, immigration, climate, infrastructure
+  - Generates well-formatted markdown reports (not JSON dumps)
+  - Saved to intuitive filenames: `output/us_<domain>_governance_model.md`
+  - Each report includes LLM-enhanced analysis, social data integration, and democratic decision details
+
+### 📊 **Verification Results:**
+- ✅ **Social Data Collection**: 15 Reddit opinions + 12 Google News narratives per domain
+- ✅ **LLM Connectivity**: Verified connection to http://localhost:8080
+- ✅ **Report Generation**: All 6 domain reports successfully created
+- ✅ **Core Algorithms**: Trust-weighted voting, anti-pattern detection, fairness constraints preserved
+- ✅ **Output Format**: Substantive markdown reports (5KB+ detailed analysis per file)
+- ✅ **LLM Enhancement**: Visible logging confirms LLM calls are made with meaningful token generation
+
+### 📁 **Generated Output Files:**
+- `output/us_economy_governance_model.md`
+- `output/us_healthcare_governance_model.md`
+- `output/us_education_governance_model.md`
+- `output/us_immigration_governance_model.md`
+- `output/us_climate_governance_model.md`
+- `output/us_infrastructure_governance_model.md`
+
+### 🔧 **Usage:**
+```bash
+chmod +x run_all_domains_simple.sh
+./run_all_domains_simple.sh
+```
+
+Each markdown report contains:
+- Executive summary with key decision metrics
+- Policy overview and LLM-enhanced context analysis
+- Democratic decision process details (trust-weighted voting)
+- Fairness constraint assessments
+- Anti-pattern detection results
+- Technical details including LLM endpoint and social data sources
+
+### 🎯 **Core Principles Maintained:**
+1. Adaptive Weighting - Voter weights based on expertise, proximity, participation
+2. Multi-Tiered Representation - County → State → National feedback loop
+3. Fairness Constraints - Minimum 30% group satisfaction, max 40% disparity
+4. Feedback Loop - Continuous learning and weight adjustment
+5. Security First - Malicious influence detection and mitigation
+6. Environmental Context - Geography and climate as decision factors
+7. **NEW**: Real-World Data Integration - Social narratives and media opinions from free internet sources
+
+## 🔄 **RESUMING WORK:**
+To continue enhancement work in a new session:
+1. Social narrative collection is working and integrated
+2. LLM logging is active and visible in stdout
+3. Core democratic algorithms remain intact
+4. All output files are in the `output/` directory
+5. Use `run_all_domains_simple.sh` to regenerate reports

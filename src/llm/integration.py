@@ -78,13 +78,20 @@ class LLMClient:
                 context, research_questions, principles
             )
 
+            # Log the LLM call to stdout
+            print(
+                f"🔄 LLM CALL: Generating reasoning with {len(research_questions)} research questions and {len(principles)} principles"
+            )
+            print(f"📝 Prompt length: {len(prompt)} characters")
+            print(f"🎯 Max tokens: {max_tokens}")
+
             try:
                 data = json.dumps(
                     {
                         "prompt": prompt,
                         "max_tokens": max_tokens,
                         "temperature": 0.7,
-                        "stop": ["</s>", "\n\n\n"],
+                        "stop": ["\n\n\n", ""],
                     }
                 ).encode("utf-8")
 
@@ -94,13 +101,21 @@ class LLMClient:
                     headers={"Content-Type": "application/json"},
                 )
 
+                print(f"🚀 Sending request to {self.endpoint}/completion")
                 with urllib.request.urlopen(req, timeout=self.timeout) as response:
                     result = json.loads(response.read().decode("utf-8"))
-                    return result.get("content", "")
+                    content = result.get("content", "")
+                    tokens_used = len(content.split()) if content else 0
+                    print(f"✅ LLM RESPONSE: {tokens_used} tokens generated")
+                    print(
+                        f"📄 Response preview: {content[:100]}{'...' if len(content) > 100 else ''}"
+                    )
+                    return content
             except Exception as e:
-                print(f"LLM error: {e}")
+                print(f"❦ LLM error: {e}")
                 return self._generate_fallback_reasoning(context, principles)
         else:
+            print("⚠️  LLM not available, using fallback reasoning")
             return self._generate_fallback_reasoning(context, principles)
 
     def form_conjecture(
@@ -166,13 +181,18 @@ class LLMClient:
         if self.available:
             prompt = self._build_policy_analysis_prompt(topic, research_data)
 
+            # Log the LLM call to stdout
+            print(f"🔄 LLM CALL: Analyzing policy '{topic}'")
+            print(f"📝 Prompt length: {len(prompt)} characters")
+            print(f"🎯 Max tokens: {max_tokens}")
+
             try:
                 data = json.dumps(
                     {
                         "prompt": prompt,
                         "max_tokens": max_tokens,
                         "temperature": 0.7,
-                        "stop": ["</s>", "\n\n\n"],
+                        "stop": ["\n\n\n", ""],
                     }
                 ).encode("utf-8")
 
@@ -182,14 +202,23 @@ class LLMClient:
                     headers={"Content-Type": "application/json"},
                 )
 
+                print(f"🚀 Sending request to {self.endpoint}/completion")
                 with urllib.request.urlopen(req, timeout=self.timeout) as response:
                     result = json.loads(response.read().decode("utf-8"))
                     response_text = result.get("content", "")
-                    return self._parse_analysis_response(response_text)
+                    tokens_used = len(response_text.split()) if response_text else 0
+                    print(
+                        f"✅ LLM RESPONSE: {tokens_used} tokens generated for policy '{topic}'"
+                    )
+                    print(
+                        f"📄 Response preview: {response_text[:100]}{'...' if len(response_text) > 100 else ''}"
+                    )
+                    return self._parse_analysis_response(response_text, topic)
             except Exception as e:
-                print(f"LLM error: {e}")
+                print(f"❦ LLM error for policy '{topic}': {e}")
                 return self._generate_fallback_analysis(topic, research_data)
         else:
+            print(f"⚠️  LLM not available for policy '{topic}', using fallback analysis")
             return self._generate_fallback_analysis(topic, research_data)
 
     def _build_reasoning_prompt(
@@ -352,7 +381,7 @@ Provide analysis including:
             "update_reason": "LLM reasoning via llama.cpp",
         }
 
-    def _parse_analysis_response(self, response: str) -> Dict[str, Any]:
+    def _parse_analysis_response(self, response: str, topic: str) -> Dict[str, Any]:
         """Parse analysis response from LLM."""
         # Extract structured information from LLM response
         lines = response.strip().split("\n")
