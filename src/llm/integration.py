@@ -8,16 +8,133 @@ Production-grade implementation with:
 - Deep recursive investigation with geographic fan-out
 - Full national/state/county representation
 - Comprehensive stdout logging at every step
+- Full prompt+response audit logging to file (logs/llm_calls.log)
+  - Set PYTHONLOGGING=DEBUG to also mirror full content to stdout
 """
 
 import json
+import logging
+import logging.handlers
 import os
 import re
 import sys
 import datetime
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 import urllib.request
 import urllib.error
+
+# ──────────────────────────────────────────────────────────────────────────────
+# LLM AUDIT LOGGER
+# Writes every prompt and response to logs/llm_calls.log (rotating, 50 MB max,
+# 5 backups).  When PYTHONLOGGING=DEBUG the same content also goes to stdout.
+# ──────────────────────────────────────────────────────────────────────────────
+
+_LOG_DIR = Path(
+    os.environ.get("LLM_LOG_DIR", Path(__file__).resolve().parents[2] / "logs")
+)
+_LOG_DIR.mkdir(parents=True, exist_ok=True)
+_LOG_FILE = _LOG_DIR / "llm_calls.log"
+
+# True when PYTHONLOGGING=DEBUG is set in the environment
+_DEBUG_TO_STDOUT: bool = os.environ.get("PYTHONLOGGING", "").upper() == "DEBUG"
+
+# Module-level audit logger — one shared instance for the whole process
+_audit_logger = logging.getLogger("llm.audit")
+_audit_logger.setLevel(logging.DEBUG)
+_audit_logger.propagate = False  # don't bubble up to root logger
+
+# Rotating file handler — always active
+_file_handler = logging.handlers.RotatingFileHandler(
+    _LOG_FILE,
+    maxBytes=50 * 1024 * 1024,  # 50 MB per file
+    backupCount=5,
+    encoding="utf-8",
+)
+_file_handler.setLevel(logging.DEBUG)
+_file_handler.setFormatter(
+    logging.Formatter(
+        fmt="%(asctime)s  %(levelname)-5s  %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+)
+_audit_logger.addHandler(_file_handler)
+
+# Stdout handler — only active when PYTHONLOGGING=DEBUG
+if _DEBUG_TO_STDOUT:
+    _stdout_handler = logging.StreamHandler(sys.stdout)
+    _stdout_handler.setLevel(logging.DEBUG)
+    _stdout_handler.setFormatter(
+        logging.Formatter(
+            fmt="[DEBUG %(asctime)s] %(message)s",
+            datefmt="%H:%M:%S",
+        )
+    )
+    _audit_logger.addHandler(_stdout_handler)
+
+
+def _audit(msg: str) -> None:
+    """Write a message to the audit log (and stdout if DEBUG mode)."""
+    _audit_logger.debug(msg)
+
+
+def _audit_call(
+    call_number: int,
+    label: str,
+    prompt: str,
+    max_tokens: int,
+    temperature: float,
+    endpoint: str,
+) -> None:
+    """Log the full outgoing LLM request to the audit file."""
+    divider = "=" * 120
+    _audit(divider)
+    _audit(f"LLM CALL #{call_number}  |  {label}")
+    _audit(f"  endpoint    : {endpoint}/completion")
+    _audit(f"  max_tokens  : {max_tokens}")
+    _audit(f"  temperature : {temperature}")
+    _audit(f"  prompt_chars: {len(prompt)}")
+    _audit(
+        "── PROMPT ──────────────────────────────────────────────────────────────────────────────────────"
+    )
+    # Write the full prompt, indented for readability
+    for line in prompt.splitlines():
+        _audit(f"  {line}")
+    _audit(
+        "── END PROMPT ──────────────────────────────────────────────────────────────────────────────────"
+    )
+
+
+def _audit_response(
+    call_number: int,
+    label: str,
+    content: str,
+    tokens: int,
+    cumulative_tokens: int,
+    elapsed_ms: float,
+) -> None:
+    """Log the full LLM response to the audit file."""
+    _audit(f"LLM RESPONSE #{call_number}  |  {label}")
+    _audit(f"  tokens      : {tokens}")
+    _audit(f"  cumulative  : {cumulative_tokens}")
+    _audit(f"  elapsed_ms  : {elapsed_ms:.0f}")
+    _audit(f"  content_chars: {len(content)}")
+    _audit(
+        "── RESPONSE ────────────────────────────────────────────────────────────────────────────────────"
+    )
+    for line in content.splitlines():
+        _audit(f"  {line}")
+    _audit(
+        "── END RESPONSE ────────────────────────────────────────────────────────────────────────────────"
+    )
+    _audit("")
+
+
+def _audit_error(call_number: int, label: str, error: Exception) -> None:
+    """Log an LLM call error to the audit file."""
+    _audit(f"LLM ERROR #{call_number}  |  {label}  |  {type(error).__name__}: {error}")
+    _audit("")
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # US GEOGRAPHY DATA - All 50 states + representative counties
@@ -247,7 +364,9 @@ class LLMClient:
                 data=data,
                 headers={"Content-Type": "application/json"},
             )
-            with urllib.request.urlopen(req, timeout=30) as response:  # 30s for connection test
+            with urllib.request.urlopen(
+                req, timeout=30
+            ) as response:  # 30s for connection test
                 return response.getcode() == 200
         except Exception:
             return False
@@ -277,6 +396,7 @@ class LLMClient:
         """
         if not self.available:
             _log(f"  ⚠️  LLM unavailable — skipping call [{label}]")
+            _audit(f"LLM SKIPPED  |  {label}  |  endpoint unavailable")
             return ""
 
         self._call_count += 1
@@ -287,12 +407,23 @@ class LLMClient:
         )
         _log(f"     endpoint={self.endpoint}/completion")
 
+        # Full audit log — always written to file, stdout only in DEBUG mode
+        _audit_call(
+            call_number=self._call_count,
+            label=label,
+            prompt=prompt,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            endpoint=self.endpoint,
+        )
+
         payload = {
             "prompt": prompt,
             "max_tokens": max_tokens,
             "temperature": temperature,
         }
 
+        t_start = datetime.datetime.now()
         try:
             data = json.dumps(payload).encode("utf-8")
             req = urllib.request.Request(
@@ -304,13 +435,27 @@ class LLMClient:
                 result = json.loads(resp.read().decode("utf-8"))
                 content = result.get("content", "").strip()
                 tokens = result.get("tokens_predicted", len(content.split()))
+                elapsed_ms = (datetime.datetime.now() - t_start).total_seconds() * 1000
                 self._total_tokens += tokens
-                _log(f"  ✅ RESPONSE  tokens={tokens}  cumulative={self._total_tokens}")
+                _log(
+                    f"  ✅ RESPONSE  tokens={tokens}  cumulative={self._total_tokens}  elapsed={elapsed_ms / 1000:.1f}s"
+                )
                 preview = content[:120].replace("\n", " ")
                 _log(f"     preview: {preview}{'…' if len(content) > 120 else ''}")
+                # Full response to audit log
+                _audit_response(
+                    call_number=self._call_count,
+                    label=label,
+                    content=content,
+                    tokens=tokens,
+                    cumulative_tokens=self._total_tokens,
+                    elapsed_ms=elapsed_ms,
+                )
                 return content
         except Exception as exc:
+            elapsed_ms = (datetime.datetime.now() - t_start).total_seconds() * 1000
             _log(f"  ❌ LLM ERROR: {exc}")
+            _audit_error(self._call_count, label, exc)
             return ""
 
     # ──────────────────────────────────────────────────────────────────────────
@@ -488,7 +633,17 @@ class LLMClient:
         _log(f"  subtopics/level: {subtopics_per_level}")
         _log(f"  geo_rep        : {include_state_county_rep}")
         _log(f"  endpoint       : {self.endpoint}")
+        _log(f"  audit_log      : {_LOG_FILE}")
         _log("")
+
+        _audit("=" * 120)
+        _audit(f"SESSION START  domain={domain}  started={started_at.isoformat()}")
+        _audit(
+            f"  max_depth={max_depth}  subtopics_per_level={subtopics_per_level}  geo_rep={include_state_county_rep}"
+        )
+        _audit(f"  endpoint={self.endpoint}  log_file={_LOG_FILE}")
+        _audit("=" * 120)
+        _audit("")
 
         results: Dict[str, Any] = {
             "domain": domain,
@@ -678,7 +833,17 @@ class LLMClient:
         _log(f"  elaborations  : {total_elab}")
         _log(f"  best_solutions: {len(best_solutions)}")
         _log(f"  confidence    : {final_conjecture.get('confidence', 0):.2f}")
+        _log(f"  audit_log     : {_LOG_FILE}")
         _log("")
+
+        _audit("=" * 120)
+        _audit(f"SESSION END  domain={domain}  elapsed={elapsed:.1f}s")
+        _audit(
+            f"  llm_calls={self._call_count}  total_tokens={self._total_tokens}  elaborations={total_elab}"
+        )
+        _audit(f"  confidence={final_conjecture.get('confidence', 0):.2f}")
+        _audit("=" * 120)
+        _audit("")
 
         results["elapsed_seconds"] = elapsed
         results["llm_calls"] = self._call_count
