@@ -410,14 +410,310 @@ for policy in policies:
     }
 ```
 
+## Configuration
+
+The system ships with `config.yaml` at the repo root. Every threshold, depth, timeout,
+and token budget is adjustable there or via environment variables — no source code changes
+needed.
+
+### Quick start
+
+```python
+from src.config import load_config, get_config
+
+# Auto-loads config.yaml + env var overrides (call once at startup)
+cfg = load_config()                        # from config.yaml
+cfg = load_config("experiments/fast.yaml") # from a specific file
+
+# After load_config(), get_config() returns the same singleton anywhere
+from src.config import get_config
+cfg = get_config()
+print(cfg.llm.max_depth)           # 4
+print(cfg.decision.fairness_threshold)  # 0.7
+print(cfg.voter_pool.rng_seed)     # 42
+```
+
+### Using a custom config in Python scripts
+
+```python
+from src.config import load_config
+
+# Load before creating any engine objects — config is a singleton
+load_config("my_config.yaml")
+
+from src.core.decision_engine import DecisionEngine
+from src.core.weighting_system import WeightingSystem
+
+# These now automatically pick up values from my_config.yaml
+engine = DecisionEngine()      # uses decision.fairness_threshold from YAML
+ws = WeightingSystem()         # uses weighting.* from YAML
+```
+
+### Environment variable overrides
+
+Environment variables always take priority over the YAML file and are useful for
+one-off experiments without creating a new file:
+
+```bash
+# Run with shallower LLM investigation (much faster)
+DML_LLM__MAX_DEPTH=2 python3 run_all_domains.py economy
+
+# Stricter fairness constraints
+DML_DECISION__FAIRNESS_THRESHOLD=0.85 \
+DML_FAIRNESS__MIN_PROPORTION=0.4 \
+python3 run_all_domains.py healthcare
+
+# Different random seed for voter preferences
+DML_VOTER_POOL__RNG_SEED=99 python3 run_all_domains.py
+
+# Disable geographic fan-out for a quick national-only run
+DML_VOTER_POOL__PROD_GEO_FAN_OUT=false \
+DML_VOTER_POOL__PROD_LLM_MAX_DEPTH=2 \
+python3 run_all_domains.py climate
+```
+
+### Inspecting the active config
+
+```bash
+# Print every effective setting (YAML format)
+python3 run_all_domains.py --show-config
+
+# Verify your overrides took effect
+DML_LLM__MAX_DEPTH=2 python3 run_all_domains.py --show-config | grep max_depth
+```
+
+### Common config recipes
+
+**Fastest possible run (smoke test):**
+
+```yaml
+# fast_test.yaml
+llm:
+  max_depth: 1
+  subtopics_per_level: 2
+  max_tokens_default: 256
+  max_tokens_subtopic: 256
+  max_tokens_elaboration: 256
+  max_tokens_synthesis: 128
+voter_pool:
+  prod_llm_max_depth: 1
+  prod_llm_subtopics_per_level: 2
+  prod_geo_fan_out: false
+social:
+  cache_hours: 168   # one week — skip re-fetching
+```
+
+**Stricter democratic constraints:**
+
+```yaml
+decision:
+  fairness_threshold: 0.85
+fairness:
+  min_proportion: 0.4   # 40% minimum group satisfaction
+  max_disparity: 0.25   # 25% maximum disparity
+trust:
+  min_threshold: 0.8    # higher bar for "trusted" voters
+  bot_detection_threshold: 0.5  # stricter bot detection
+```
+
+**Different LLM server:**
+
+```yaml
+llm:
+  endpoint: "http://192.168.1.10:11434"
+  model: "llama3-8b"
+  timeout_seconds: 120
+  temperature_default: 0.5
+```
+
+**Adjusting voter pool distributions:**
+
+```yaml
+voter_pool:
+  rng_seed: 7                       # different preference sample
+  expert_pref_mu: 0.55              # experts slightly less supportive
+  public_pref_min: -0.5             # more divided public
+  public_pref_max: 0.8
+  county_pref_rural_mu: 0.35        # more rural scepticism
+  county_pref_rural_sigma: 0.18     # more rural variance
+```
+
+See **[CONFIG.md](CONFIG.md)** for the complete reference with every parameter's
+default value, valid range, and detailed description of its runtime and performance impact.
+
+---
+
+## LLM Integration
+
+The system uses a local llama.cpp server for deep recursive policy investigation.
+
+### Checking LLM availability
+
+```python
+from src.llm.integration import LLMClient
+
+client = LLMClient()
+print(f"LLM available: {client.available}")
+print(f"Endpoint: {client.endpoint}")
+```
+
+If the server is unreachable `client.available` is `False` and all LLM calls return
+empty strings, triggering the rule-based fallback path. Reports are still generated
+with heuristic conjectures.
+
+### Running a domain investigation manually
+
+```python
+from src.llm.integration import LLMClient
+from src.config import load_config
+
+load_config()  # load config.yaml
+client = LLMClient()
+
+results = client.generate_reasoning_with_recursion(
+    domain="healthcare",
+    initial_context={
+        "population": 331_000_000,
+        "diversity_index": 0.73,
+        "urban_ratio": 0.83,
+    },
+    max_depth=2,           # override config for this call
+    subtopics_per_level=3,
+    include_state_county_rep=False,  # national only
+)
+
+print(f"LLM calls: {results['llm_calls']}")
+print(f"Total tokens: {results['total_tokens']}")
+print(f"Confidence: {results['final_conjecture']['confidence']:.2f}")
+print(f"Statement: {results['final_conjecture']['statement'][:200]}")
+```
+
+### Viewing LLM audit logs
+
+Every prompt and response is written to `logs/llm_calls.log`:
+
+```bash
+tail -f logs/llm_calls.log
+```
+
+To also mirror audit logs to stdout, set `PYTHONLOGGING=DEBUG`:
+
+```bash
+PYTHONLOGGING=DEBUG python3 run_all_domains.py economy 2>&1 | tee run.log
+```
+
+---
+
+## Social Narrative Collection
+
+The `SocialNarrativeCollector` gathers real-world public opinion from Reddit (via the
+free JSON API) and media narratives from Google News RSS — no API keys required.
+
+### Basic usage
+
+```python
+from src.data.social_narrative_collector import SocialNarrativeCollector
+from src.config import load_config
+
+load_config()
+collector = SocialNarrativeCollector()
+
+# Fetch comprehensive social data for a topic
+data = collector.get_comprehensive_social_data(
+    topic="universal healthcare",
+    domain="healthcare",
+)
+
+print(f"Opinions fetched: {len(data['opinions'])}")
+print(f"Narratives fetched: {len(data['media_narratives'])}")
+print(f"Avg opinion sentiment: {data['summary']['average_opinion_sentiment']:.2f}")
+
+# Browse opinions
+for op in data["opinions"][:3]:
+    print(f"  [{op['perspective']}] {op['text'][:100]}")
+```
+
+### Controlling fetch size and caching
+
+The collector caches results in memory for `social.cache_hours` (default 6 hours).
+To force a fresh fetch, use `cache_hours=0` or restart the process.
+
+```python
+from src.config import load_config
+
+# Reduce fetches for offline development
+load_config()
+import src.config as cfg_module
+cfg_module.get_config().social.cache_hours = 168   # 1 week
+cfg_module.get_config().social.max_opinions = 5    # smaller fetch
+
+# Or set in config.yaml
+```
+
+```yaml
+# config.yaml
+social:
+  cache_hours: 168
+  max_opinions: 5
+  max_narratives: 5
+```
+
+### Sentiment classification
+
+Reddit posts are classified based on configurable score and ratio thresholds:
+
+| Classification | Condition |
+|---------------|-----------|
+| `supportive` | `score > 10 AND upvote_ratio > 0.7` (defaults) |
+| `critical` | `score < -5 OR upvote_ratio < 0.3` (defaults) |
+| `neutral` | `abs(score) <= 5 AND 0.4 <= ratio <= 0.6` |
+| `engaged` | all other cases |
+
+Change thresholds in `config.yaml`:
+
+```yaml
+social:
+  reddit_supportive_score: 20    # require higher score for "supportive"
+  reddit_supportive_ratio: 0.75
+  reddit_critical_score: -10
+```
+
+---
+
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Low fairness scores**: Increase weight diversity or adjust fairness threshold
-2. **High confidence but wrong outcome**: Review preference data quality
-3. **Slow performance**: Use batching or parallel processing
-4. **Data loading errors**: Check JSON format and data types
+1. **Low fairness scores**: Increase weight diversity, lower `decision.fairness_threshold`,
+   or adjust `fairness.min_proportion`
+2. **High confidence but wrong outcome**: Review preference data quality; check if voter
+   preferences are realistic for the policy domain
+3. **Slow performance**: Reduce `voter_pool.prod_llm_max_depth` and set
+   `voter_pool.prod_geo_fan_out=false`; use token budgets of 512–1024
+4. **LLM timeout errors**: Increase `llm.timeout_seconds`; reduce `llm.max_tokens_default`
+5. **Reddit 403/429 errors**: These are logged at DEBUG level and silently retried via
+   the old.reddit.com fallback; increase `social.reddit_rate_limit_sleep` if persistent
+6. **Data loading errors**: Check JSON format and data types
+
+### Checking the config singleton
+
+If a class is not picking up the values you set in `config.yaml`, make sure `load_config()`
+was called **before** any class was instantiated:
+
+```python
+# CORRECT: load first, then import and instantiate
+from src.config import load_config
+load_config("my.yaml")
+
+from src.core.decision_engine import DecisionEngine
+engine = DecisionEngine()   # picks up my.yaml values
+
+# INCORRECT: class instantiated before config is loaded
+from src.core.decision_engine import DecisionEngine
+engine = DecisionEngine()   # uses hardcoded defaults!
+from src.config import load_config
+load_config("my.yaml")      # too late — engine already constructed
+```
 
 ### Debug Mode
 

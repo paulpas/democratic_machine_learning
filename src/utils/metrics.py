@@ -5,20 +5,31 @@ import numpy as np
 from src.models.decision import Decision
 from src.models.voter import Voter, VoterType
 from src.models.region import Region
+from src.config import get_config
 
 
 class FairnessMetrics:
     """Calculates fairness metrics for democratic decisions."""
 
-    def __init__(self, min_proportion: float = 0.3, max_disparity: float = 0.4) -> None:
+    def __init__(
+        self,
+        min_proportion: Optional[float] = None,
+        max_disparity: Optional[float] = None,
+    ) -> None:
         """Initialize fairness metrics.
 
         Args:
-            min_proportion: Minimum proportion of affected groups that must be satisfied
-            max_disparity: Maximum allowed disparity in outcomes
+            min_proportion: Minimum proportion of affected groups that must be satisfied.
+            max_disparity: Maximum allowed disparity in outcomes.
+            Both parameters default to ``config.yaml`` ``fairness.*`` values.
         """
-        self.min_proportion = min_proportion
-        self.max_disparity = max_disparity
+        _cfg = get_config().fairness
+        self.min_proportion = (
+            min_proportion if min_proportion is not None else _cfg.min_proportion
+        )
+        self.max_disparity = (
+            max_disparity if max_disparity is not None else _cfg.max_disparity
+        )
 
     def calculate_fairness(
         self, decision: Decision, voters: Dict[str, Voter], regions: Dict[str, Region]

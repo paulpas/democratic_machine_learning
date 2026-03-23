@@ -31,6 +31,7 @@ from typing import List, Dict, Any
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
+from src.config import load_config, get_config  # must come before other src imports
 from src.llm.integration import (
     LLMClient,
     US_STATES,
@@ -80,28 +81,29 @@ def log_banner(title: str, char: str = "=", width: int = 80) -> None:
 
 
 # ── voter registration helpers ────────────────────────────────────────────────
-
-# Number of public voters sampled per state, scaled by population share.
-# Total public delegates ≈ sum of these across all 50 states.
-# We allocate 1 public voter per ~1,000,000 residents, minimum 1.
-_PUBLIC_VOTERS_PER_MILLION = 1
-_PUBLIC_VOTERS_MIN_PER_STATE = 1
-
-# Number of domain expert voters per domain — reflects the realistic ratio of
-# credentialled specialists who actively participate in federal policy input
-# (e.g., advisory panels, public comment processes). Set to one per major
-# federal agency/department relevant to the domain.
+# Sentinel values — overridden at runtime from config by _init_pool_constants().
+_PUBLIC_VOTERS_PER_MILLION: int = 1
+_PUBLIC_VOTERS_MIN_PER_STATE: int = 1
 _EXPERTS_PER_DOMAIN: Dict[str, int] = {
-    "economy": 12,  # Treasury, Fed, CEA, CBO, OMB, SBA, Commerce, Labor, Trade, SEC, CFTC, IRS
-    "healthcare": 10,  # HHS, CDC, NIH, CMS, FDA, HRSA, SAMHSA, VA, DOD health, AHRQ
-    "education": 8,  # ED, NSF, NEH, NEA, IES, OSERS, OESE, OCTAE
-    "immigration": 7,  # DHS, CBP, ICE, USCIS, DOS, DOJ, HHS refugee
-    "climate": 9,  # EPA, DOE, NOAA, NASA climate, USFS, Interior, BLM, CEQ, FEMA
-    "infrastructure": 11,  # DOT, FAA, FRA, FTA, FHWA, FMCSA, maritime, Corps of Engineers, EIA, FCC, USACE
+    "economy": 12,
+    "healthcare": 10,
+    "education": 8,
+    "immigration": 7,
+    "climate": 9,
+    "infrastructure": 11,
 }
+_RNG_SEED: int = 42
 
-# Reproducible seed so preferences are deterministic across runs
-_RNG_SEED = 42
+
+def _init_pool_constants() -> None:
+    """Read voter-pool constants from the loaded config (call once in main)."""
+    global _PUBLIC_VOTERS_PER_MILLION, _PUBLIC_VOTERS_MIN_PER_STATE
+    global _EXPERTS_PER_DOMAIN, _RNG_SEED
+    _vp = get_config().voter_pool
+    _PUBLIC_VOTERS_PER_MILLION = _vp.public_voters_per_million
+    _PUBLIC_VOTERS_MIN_PER_STATE = _vp.public_voters_min_per_state
+    _EXPERTS_PER_DOMAIN = dict(_vp.experts_per_domain)
+    _RNG_SEED = _vp.rng_seed
 
 
 def _state_public_voter_count(state_pop: int) -> int:
@@ -169,13 +171,18 @@ def _build_national_voter_pool(
     )
     log(f"    US 2024 general turnout   : {US_TURNOUT_2024:>15,}  (~66% of registered)")
 
+    _vp = get_config().voter_pool
     rng = random.Random(_RNG_SEED)
 
     # ── 1. Domain experts ─────────────────────────────────────────────────────
     n_experts = _EXPERTS_PER_DOMAIN.get(domain, 8)
     for i in range(n_experts):
-        expertise_score = round(0.85 + (i / n_experts) * 0.10, 3)  # 0.85..0.95
-        pref = max(-1.0, min(1.0, rng.gauss(0.65, 0.10)))
+        expertise_score = round(
+            _vp.expert_expertise_min
+            + (i / n_experts) * (_vp.expert_expertise_max - _vp.expert_expertise_min),
+            3,
+        )
+        pref = max(-1.0, min(1.0, rng.gauss(_vp.expert_pref_mu, _vp.expert_pref_sigma)))
         v = Voter(
             voter_id=f"expert_{domain}_{i:02d}",
             region_id="US",
@@ -210,14 +217,20 @@ def _build_national_voter_pool(
         # Population-proportional weight (California ~11.9x Wyoming)
         pop_weight = round(state_pop / US_NATIONAL_POPULATION, 6)
 
-        # Seeded preference: μ=0.60 σ=0.15 — state-level variation
-        pref = max(-1.0, min(1.0, rng.gauss(0.60, 0.15)))
+        # Seeded preference — state-level variation from config
+        pref = max(
+            -1.0,
+            min(
+                1.0,
+                rng.gauss(_vp.state_delegate_pref_mu, _vp.state_delegate_pref_sigma),
+            ),
+        )
 
         v = Voter(
             voter_id=f"state_delegate_{abbr}_{domain}",
             region_id=region_id,
             voter_type=VoterType.REPRESENTATIVE,
-            expertise={policy_id: 0.65},
+            expertise={policy_id: _vp.state_delegate_expertise},
             voting_weight=pop_weight,
         )
         v.add_preference(policy_id, round(pref, 4))
@@ -238,9 +251,9 @@ def _build_national_voter_pool(
     from src.llm.integration import REPRESENTATIVE_COUNTIES
 
     pref_params: Dict[str, tuple] = {
-        "urban": (0.68, 0.08),
-        "suburban": (0.60, 0.10),
-        "rural": (0.48, 0.12),
+        "urban": (_vp.county_pref_urban_mu, _vp.county_pref_urban_sigma),
+        "suburban": (_vp.county_pref_suburban_mu, _vp.county_pref_suburban_sigma),
+        "rural": (_vp.county_pref_rural_mu, _vp.county_pref_rural_sigma),
     }
     county_pop_total = 0
     for county in REPRESENTATIVE_COUNTIES:
@@ -286,8 +299,8 @@ def _build_national_voter_pool(
         public_pop_represented += state_pop
 
         for j in range(n_voters):
-            # Uniform [-0.3, 0.9] → represents the full range of public opinion
-            pref = round(rng.uniform(-0.3, 0.9), 4)
+            # Uniform range → represents the full range of public opinion (from config)
+            pref = round(rng.uniform(_vp.public_pref_min, _vp.public_pref_max), 4)
             # Each public voter represents ~1M residents; weight reflects that
             pop_weight = round(state_pop / (n_voters * US_NATIONAL_POPULATION), 6)
             v = Voter(
@@ -423,10 +436,11 @@ def run_domain(
     )
 
     # ── 3. Deep recursive LLM investigation ──────────────────────────────────
+    _vp_ctx = get_config().voter_pool
     initial_context = {
         "population": US_NATIONAL_POPULATION,
-        "diversity_index": 0.73,
-        "urban_ratio": 0.83,
+        "diversity_index": _vp_ctx.us_diversity_index,
+        "urban_ratio": _vp_ctx.us_urban_ratio,
         "domain": domain,
         "region_type": "national",
         "social_summary": social_data["summary"],
@@ -435,9 +449,9 @@ def run_domain(
     llm_results = llm_client.generate_reasoning_with_recursion(
         domain=domain,
         initial_context=initial_context,
-        max_depth=4,
-        subtopics_per_level=5,
-        include_state_county_rep=True,
+        max_depth=_vp_ctx.prod_llm_max_depth,
+        subtopics_per_level=_vp_ctx.prod_llm_subtopics_per_level,
+        include_state_county_rep=_vp_ctx.prod_geo_fan_out,
     )
 
     # ── 4. Assemble report ────────────────────────────────────────────────────
@@ -626,7 +640,14 @@ REPRESENTATIVE_COUNTIES_INFO = [
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Run Democratic Machine Learning System — full production analysis."
+        description="Run Democratic Machine Learning System — full production analysis.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Config examples:\n"
+            "  --config my_config.yaml\n"
+            "  DML_LLM__MAX_DEPTH=2 python3 run_all_domains.py economy\n"
+            "  DML_VOTER_POOL__RNG_SEED=99 python3 run_all_domains.py\n"
+        ),
     )
     parser.add_argument(
         "domains",
@@ -634,7 +655,30 @@ def main() -> int:
         default=ALL_DOMAINS,
         help="Domains to process (default: all six)",
     )
+    parser.add_argument(
+        "--config",
+        metavar="PATH",
+        default=None,
+        help="Path to YAML config file (default: config.yaml in repo root if it exists)",
+    )
+    parser.add_argument(
+        "--show-config",
+        action="store_true",
+        help="Print the active configuration and exit",
+    )
     args = parser.parse_args()
+
+    # ── load configuration (before any src imports that call get_config()) ────
+    from src.config import load_config, dump_config
+
+    cfg = load_config(args.config)
+
+    if args.show_config:
+        print(dump_config(cfg))
+        return 0
+
+    # Sync module-level constants with loaded config
+    _init_pool_constants()
 
     domains = [d.lower() for d in args.domains]
     invalid = [d for d in domains if d not in ALL_DOMAINS]

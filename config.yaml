@@ -1,0 +1,240 @@
+# ============================================================================
+# Democratic Machine Learning System — Configuration File
+# ============================================================================
+#
+# All values shown here are the system defaults.
+# Uncomment and change any value you wish to override.
+#
+# Override priority (highest → lowest):
+#   1. Environment variables  DML_<SECTION>__<KEY>=value
+#   2. This file
+#   3. Hardcoded defaults (identical to the values below)
+#
+# Environment variable examples:
+#   export DML_LLM__ENDPOINT=http://myserver:11434
+#   export DML_LLM__MAX_DEPTH=2
+#   export DML_LLM__MAX_TOKENS_DEFAULT=2048
+#   export DML_VOTER_POOL__RNG_SEED=123
+#   export DML_TRUST__MIN_THRESHOLD=0.65
+#
+# Legacy env vars (still honoured for backwards compat):
+#   LLAMA_CPP_ENDPOINT, LLAMA_MODEL, LLAMA_TIMEOUT, LLM_LOG_DIR
+# ============================================================================
+
+
+# ----------------------------------------------------------------------------
+# LLM — endpoint, token budgets, sampling, recursion depth
+# ----------------------------------------------------------------------------
+llm:
+  # Connection ---------------------------------------------------------------
+  endpoint: "http://localhost:8080"   # llama.cpp server URL
+  model: "llama.cpp-model"            # label used in logs (not sent to server)
+  timeout_seconds: 900                # hard timeout per LLM HTTP request (15 min)
+  connect_test_timeout: 30            # timeout for the startup ping
+
+  # Token budgets (per call type) -------------------------------------------
+  # Reduce these to speed up runs at the cost of response depth.
+  max_tokens_default: 8192
+  max_tokens_domain_initial: 8192     # Level-0 domain overview
+  max_tokens_subtopic: 8192           # Per-subtopic investigation
+  max_tokens_elaboration: 8192        # Elaboration step
+  max_tokens_conjecture: 8192         # Conjecture formation
+  max_tokens_policy_analysis: 8192    # Policy analysis
+  max_tokens_synthesis: 8192          # Final synthesis conjecture
+  max_tokens_legacy: 8192             # Legacy shim
+
+  # Sampling temperatures ---------------------------------------------------
+  temperature_default: 0.7            # higher = more creative, lower = more factual
+  temperature_conjecture: 0.4         # slightly more deterministic for conjectures
+
+  # Recursion structure -----------------------------------------------------
+  max_depth: 3                        # how many levels deep to investigate
+  subtopics_per_level: 2              # subtopics extracted at each level
+
+  # Context slicing ---------------------------------------------------------
+  preview_chars: 120                  # stdout preview characters per response
+  context_snippet_chars: 300          # parent-context chars sent to subtopic prompt
+  prior_snippet_chars: 400            # prior-reasoning chars sent to elaboration
+  conjecture_evidence_limit: 15       # max evidence items fed to conjecture prompt
+  analysis_context_limit: 5           # max context items in policy-analysis prompt
+  synthesis_evidence_limit: 20        # max evidence items in final synthesis
+
+  # Solution ranking --------------------------------------------------------
+  tier_weight_national: 1.0
+  tier_weight_state: 0.8
+  tier_weight_county: 0.6
+  ranking_length_norm: 800            # chars used to normalise solution length score
+  solution_capture_threshold: 0.5     # min score to include a solution in output
+
+  # Fallback confidence (when LLM is unavailable) ---------------------------
+  default_confidence: 0.75
+  fallback_confidence_with_evidence: 0.6
+  fallback_confidence_empty: 0.4
+
+  # Logging -----------------------------------------------------------------
+  log_dir: ""                         # empty → <repo_root>/logs
+  log_max_bytes: 52428800             # 50 MB per rotating audit-log file
+  log_backup_count: 5                 # number of backup files to keep
+
+
+# ----------------------------------------------------------------------------
+# Decision Engine
+# ----------------------------------------------------------------------------
+decision:
+  fairness_threshold: 0.7             # minimum fairness score required to approve
+  policy_analysis_max_depth: 3        # LLM recursion depth inside policy analysis
+  policy_analysis_subtopics: 5
+  fairness_check_window: 10           # recent decisions used in rolling fairness check
+
+  # Social data slicing fed to LLM context
+  llm_context_max_opinions: 5
+  llm_context_max_narratives: 3
+
+
+# ----------------------------------------------------------------------------
+# Voter Weighting System
+# ----------------------------------------------------------------------------
+weighting:
+  base_weight: 1.0
+  expertise_boost: 0.5                # added per expertise point in policy area
+  proximity_boost: 0.3                # added when voter's region matches policy region
+  historical_weight: 0.2              # scaled by past participation
+  mult_representative: 2.0            # representative-type weight multiplier
+  mult_expert: 1.5                    # expert-type weight multiplier
+  participation_norm: 10.0            # participation count divisor for normalisation
+
+
+# ----------------------------------------------------------------------------
+# Adaptive Feedback Loop
+# ----------------------------------------------------------------------------
+feedback:
+  learning_rate: 0.1                  # how quickly the system adapts weights
+  fairness_target: 0.7                # target fairness score
+  stability_threshold: 0.2            # max allowed variance in fairness
+  trend_window: 10                    # number of recent decisions for trend analysis
+
+
+# ----------------------------------------------------------------------------
+# Trust & Security System
+# ----------------------------------------------------------------------------
+trust:
+  base_score: 1.0
+  expertise_boost: 0.3
+  consistency_weight: 0.4
+  participation_weight: 0.3
+  evidence_weight: 0.3
+  participation_norm: 10.0
+
+  anomaly_std_threshold: 2.0          # std-deviations for preference anomaly detection
+  inconsistency_threshold: 0.5        # max allowed preference change between rounds
+  min_threshold: 0.7                  # min trust score to be a "trusted" voter
+  source_reputation_min: 0.7          # min reputation for an external source to pass
+  temporal_anomaly_threshold: 0.5     # max jump in temporal validation
+
+  bot_detection_threshold: 0.7        # bot score above this → flagged
+  manipulation_detection_threshold: 0.6
+
+  # Bot-signal component weights
+  bot_score_uniform_pref: 0.3
+  bot_score_no_expertise: 0.2
+  bot_score_unusual_weight: 0.1
+
+  # Manipulation-signal component weights
+  manip_score_extreme_pref: 0.2
+
+
+# ----------------------------------------------------------------------------
+# Fairness Constraints
+# ----------------------------------------------------------------------------
+fairness:
+  min_proportion: 0.3                 # minimum 30 % group satisfaction
+  max_disparity: 0.4                  # maximum 40 % inter-group disparity
+  consensus_high_threshold: 0.8       # support % that triggers consensus=1.0
+
+
+# ----------------------------------------------------------------------------
+# Social Narrative Collector (Reddit + Google News)
+# ----------------------------------------------------------------------------
+social:
+  cache_hours: 6                      # cache TTL in hours
+  reddit_user_agent: "python:democratic_machine_learning:v1.0 (by /u/democratic_ml_bot)"
+  reddit_timeout: 15                  # seconds
+  reddit_rate_limit_sleep: 1.0        # sleep between Reddit requests (seconds)
+  reddit_retry_sleep: 5.0             # sleep on HTTP 429 before retry
+  reddit_fetch_multiplier: 2          # over-fetch factor (request 2× then filter)
+
+  # Reddit sentiment classification
+  reddit_supportive_score: 10         # score threshold for "supportive" classification
+  reddit_supportive_ratio: 0.7        # upvote_ratio threshold
+  reddit_critical_score: -5           # score threshold for "critical"
+  reddit_critical_ratio: 0.3          # upvote_ratio threshold
+
+  # Normalisation
+  reddit_score_norm: 50               # divides raw Reddit score for normalisation
+  reddit_sentiment_score_weight: 0.4  # blend: score component
+  reddit_sentiment_ratio_weight: 0.6  # blend: ratio component
+  relevance_text_norm: 200            # text length for relevance normalisation
+
+  news_timeout: 10                    # seconds for Google News RSS requests
+  news_text_max_chars: 800            # max chars extracted from each news item
+
+  max_opinions: 45                    # max Reddit opinions to fetch per topic
+  max_narratives: 42                  # max news narratives to fetch per topic
+
+
+# ----------------------------------------------------------------------------
+# Synthetic Voter Pool (run_all_domains.py)
+# ----------------------------------------------------------------------------
+voter_pool:
+  rng_seed: 42                        # change to get different synthetic preferences
+  public_voters_per_million: 1        # public delegates per 1M state residents
+  public_voters_min_per_state: 1      # floor — every state gets at least 1
+
+  experts_per_domain:
+    economy: 12
+    healthcare: 10
+    education: 8
+    immigration: 7
+    climate: 9
+    infrastructure: 11
+
+  # Expert preference distribution (normal)
+  expert_pref_mu: 0.65
+  expert_pref_sigma: 0.10
+  expert_expertise_min: 0.85
+  expert_expertise_max: 0.95
+
+  # State delegate preference distribution (normal)
+  state_delegate_pref_mu: 0.60
+  state_delegate_pref_sigma: 0.15
+  state_delegate_expertise: 0.65
+
+  # County preference distributions (normal, by type)
+  county_pref_urban_mu: 0.68
+  county_pref_urban_sigma: 0.08
+  county_pref_suburban_mu: 0.60
+  county_pref_suburban_sigma: 0.10
+  county_pref_rural_mu: 0.48
+  county_pref_rural_sigma: 0.12
+
+  # Public preference range (uniform)
+  public_pref_min: -0.3
+  public_pref_max: 0.9
+
+  # LLM context metadata
+  us_diversity_index: 0.73
+  us_urban_ratio: 0.83
+
+  # Production LLM settings for run_all_domains.py
+  prod_llm_max_depth: 2               # depth used in production run (can differ from llm.max_depth)
+  prod_llm_subtopics_per_level: 3
+  prod_geo_fan_out: true              # include all 50 states + representative counties
+
+
+# ----------------------------------------------------------------------------
+# Verbose / Structured Logging
+# ----------------------------------------------------------------------------
+logging:
+  verbose_log_dir: "output/logs"
+  verbose_log_prefix: "chain_of_reasoning"
+  show_locals_in_tracebacks: false

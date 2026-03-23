@@ -21,13 +21,25 @@ logger = logging.getLogger(__name__)
 class SocialNarrativeCollector:
     """Collects social narratives and media opinions from free internet sources."""
 
-    def __init__(self, cache_duration_hours: int = 6):
+    def __init__(self, cache_duration_hours: Optional[int] = None):
         """Initialize the social narrative collector.
 
         Args:
-            cache_duration_hours: How long to cache results before refreshing
+            cache_duration_hours: How long to cache results before refreshing.
+                                  Defaults to ``config.yaml`` ``social.cache_hours``.
         """
-        self.cache_duration = timedelta(hours=cache_duration_hours)
+        from src.config import (
+            get_config,
+        )  # local import to avoid circular at module load
+
+        _cfg = get_config().social
+        hours = (
+            cache_duration_hours
+            if cache_duration_hours is not None
+            else _cfg.cache_hours
+        )
+        self.cache_duration = timedelta(hours=hours)
+        self._social_cfg = _cfg
         self.cache: Dict[str, Dict[str, Any]] = {}
         self.session = requests.Session()
         # Reddit requires a descriptive User-Agent in the format:
@@ -35,7 +47,7 @@ class SocialNarrativeCollector:
         # Browser-spoofed UAs are blocked with 403.
         self.session.headers.update(
             {
-                "User-Agent": "python:democratic_machine_learning:v1.0 (by /u/democratic_ml_bot)",
+                "User-Agent": _cfg.reddit_user_agent,
                 "Accept": "application/json",
                 "Accept-Language": "en-US,en;q=0.9",
             }
@@ -78,24 +90,28 @@ class SocialNarrativeCollector:
         try:
             # Reddit free JSON API — requires descriptive User-Agent (not browser UA)
             # Falls back to old.reddit.com if the main endpoint returns 403/429.
+            _cfg = self._social_cfg
             search_query = f"{topic} {domain}"
             encoded_query = quote_plus(search_query)
+            _fetch_limit = max_results * _cfg.reddit_fetch_multiplier
             endpoints = [
-                f"https://www.reddit.com/search.json?q={encoded_query}&limit={max_results * 2}&sort=relevance&type=link",
-                f"https://old.reddit.com/search.json?q={encoded_query}&limit={max_results * 2}&sort=relevance",
+                f"https://www.reddit.com/search.json?q={encoded_query}&limit={_fetch_limit}&sort=relevance&type=link",
+                f"https://old.reddit.com/search.json?q={encoded_query}&limit={_fetch_limit}&sort=relevance",
             ]
 
             data = None
             for url in endpoints:
                 try:
                     time.sleep(
-                        1
-                    )  # respect Reddit rate limit (60 req/min unauthenticated)
-                    response = self.session.get(url, timeout=15)
+                        _cfg.reddit_rate_limit_sleep
+                    )  # respect Reddit rate limit
+                    response = self.session.get(url, timeout=_cfg.reddit_timeout)
                     if response.status_code == 429:
-                        logger.debug(f"Reddit rate-limited on {url}, sleeping 5s")
-                        time.sleep(5)
-                        response = self.session.get(url, timeout=15)
+                        logger.debug(
+                            f"Reddit rate-limited on {url}, sleeping {_cfg.reddit_retry_sleep}s"
+                        )
+                        time.sleep(_cfg.reddit_retry_sleep)
+                        response = self.session.get(url, timeout=_cfg.reddit_timeout)
                     if response.status_code == 200:
                         data = response.json()
                         logger.debug(f"Reddit OK: {url}")
@@ -130,9 +146,15 @@ class SocialNarrativeCollector:
                 score = post_data.get("score", 0)
                 upvote_ratio = post_data.get("upvote_ratio", 0.5)
 
-                if score > 10 and upvote_ratio > 0.7:
+                if (
+                    score > _cfg.reddit_supportive_score
+                    and upvote_ratio > _cfg.reddit_supportive_ratio
+                ):
                     perspective = "supportive"
-                elif score < -5 or upvote_ratio < 0.3:
+                elif (
+                    score < _cfg.reddit_critical_score
+                    or upvote_ratio < _cfg.reddit_critical_ratio
+                ):
                     perspective = "critical"
                 elif abs(score) <= 5 and 0.4 <= upvote_ratio <= 0.6:
                     perspective = "neutral"
@@ -154,7 +176,7 @@ class SocialNarrativeCollector:
                         score, upvote_ratio
                     ),
                     "relevance_score": min(
-                        1.0, len(full_text) / 200
+                        1.0, len(full_text) / _cfg.relevance_text_norm
                     ),  # Longer = more relevant
                     "collected_at": datetime.now().isoformat(),
                     "url": f"https://reddit.com{post_data.get('permalink', '')}",
@@ -239,7 +261,7 @@ class SocialNarrativeCollector:
             query = f"{topic} {domain} policy"
             url = f"https://news.google.com/rss/search?q={quote_plus(query)}&hl=en-US&gl=US&ceid=US:en"
 
-            response = self.session.get(url, timeout=10)
+            response = self.session.get(url, timeout=self._social_cfg.news_timeout)
             response.raise_for_status()
 
             # Parse XML/RSS
@@ -288,7 +310,11 @@ class SocialNarrativeCollector:
                     "topic": topic,
                     "domain": domain,
                     "title": title,
-                    "text": (description[:800] if description else title),  # Limit text
+                    "text": (
+                        description[: self._social_cfg.news_text_max_chars]
+                        if description
+                        else title
+                    ),
                     "narrative_type": narrative_type,
                     "outlet": source,
                     "timestamp": pub_date.isoformat(),
@@ -387,15 +413,19 @@ class SocialNarrativeCollector:
 
     def _calculate_reddit_sentiment(self, score: int, upvote_ratio: float) -> float:
         """Calculate sentiment score (-1 to 1) based on Reddit metrics."""
+        _cfg = self._social_cfg
         # Normalize score to -1 to 1 range
-        # Reddit scores can vary widely, so we use a sigmoid-like approach
-        normalized_score = max(-1, min(1, score / 50)) if score != 0 else 0
+        normalized_score = (
+            max(-1, min(1, score / _cfg.reddit_score_norm)) if score != 0 else 0
+        )
 
         # Combine with upvote ratio (0 to 1 mapped to -1 to 1)
         ratio_sentiment = (upvote_ratio - 0.5) * 2  # -1 to 1
 
-        # Weighted combination
-        return (normalized_score * 0.4) + (ratio_sentiment * 0.6)
+        # Weighted combination (weights from config)
+        return (normalized_score * _cfg.reddit_sentiment_score_weight) + (
+            ratio_sentiment * _cfg.reddit_sentiment_ratio_weight
+        )
 
     def _calculate_news_sentiment(self, title: str, description: str) -> float:
         """Calculate sentiment score for news content."""
@@ -783,8 +813,12 @@ class SocialNarrativeCollector:
         Returns:
             Dictionary containing opinions, narratives, and summary statistics
         """
-        opinions = self.search_public_opinion(topic, domain, max_results=15)
-        narratives = self.search_media_narratives(topic, domain, max_results=12)
+        opinions = self.search_public_opinion(
+            topic, domain, max_results=self._social_cfg.max_opinions
+        )
+        narratives = self.search_media_narratives(
+            topic, domain, max_results=self._social_cfg.max_narratives
+        )
 
         # Calculate summary statistics
         if opinions:

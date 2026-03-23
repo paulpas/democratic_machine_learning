@@ -4,6 +4,7 @@ from typing import Dict, List, Optional
 from src.models.voter import Voter
 from src.models.region import Region
 from src.models.policy import Policy, PolicyDomain
+from src.config import get_config
 
 
 class WeightingSystem:
@@ -11,23 +12,33 @@ class WeightingSystem:
 
     def __init__(
         self,
-        base_weight: float = 1.0,
-        expertise_boost: float = 0.5,
-        proximity_boost: float = 0.3,
-        historical_weight: float = 0.2,
+        base_weight: Optional[float] = None,
+        expertise_boost: Optional[float] = None,
+        proximity_boost: Optional[float] = None,
+        historical_weight: Optional[float] = None,
     ) -> None:
         """Initialize the weighting system.
 
         Args:
-            base_weight: Base weight for all voters
-            expertise_boost: Boost for voters with expertise in policy area
-            proximity_boost: Boost for voters directly affected by policy
-            historical_weight: Weight based on historical participation
+            base_weight: Base weight for all voters.
+            expertise_boost: Boost for voters with expertise in policy area.
+            proximity_boost: Boost for voters directly affected by policy.
+            historical_weight: Weight based on historical participation.
+            All parameters default to ``config.yaml`` ``weighting.*`` values.
         """
-        self.base_weight = base_weight
-        self.expertise_boost = expertise_boost
-        self.proximity_boost = proximity_boost
-        self.historical_weight = historical_weight
+        _cfg = get_config().weighting
+        self.base_weight = base_weight if base_weight is not None else _cfg.base_weight
+        self.expertise_boost = (
+            expertise_boost if expertise_boost is not None else _cfg.expertise_boost
+        )
+        self.proximity_boost = (
+            proximity_boost if proximity_boost is not None else _cfg.proximity_boost
+        )
+        self.historical_weight = (
+            historical_weight
+            if historical_weight is not None
+            else _cfg.historical_weight
+        )
 
         self.voter_weights: Dict[str, float] = {}
         self.voter_participation: Dict[str, int] = {}
@@ -43,12 +54,13 @@ class WeightingSystem:
         Returns:
             Calculated voting weight
         """
+        _cfg = get_config().weighting
         weight = self.base_weight
 
         if voter.voter_type.value == "representative":
-            weight *= 2.0
+            weight *= _cfg.mult_representative
         elif voter.voter_type.value == "expert":
-            weight *= 1.5
+            weight *= _cfg.mult_expert
 
         if policy.policy_id in voter.expertise:
             weight += self.expertise_boost * voter.expertise[policy.policy_id]
@@ -57,7 +69,9 @@ class WeightingSystem:
             weight += self.proximity_boost
 
         participation = self.voter_participation.get(voter.voter_id, 0)
-        weight += self.historical_weight * min(participation / 10, 1.0)
+        weight += self.historical_weight * min(
+            participation / _cfg.participation_norm, 1.0
+        )
 
         return weight
 

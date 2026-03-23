@@ -1099,6 +1099,129 @@ pytest tests/core/test_feedback_loop.py -v
 
 ---
 
+## Configuration System
+
+All runtime behaviour is controlled by a single layered configuration system implemented
+in `src/config.py`. No hardcoded values exist in production code — every threshold, depth,
+timeout, and token budget is overridable without touching source files.
+
+### Architecture
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                     AppConfig (singleton)                        │
+│                                                                  │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────┐ │
+│  │ LLMConfig│  │Decision  │  │Weighting │  │   TrustConfig    │ │
+│  │          │  │ Config   │  │ Config   │  │                  │ │
+│  │ endpoint │  │ fairness │  │ base_    │  │ base_score       │ │
+│  │ max_depth│  │ threshold│  │ weight   │  │ bot_threshold    │ │
+│  │ timeouts │  │ analysis │  │ boosts   │  │ manip_threshold  │ │
+│  │ max_toks │  │ depth    │  │ mults    │  │ anomaly_stds     │ │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────────────┘ │
+│                                                                  │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────┐ │
+│  │ Fairness │  │ Feedback │  │  Social  │  │   VoterPool      │ │
+│  │ Config   │  │ Config   │  │  Config  │  │   Config         │ │
+│  │          │  │          │  │          │  │                  │ │
+│  │ min_prop │  │ learning │  │ reddit_* │  │ rng_seed         │ │
+│  │ max_disp │  │ rate     │  │ news_*   │  │ experts_per_dom  │ │
+│  │ consensus│  │ fairness │  │ cache_hr │  │ pref_dist_params │ │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────────────┘ │
+└──────────────────────────────────────────────────────────────────┘
+          ↑                  ↑                      ↑
+   DML_*__* env vars    config.yaml            hardcoded defaults
+   (highest priority)   (middle)               (lowest priority)
+```
+
+### Load sequence
+
+```python
+# 1. AppConfig is constructed with hardcoded defaults
+cfg = AppConfig()
+
+# 2. config.yaml is parsed and applied (deep merge)
+_apply_raw_dict(cfg, yaml.safe_load("config.yaml"))
+
+# 3. DML_<SECTION>__<KEY> environment variables override individual keys
+_apply_raw_dict(cfg, _env_overrides())
+
+# 4. Legacy env vars (LLAMA_CPP_ENDPOINT etc.) are applied last in the LLM section
+_apply_legacy_env(cfg)
+
+# 5. Singleton stored — subsequent get_config() calls return the same object
+```
+
+### Config sections and their consumers
+
+| Section | Dataclass | Primary consumer |
+|---------|-----------|-----------------|
+| `llm` | `LLMConfig` | `src/llm/integration.py::LLMClient` |
+| `decision` | `DecisionConfig` | `src/core/decision_engine.py::DecisionEngine` |
+| `weighting` | `WeightingConfig` | `src/core/weighting_system.py::WeightingSystem` |
+| `feedback` | `FeedbackConfig` | `src/core/feedback_loop.py::FeedbackLoop` |
+| `trust` | `TrustConfig` | `src/security/trust_system.py::TrustScorer`, `SocialInfluenceAnalyzer` |
+| `fairness` | `FairnessConfig` | `src/utils/metrics.py::FairnessMetrics` |
+| `social` | `SocialConfig` | `src/data/social_narrative_collector.py::SocialNarrativeCollector` |
+| `voter_pool` | `VoterPoolConfig` | `run_all_domains.py::_build_national_voter_pool()` |
+| `logging` | `LoggingConfig` | `src/verbose_logging/verbose_logger.py::VerboseLogger` |
+
+### Performance levers
+
+The two settings that most dramatically affect total runtime:
+
+| Setting | Default | Effect on LLM call count |
+|---------|---------|--------------------------|
+| `voter_pool.prod_llm_max_depth` | `4` | Exponential with branching factor |
+| `voter_pool.prod_geo_fan_out` | `true` | ×63 multiplier (50 states + 10 counties + 1 national) |
+
+With defaults: ~700–900 LLM calls per domain, 2–4 hours on CPU.
+With `max_depth=2, prod_geo_fan_out=false`: ~10–20 calls, < 5 minutes.
+
+### Using the config in Python
+
+```python
+from src.config import get_config, load_config
+
+# Auto-load config.yaml + env vars (lazy singleton)
+cfg = get_config()
+
+# Load an alternative file
+cfg = load_config("experiments/fast.yaml")
+
+# Access nested settings
+depth   = cfg.llm.max_depth                    # int
+timeout = cfg.llm.timeout_seconds              # int
+fair    = cfg.decision.fairness_threshold      # float
+seed    = cfg.voter_pool.rng_seed              # int
+
+# Print effective config
+from src.config import dump_config
+print(dump_config())
+```
+
+### CLI usage
+
+```bash
+# Default config.yaml
+python3 run_all_domains.py
+
+# Custom file
+python3 run_all_domains.py --config fast.yaml economy
+
+# Print effective config and exit
+python3 run_all_domains.py --show-config
+
+# Env var override (no file needed)
+DML_LLM__MAX_DEPTH=2 DML_VOTER_POOL__PROD_GEO_FAN_OUT=false \
+  python3 run_all_domains.py economy
+```
+
+Full per-parameter documentation with valid ranges and performance impact is in
+**[CONFIG.md](CONFIG.md)**.
+
+---
+
 ## Future Enhancements
 
 1. **Advanced ML Models**: Integrate predictive models for policy outcomes

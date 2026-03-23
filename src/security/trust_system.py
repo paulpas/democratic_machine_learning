@@ -5,6 +5,7 @@ import numpy as np
 from src.models.voter import Voter, VoterType
 from src.models.policy import Policy
 from src.utils.metrics import FairnessMetrics
+from src.config import get_config
 
 
 class TrustScorer:
@@ -12,26 +13,40 @@ class TrustScorer:
 
     def __init__(
         self,
-        base_score: float = 1.0,
-        expertise_boost: float = 0.3,
-        consistency_weight: float = 0.4,
-        participation_weight: float = 0.3,
-        evidence_weight: float = 0.3,
+        base_score: Optional[float] = None,
+        expertise_boost: Optional[float] = None,
+        consistency_weight: Optional[float] = None,
+        participation_weight: Optional[float] = None,
+        evidence_weight: Optional[float] = None,
     ) -> None:
         """Initialize the trust scorer.
 
         Args:
-            base_score: Base trust score
-            expertise_boost: Maximum boost from expertise
-            consistency_weight: Weight for preference consistency
-            participation_weight: Weight for participation history
-            evidence_weight: Weight for evidence quality
+            base_score: Base trust score.
+            expertise_boost: Maximum boost from expertise.
+            consistency_weight: Weight for preference consistency.
+            participation_weight: Weight for participation history.
+            evidence_weight: Weight for evidence quality.
+            All parameters default to ``config.yaml`` ``trust.*`` values.
         """
-        self.base_score = base_score
-        self.expertise_boost = expertise_boost
-        self.consistency_weight = consistency_weight
-        self.participation_weight = participation_weight
-        self.evidence_weight = evidence_weight
+        _cfg = get_config().trust
+        self.base_score = base_score if base_score is not None else _cfg.base_score
+        self.expertise_boost = (
+            expertise_boost if expertise_boost is not None else _cfg.expertise_boost
+        )
+        self.consistency_weight = (
+            consistency_weight
+            if consistency_weight is not None
+            else _cfg.consistency_weight
+        )
+        self.participation_weight = (
+            participation_weight
+            if participation_weight is not None
+            else _cfg.participation_weight
+        )
+        self.evidence_weight = (
+            evidence_weight if evidence_weight is not None else _cfg.evidence_weight
+        )
 
         self.trust_scores: Dict[str, float] = {}
         self.voter_consistency: Dict[str, float] = {}
@@ -59,7 +74,9 @@ class TrustScorer:
 
         # Boost for participation
         participation = self.participation_history.get(voter.voter_id, 0)
-        participation_factor = min(participation / 10, 1.0)
+        participation_factor = min(
+            participation / get_config().trust.participation_norm, 1.0
+        )
         score += participation_factor * self.participation_weight
 
         # Boost for evidence quality
@@ -68,7 +85,7 @@ class TrustScorer:
 
         return min(1.0, score)
 
-    def detect_anomaly(self, voter: Voter, threshold: float = 2.0) -> bool:
+    def detect_anomaly(self, voter: Voter, threshold: Optional[float] = None) -> bool:
         """Detect if voter's preferences are anomalous.
 
         Args:
@@ -78,6 +95,8 @@ class TrustScorer:
         Returns:
             True if anomaly detected
         """
+        if threshold is None:
+            threshold = get_config().trust.anomaly_std_threshold
         preferences = list(voter.preferences.values())
         if not preferences:
             return False
@@ -91,7 +110,9 @@ class TrustScorer:
 
         return False
 
-    def detect_inconsistency(self, voter: Voter, threshold: float = 0.5) -> bool:
+    def detect_inconsistency(
+        self, voter: Voter, threshold: Optional[float] = None
+    ) -> bool:
         """Detect inconsistent preferences that may indicate manipulation.
 
         Args:
@@ -101,6 +122,9 @@ class TrustScorer:
         Returns:
             True if inconsistency detected
         """
+        if threshold is None:
+            threshold = get_config().trust.inconsistency_threshold
+        _threshold: float = threshold
         if len(voter.preferences) < 2:
             return False
 
@@ -109,7 +133,7 @@ class TrustScorer:
 
         for i, key1 in enumerate(pref_keys):
             for key2 in pref_keys[i + 1 :]:
-                if abs(pref_values[i] - pref_values[i + 1]) > threshold:
+                if abs(pref_values[i] - pref_values[i + 1]) > _threshold:
                     continue
 
                 # Check for contradictory preferences
@@ -148,17 +172,19 @@ class TrustScorer:
         self.evidence_quality[voter_id] = quality
 
     def get_trusted_voters(
-        self, voters: List[Voter], min_trust: float = 0.7
+        self, voters: List[Voter], min_trust: Optional[float] = None
     ) -> List[Voter]:
         """Get voters with trust scores above threshold.
 
         Args:
             voters: List of voters
-            min_trust: Minimum trust threshold
+            min_trust: Minimum trust threshold. Defaults to ``config.yaml`` ``trust.min_threshold``.
 
         Returns:
             List of trusted voters
         """
+        if min_trust is None:
+            min_trust = get_config().trust.min_threshold
         return [v for v in voters if self.calculate_trust_score(v) >= min_trust]
 
 
@@ -269,16 +295,25 @@ class SocialInfluenceAnalyzer:
     """Analyzes social media influence and manipulation patterns."""
 
     def __init__(
-        self, bot_threshold: float = 0.7, manipulation_threshold: float = 0.6
+        self,
+        bot_threshold: Optional[float] = None,
+        manipulation_threshold: Optional[float] = None,
     ) -> None:
         """Initialize the social influence analyzer.
 
         Args:
-            bot_threshold: Bot detection threshold
-            manipulation_threshold: Manipulation detection threshold
+            bot_threshold: Bot detection threshold. Defaults to ``config.yaml`` ``trust.bot_detection_threshold``.
+            manipulation_threshold: Manipulation detection threshold. Defaults to ``config.yaml`` ``trust.manipulation_detection_threshold``.
         """
-        self.bot_threshold = bot_threshold
-        self.manipulation_threshold = manipulation_threshold
+        _cfg = get_config().trust
+        self.bot_threshold = (
+            bot_threshold if bot_threshold is not None else _cfg.bot_detection_threshold
+        )
+        self.manipulation_threshold = (
+            manipulation_threshold
+            if manipulation_threshold is not None
+            else _cfg.manipulation_detection_threshold
+        )
 
         self.bot_scores: Dict[str, float] = {}
         self.manipulation_scores: Dict[str, float] = {}
@@ -298,21 +333,22 @@ class SocialInfluenceAnalyzer:
         # - Repetitive language
         # - Lack of expertise
 
+        _cfg = get_config().trust
         bot_score = 0.0
 
         # Check preference uniformity (bots often have uniform preferences)
         if len(voter.preferences) > 0:
             pref_values = list(voter.preferences.values())
             if np.std(pref_values) < 0.1:
-                bot_score += 0.3
+                bot_score += _cfg.bot_score_uniform_pref
 
         # Check expertise (bots often lack expertise)
         if not voter.expertise:
-            bot_score += 0.2
+            bot_score += _cfg.bot_score_no_expertise
 
         # Check voting weight (bots may have unusual weights)
         if voter.voting_weight != 1.0:
-            bot_score += 0.1
+            bot_score += _cfg.bot_score_unusual_weight
 
         is_bot = bot_score >= self.bot_threshold
         return is_bot, bot_score
@@ -326,12 +362,13 @@ class SocialInfluenceAnalyzer:
         Returns:
             Tuple of (manipulated, confidence)
         """
+        _cfg = get_config().trust
         manipulation_score = 0.0
 
         # Check for extreme preferences (may indicate manipulation)
         for pref in voter.preferences.values():
             if abs(pref) > 0.95:
-                manipulation_score += 0.2
+                manipulation_score += _cfg.manip_score_extreme_pref
 
         # Check for sudden preference changes (in real implementation)
         # This would track history of preference changes

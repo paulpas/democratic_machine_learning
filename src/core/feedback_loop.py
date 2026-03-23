@@ -10,6 +10,7 @@ from src.models.decision import Decision
 from src.models.voter import Voter
 from src.models.region import Region
 from src.utils.metrics import FairnessMetrics
+from src.config import get_config
 
 
 class FeedbackLoop:
@@ -17,20 +18,30 @@ class FeedbackLoop:
 
     def __init__(
         self,
-        learning_rate: float = 0.1,
-        fairness_target: float = 0.7,
-        stability_threshold: float = 0.2,
+        learning_rate: Optional[float] = None,
+        fairness_target: Optional[float] = None,
+        stability_threshold: Optional[float] = None,
     ) -> None:
         """Initialize the feedback loop.
 
         Args:
-            learning_rate: How quickly the system adapts
-            fairness_target: Target fairness score
-            stability_threshold: Maximum allowed variance in fairness
+            learning_rate: How quickly the system adapts.
+            fairness_target: Target fairness score.
+            stability_threshold: Maximum allowed variance in fairness.
+            All parameters default to ``config.yaml`` ``feedback.*`` values.
         """
-        self.learning_rate = learning_rate
-        self.fairness_target = fairness_target
-        self.stability_threshold = stability_threshold
+        _cfg = get_config().feedback
+        self.learning_rate = (
+            learning_rate if learning_rate is not None else _cfg.learning_rate
+        )
+        self.fairness_target = (
+            fairness_target if fairness_target is not None else _cfg.fairness_target
+        )
+        self.stability_threshold = (
+            stability_threshold
+            if stability_threshold is not None
+            else _cfg.stability_threshold
+        )
 
         self.fairness_metrics = FairnessMetrics()
         self.history: List[Dict] = []
@@ -112,15 +123,18 @@ class FeedbackLoop:
             {**metrics, "adaptation_factors": self.adaptation_factors.copy()}
         )
 
-    def get_trends(self, window: int = 10) -> Dict:
+    def get_trends(self, window: Optional[int] = None) -> Dict:
         """Get trends from recent history.
 
         Args:
-            window: Number of recent decisions to analyze
+            window: Number of recent decisions to analyze.
+                    Defaults to ``config.yaml`` ``feedback.trend_window``.
 
         Returns:
             Dictionary with trend metrics
         """
+        if window is None:
+            window = get_config().feedback.trend_window
         recent = self.history[-window:] if len(self.history) > window else self.history
 
         if not recent:

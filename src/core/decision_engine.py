@@ -16,18 +16,25 @@ from src.security.trust_system import (
 )
 from src.llm.integration import LLMClient
 from src.data.social_narrative_collector import SocialNarrativeCollector
+from src.config import get_config
 
 
 class DecisionEngine:
     """Main engine for making democratic decisions."""
 
-    def __init__(self, fairness_threshold: float = 0.7) -> None:
+    def __init__(self, fairness_threshold: Optional[float] = None) -> None:
         """Initialize the decision engine.
 
         Args:
-            fairness_threshold: Minimum fairness score required for decisions
+            fairness_threshold: Minimum fairness score required for decisions.
+                                Defaults to ``config.yaml`` ``decision.fairness_threshold``.
         """
-        self.fairness_threshold = fairness_threshold
+        _cfg = get_config().decision
+        self.fairness_threshold = (
+            fairness_threshold
+            if fairness_threshold is not None
+            else _cfg.fairness_threshold
+        )
         self.voters: Dict[str, Voter] = {}
         self.policies: Dict[str, Policy] = {}
         self.regions: Dict[str, Region] = {}
@@ -177,8 +184,11 @@ class DecisionEngine:
         Returns:
             True if all decisions are fair, False otherwise
         """
+        _window = get_config().decision.fairness_check_window
         recent_decisions = (
-            self.decisions[-10:] if len(self.decisions) > 10 else self.decisions
+            self.decisions[-_window:]
+            if len(self.decisions) > _window
+            else self.decisions
         )
 
         for decision in recent_decisions:
@@ -377,7 +387,9 @@ class DecisionEngine:
                         "source": op.get("source", "unknown"),
                         "sentiment": op.get("sentiment_score", 0.0),
                     }
-                    for op in social_data.get("opinions", [])[:5]  # Top 5 opinions
+                    for op in social_data.get("opinions", [])[
+                        : get_config().decision.llm_context_max_opinions
+                    ]
                 ],
                 "sample_narratives": [
                     {
@@ -388,8 +400,8 @@ class DecisionEngine:
                         "credibility": nar.get("credibility_score", 0.0),
                     }
                     for nar in social_data.get("media_narratives", [])[
-                        :3
-                    ]  # Top 3 narratives
+                        : get_config().decision.llm_context_max_narratives
+                    ]
                 ],
             }
 
@@ -412,11 +424,12 @@ class DecisionEngine:
             ]
 
             # Use recursive LLM investigation for comprehensive domain analysis
+            _dec_cfg = get_config().decision
             recursive_results = self.llm_client.generate_reasoning_with_recursion(
                 domain=str(policy.domain),
                 initial_context=context_data,
-                max_depth=3,
-                subtopics_per_level=5,
+                max_depth=_dec_cfg.policy_analysis_max_depth,
+                subtopics_per_level=_dec_cfg.policy_analysis_subtopics,
                 principles=[
                     "Inclusivity",
                     "Transparency",
@@ -440,7 +453,9 @@ class DecisionEngine:
                 "social_data": social_data,
                 "final_conjecture": final_conjecture,
                 "best_solutions": recursive_results.get("best_solutions", []),
-                "confidence": final_conjecture.get("confidence", 0.75),
+                "confidence": final_conjecture.get(
+                    "confidence", get_config().llm.default_confidence
+                ),
             }
         except Exception as e:
             print(f"LLM policy context analysis error: {e}")

@@ -24,15 +24,26 @@ from typing import Any, Dict, List, Optional, Tuple
 import urllib.request
 import urllib.error
 
+from src.config import get_config
+
 # ──────────────────────────────────────────────────────────────────────────────
 # LLM AUDIT LOGGER
 # Writes every prompt and response to logs/llm_calls.log (rotating, 50 MB max,
 # 5 backups).  When PYTHONLOGGING=DEBUG the same content also goes to stdout.
 # ──────────────────────────────────────────────────────────────────────────────
 
-_LOG_DIR = Path(
-    os.environ.get("LLM_LOG_DIR", Path(__file__).resolve().parents[2] / "logs")
-)
+
+def _get_log_dir() -> Path:
+    """Resolve the audit-log directory from config (honours legacy LLM_LOG_DIR too)."""
+    cfg_dir = get_config().llm.log_dir
+    if cfg_dir:
+        return Path(cfg_dir)
+    return Path(
+        os.environ.get("LLM_LOG_DIR", Path(__file__).resolve().parents[2] / "logs")
+    )
+
+
+_LOG_DIR = _get_log_dir()
 _LOG_DIR.mkdir(parents=True, exist_ok=True)
 _LOG_FILE = _LOG_DIR / "llm_calls.log"
 
@@ -59,10 +70,11 @@ def _has_handler(logger: logging.Logger, handler_type: type) -> bool:
 
 # Rotating file handler — always active, added only once
 if not _has_handler(_audit_logger, logging.handlers.RotatingFileHandler):
+    _llm_cfg = get_config().llm
     _file_handler = logging.handlers.RotatingFileHandler(
         _LOG_FILE,
-        maxBytes=50 * 1024 * 1024,  # 50 MB per file
-        backupCount=5,
+        maxBytes=_llm_cfg.log_max_bytes,
+        backupCount=_llm_cfg.log_backup_count,
         encoding="utf-8",
     )
     _file_handler.setLevel(logging.DEBUG)
@@ -359,14 +371,17 @@ class LLMClient:
         """Initialize LLM client.
 
         Args:
-            endpoint: Llama.cpp endpoint URL (default: http://localhost:8080)
-            model: Model name to use (for logging purposes)
+            endpoint: Llama.cpp endpoint URL.  Defaults to ``config.yaml``
+                      ``llm.endpoint`` (or the legacy ``LLAMA_CPP_ENDPOINT`` env var).
+            model: Model name label.  Defaults to ``config.yaml`` ``llm.model``.
         """
-        self.endpoint = endpoint or os.environ.get(
-            "LLAMA_CPP_ENDPOINT", "http://localhost:8080"
+        _cfg = get_config().llm
+        self.endpoint = (
+            endpoint or os.environ.get("LLAMA_CPP_ENDPOINT", "") or _cfg.endpoint
         )
-        self.model = model or os.environ.get("LLAMA_MODEL", "llama.cpp-model")
-        self.timeout = int(os.environ.get("LLAMA_TIMEOUT", "900"))  # default 15 min
+        self.model = model or os.environ.get("LLAMA_MODEL", "") or _cfg.model
+        self.timeout = int(os.environ.get("LLAMA_TIMEOUT", "") or _cfg.timeout_seconds)
+        self._cfg = _cfg  # keep reference for per-call token budgets etc.
         self._call_count: int = 0
         self._total_tokens: int = 0
 
@@ -391,9 +406,8 @@ class LLMClient:
                 data=data,
                 headers={"Content-Type": "application/json"},
             )
-            with urllib.request.urlopen(
-                req, timeout=30
-            ) as response:  # 30s for connection test
+            connect_timeout = self._cfg.connect_test_timeout
+            with urllib.request.urlopen(req, timeout=connect_timeout) as response:
                 return response.getcode() == 200
         except Exception:
             return False
@@ -405,8 +419,8 @@ class LLMClient:
     def _call_llm(
         self,
         prompt: str,
-        max_tokens: int = 8192,
-        temperature: float = 0.7,
+        max_tokens: Optional[int] = None,
+        temperature: Optional[float] = None,
         label: str = "",
     ) -> str:
         """
@@ -421,6 +435,13 @@ class LLMClient:
         Returns:
             The generated text, or an empty string on failure.
         """
+        # Resolve defaults from config when callers pass None
+        _cfg = self._cfg
+        if max_tokens is None:
+            max_tokens = _cfg.max_tokens_default
+        if temperature is None:
+            temperature = _cfg.temperature_default
+
         if not self.available:
             _log(f"  ⚠️  LLM unavailable — skipping call [{label}]")
             _audit(f"LLM SKIPPED  |  {label}  |  endpoint unavailable")
@@ -467,8 +488,11 @@ class LLMClient:
                 _log(
                     f"  ✅ RESPONSE  tokens={tokens}  cumulative={self._total_tokens}  elapsed={elapsed_ms / 1000:.1f}s"
                 )
-                preview = content[:120].replace("\n", " ")
-                _log(f"     preview: {preview}{'…' if len(content) > 120 else ''}")
+                _preview_len = self._cfg.preview_chars
+                preview = content[:_preview_len].replace("\n", " ")
+                _log(
+                    f"     preview: {preview}{'…' if len(content) > _preview_len else ''}"
+                )
                 # Full response to audit log
                 _audit_response(
                     call_number=self._call_count,
@@ -504,7 +528,7 @@ class LLMClient:
         )
         return self._call_llm(
             prompt,
-            max_tokens=4096,
+            max_tokens=self._cfg.max_tokens_domain_initial,
             label=f"domain={domain} tier=national depth=0",
         )
 
@@ -520,7 +544,9 @@ class LLMClient:
         parent_context: str = "",
     ) -> str:
         """Investigate a subtopic at a specific geographic tier."""
-        context_snippet = parent_context[:300] if parent_context else ""
+        context_snippet = (
+            parent_context[: self._cfg.context_snippet_chars] if parent_context else ""
+        )
         prompt = (
             f"You are a US {tier}-level policy expert. "
             f"Analyze '{subtopic}' as a subtopic of {domain} policy "
@@ -532,7 +558,7 @@ class LLMClient:
         )
         return self._call_llm(
             prompt,
-            max_tokens=4096,
+            max_tokens=self._cfg.max_tokens_subtopic,
             label=f"domain={domain} subtopic={subtopic[:40]} tier={tier} depth={depth}",
         )
 
@@ -548,7 +574,9 @@ class LLMClient:
         prior_reasoning: str,
     ) -> str:
         """Deep elaboration on a subtopic — calls after initial investigation."""
-        snippet = prior_reasoning[:400] if prior_reasoning else ""
+        snippet = (
+            prior_reasoning[: self._cfg.prior_snippet_chars] if prior_reasoning else ""
+        )
         prompt = (
             f"Elaborate further on '{subtopic}' in {domain} policy at the {tier} level "
             f"({tier_label}, population {tier_population:,}). "
@@ -558,7 +586,7 @@ class LLMClient:
         )
         return self._call_llm(
             prompt,
-            max_tokens=4096,
+            max_tokens=self._cfg.max_tokens_elaboration,
             label=f"elaborate domain={domain} subtopic={subtopic[:40]} tier={tier} depth={depth}",
         )
 
@@ -567,14 +595,18 @@ class LLMClient:
         question: str,
         context: Dict[str, Any],
         evidence: List[Dict[str, Any]],
-        max_tokens: int = 4096,
+        max_tokens: Optional[int] = None,
         domain: str = "general",
     ) -> Dict[str, Any]:
         """Form a final conjecture synthesizing all evidence."""
+        _cfg = self._cfg
+        if max_tokens is None:
+            max_tokens = _cfg.max_tokens_conjecture
+        evidence_limit = _cfg.conjecture_evidence_limit
         evidence_text = "\n".join(
             f"- [{e.get('tier', '?')} depth={e.get('depth', 0)}] "
             f"{e.get('finding', e.get('reasoning', ''))[:200]}"
-            for e in evidence[:15]
+            for e in evidence[:evidence_limit]
         )
         prompt = (
             f"Based on the following evidence about {domain} policy, "
@@ -586,7 +618,7 @@ class LLMClient:
         raw = self._call_llm(
             prompt,
             max_tokens=max_tokens,
-            temperature=0.6,
+            temperature=_cfg.temperature_conjecture,
             label=f"conjecture domain={domain}",
         )
         return self._parse_conjecture(raw, question, evidence)
@@ -595,11 +627,15 @@ class LLMClient:
         self,
         topic: str,
         research_data: Dict[str, Any],
-        max_tokens: int = 4096,
+        max_tokens: Optional[int] = None,
     ) -> Dict[str, Any]:
         """Analyze a policy topic using LLM."""
+        _cfg = self._cfg
+        if max_tokens is None:
+            max_tokens = _cfg.max_tokens_policy_analysis
         context_text = " | ".join(
-            f"{k}: {str(v)[:80]}" for k, v in list(research_data.items())[:5]
+            f"{k}: {str(v)[:80]}"
+            for k, v in list(research_data.items())[: _cfg.analysis_context_limit]
         )
         prompt = (
             f"Analyze {topic} policy. Context: {context_text}. "
@@ -619,8 +655,8 @@ class LLMClient:
         self,
         domain: str,
         initial_context: Dict[str, Any],
-        max_depth: int = 4,
-        subtopics_per_level: int = 5,
+        max_depth: Optional[int] = None,
+        subtopics_per_level: Optional[int] = None,
         principles: Optional[List[str]] = None,
         include_state_county_rep: bool = True,
     ) -> Dict[str, Any]:
@@ -640,6 +676,13 @@ class LLMClient:
 
         All stdout logging goes to terminal in real-time.
         """
+        # Resolve None defaults from config
+        _cfg = self._cfg
+        if max_depth is None:
+            max_depth = _cfg.max_depth
+        if subtopics_per_level is None:
+            subtopics_per_level = _cfg.subtopics_per_level
+
         if principles is None:
             principles = [
                 "Inclusivity",
@@ -827,9 +870,9 @@ class LLMClient:
         final_conjecture = self.form_conjecture(
             question=final_question,
             context=context,
-            evidence=results["all_elaborations"][:20],
+            evidence=results["all_elaborations"][: _cfg.synthesis_evidence_limit],
             domain=domain,
-            max_tokens=700,
+            max_tokens=_cfg.max_tokens_synthesis,
         )
         results["final_conjecture"] = final_conjecture
 
@@ -990,18 +1033,21 @@ class LLMClient:
         domain: str,
     ) -> List[Dict[str, Any]]:
         """Rank all elaborations by quality score × geographic tier weight."""
+        _cfg = get_config().llm
         tier_weights = {
-            "national": 1.0,
-            "state": 0.8,
-            "county": 0.6,
+            "national": _cfg.tier_weight_national,
+            "state": _cfg.tier_weight_state,
+            "county": _cfg.tier_weight_county,
         }
+        capture_threshold = _cfg.solution_capture_threshold
+        length_norm = _cfg.ranking_length_norm
         solutions: List[Dict[str, Any]] = []
         for elab in all_elaborations:
             tier = elab.get("tier", "national")
             weight = tier_weights.get(tier, 0.5)
             text = elab.get("finding", elab.get("reasoning", ""))
             # Quality score: length (capped) × quality keywords × tier weight
-            length_score = min(1.0, len(text) / 800)
+            length_score = min(1.0, len(text) / length_norm)
             keywords = [
                 "equit",
                 "access",
@@ -1025,7 +1071,7 @@ class LLMClient:
                     "subtopic": elab.get("subtopic", ""),
                     "depth": elab.get("depth", 0),
                     "score": round(score, 4),
-                    "should_capture": score > 0.5,
+                    "should_capture": score > capture_threshold,
                 }
             )
         solutions.sort(key=lambda x: x["score"], reverse=True)
@@ -1092,7 +1138,7 @@ class LLMClient:
     ) -> Dict[str, Any]:
         """Parse the conjecture response into a structured dict."""
         statement = ""
-        confidence = 0.75
+        confidence = get_config().llm.default_confidence
         supporting: List[str] = []
         contradicting: List[str] = []
         current_section: Optional[str] = None
@@ -1153,7 +1199,7 @@ class LLMClient:
         recommendations: List[str] = []
         implementation: List[str] = []
         outcomes: List[str] = []
-        consensus = 0.75
+        consensus = get_config().llm.default_confidence
         current_section: Optional[str] = None
 
         for raw_line in response.splitlines():
@@ -1198,13 +1244,15 @@ class LLMClient:
         context: Dict[str, Any],
         research_questions: List[str],
         principles: List[str],
-        max_tokens: int = 4096,
+        max_tokens: Optional[int] = None,
         domain: str = "general",
         tier: str = "national",
         depth: int = 0,
         subtopic: str = "",
     ) -> str:
         """Legacy shim — calls _call_llm with a concise prompt."""
+        if max_tokens is None:
+            max_tokens = get_config().llm.max_tokens_legacy
         pop = context.get("population", US_NATIONAL_POPULATION)
         q = research_questions[0] if research_questions else "key policy considerations"
         prompt = (
@@ -1240,9 +1288,15 @@ class LLMClient:
         evidence: List[Dict[str, Any]],
     ) -> Dict[str, Any]:
         """Fallback conjecture when LLM unavailable."""
+        _cfg = get_config().llm
+        confidence = (
+            _cfg.fallback_confidence_with_evidence
+            if evidence
+            else _cfg.fallback_confidence_empty
+        )
         return {
             "statement": f"Based on evidence: {question}",
-            "confidence": 0.6 if evidence else 0.4,
+            "confidence": confidence,
             "supporting_evidence": [e.get("finding", "")[:100] for e in evidence[:3]],
             "contradicting_evidence": [],
             "update_reason": "Fallback (LLM unavailable)",
