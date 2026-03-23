@@ -77,72 +77,52 @@ class TestRunAllDomainsVoterPool(unittest.TestCase):
     def tearDown(self):
         self.patcher.stop()
 
-    def test_voter_pool_registers_experts(self):
-        """10 expert voters should be registered."""
+    def _setup_engine(self, domain: str, policy_id: str):
         from src.core.decision_engine import DecisionEngine
         from src.models.policy import Policy, PolicyDomain
         from src.models.region import Region
-        from run_all_domains import _build_national_voter_pool
+        from run_all_domains import DOMAIN_ENUM_MAP
 
         engine = DecisionEngine()
         engine.register_region(Region("US", "United States", "national", 331000000))
         engine.register_policy(
-            Policy(
-                "us_healthcare_2026",
-                "Healthcare Policy 2026",
-                "desc",
-                PolicyDomain.HEALTHCARE,
+            Policy(policy_id, f"{domain} Policy", "desc", DOMAIN_ENUM_MAP[domain])
+        )
+        return engine
+
+    def test_voter_pool_registers_correct_expert_count(self):
+        """Expert count matches _EXPERTS_PER_DOMAIN for each domain."""
+        from run_all_domains import _build_national_voter_pool, _EXPERTS_PER_DOMAIN
+
+        for domain, expected in _EXPERTS_PER_DOMAIN.items():
+            policy_id = f"us_{domain}_2026"
+            engine = self._setup_engine(domain, policy_id)
+            _build_national_voter_pool(engine, domain, policy_id)
+            expert_count = sum(
+                1 for v in engine.voters.values() if v.voter_id.startswith("expert_")
             )
-        )
-
-        _build_national_voter_pool(engine, "healthcare", "us_healthcare_2026")
-
-        expert_count = sum(
-            1 for v in engine.voters.values() if v.voter_id.startswith("expert_")
-        )
-        self.assertEqual(expert_count, 10)
+            self.assertEqual(expert_count, expected, f"domain={domain}")
 
     def test_voter_pool_registers_50_state_delegates(self):
-        from src.core.decision_engine import DecisionEngine
-        from src.models.policy import Policy, PolicyDomain
-        from src.models.region import Region
         from run_all_domains import _build_national_voter_pool
 
-        engine = DecisionEngine()
-        engine.register_region(Region("US", "United States", "national", 331000000))
-        engine.register_policy(
-            Policy(
-                "us_economy_2026", "Economy Policy 2026", "desc", PolicyDomain.ECONOMIC
-            )
-        )
-
+        engine = self._setup_engine("economy", "us_economy_2026")
         _build_national_voter_pool(engine, "economy", "us_economy_2026")
 
         state_count = sum(
-            1 for v in engine.voters.values() if v.voter_id.startswith("state_")
+            1
+            for v in engine.voters.values()
+            if v.voter_id.startswith("state_delegate_")
         )
         self.assertEqual(state_count, 50)
 
     def test_voter_pool_registers_county_delegates(self):
-        from src.core.decision_engine import DecisionEngine
-        from src.models.policy import Policy, PolicyDomain
-        from src.models.region import Region
         from run_all_domains import (
             _build_national_voter_pool,
             REPRESENTATIVE_COUNTIES_INFO,
         )
 
-        engine = DecisionEngine()
-        engine.register_region(Region("US", "United States", "national", 331000000))
-        engine.register_policy(
-            Policy(
-                "us_climate_2026",
-                "Climate Policy 2026",
-                "desc",
-                PolicyDomain.ENVIRONMENT,
-            )
-        )
-
+        engine = self._setup_engine("climate", "us_climate_2026")
         _build_national_voter_pool(engine, "climate", "us_climate_2026")
 
         county_count = sum(
@@ -151,22 +131,9 @@ class TestRunAllDomainsVoterPool(unittest.TestCase):
         self.assertEqual(county_count, len(REPRESENTATIVE_COUNTIES_INFO))
 
     def test_voter_pool_registers_public_sample(self):
-        from src.core.decision_engine import DecisionEngine
-        from src.models.policy import Policy, PolicyDomain
-        from src.models.region import Region
         from run_all_domains import _build_national_voter_pool
 
-        engine = DecisionEngine()
-        engine.register_region(Region("US", "United States", "national", 331000000))
-        engine.register_policy(
-            Policy(
-                "us_education_2026",
-                "Education Policy 2026",
-                "desc",
-                PolicyDomain.EDUCATION,
-            )
-        )
-
+        engine = self._setup_engine("education", "us_education_2026")
         _build_national_voter_pool(engine, "education", "us_education_2026")
 
         public_count = sum(
@@ -174,19 +141,84 @@ class TestRunAllDomainsVoterPool(unittest.TestCase):
         )
         self.assertGreater(public_count, 0)
 
+    def test_public_sample_proportional_to_population(self):
+        """Larger states should have more public voters than smaller ones."""
+        from run_all_domains import _build_national_voter_pool
+
+        engine = self._setup_engine("economy", "us_economy_2026")
+        _build_national_voter_pool(engine, "economy", "us_economy_2026")
+
+        ca_count = sum(
+            1 for v in engine.voters.values() if v.voter_id.startswith("public_CA_")
+        )
+        wy_count = sum(
+            1 for v in engine.voters.values() if v.voter_id.startswith("public_WY_")
+        )
+        self.assertGreater(ca_count, wy_count)
+
+    def test_expert_weights_match_expertise(self):
+        """Expert voting_weight should equal their expertise score."""
+        from run_all_domains import _build_national_voter_pool
+
+        engine = self._setup_engine("healthcare", "us_healthcare_2026")
+        _build_national_voter_pool(engine, "healthcare", "us_healthcare_2026")
+
+        for v in engine.voters.values():
+            if v.voter_id.startswith("expert_"):
+                exp = v.expertise.get("us_healthcare_2026", 0)
+                self.assertAlmostEqual(v.voting_weight, exp, places=5)
+
+    def test_state_weights_are_population_proportional(self):
+        """State delegate weights should be population / US_population."""
+        from run_all_domains import _build_national_voter_pool
+        from src.llm.integration import US_NATIONAL_POPULATION, US_STATES
+
+        engine = self._setup_engine("climate", "us_climate_2026")
+        _build_national_voter_pool(engine, "climate", "us_climate_2026")
+
+        for v in engine.voters.values():
+            if v.voter_id.startswith("state_delegate_"):
+                abbr = v.voter_id.split("_")[2]
+                expected = US_STATES[abbr]["population"] / US_NATIONAL_POPULATION
+                self.assertAlmostEqual(v.voting_weight, expected, places=4)
+
+    def test_preferences_within_bounds(self):
+        """All voter preferences must be in [-1.0, 1.0]."""
+        from run_all_domains import _build_national_voter_pool
+
+        engine = self._setup_engine("immigration", "us_immigration_2026")
+        _build_national_voter_pool(engine, "immigration", "us_immigration_2026")
+
+        for v in engine.voters.values():
+            pref = v.get_preference("us_immigration_2026")
+            self.assertGreaterEqual(pref, -1.0, f"voter {v.voter_id} pref={pref}")
+            self.assertLessEqual(pref, 1.0, f"voter {v.voter_id} pref={pref}")
+
+    def test_pool_is_deterministic(self):
+        """Same seed → same voter preferences on repeated calls."""
+        from run_all_domains import _build_national_voter_pool
+
+        engine1 = self._setup_engine("economy", "us_economy_2026")
+        _build_national_voter_pool(engine1, "economy", "us_economy_2026")
+
+        engine2 = self._setup_engine("economy", "us_economy_2026")
+        _build_national_voter_pool(engine2, "economy", "us_economy_2026")
+
+        prefs1 = {
+            vid: v.get_preference("us_economy_2026")
+            for vid, v in engine1.voters.items()
+        }
+        prefs2 = {
+            vid: v.get_preference("us_economy_2026")
+            for vid, v in engine2.voters.items()
+        }
+        self.assertEqual(prefs1, prefs2)
+
     def test_all_voters_have_preference_set(self):
-        from src.core.decision_engine import DecisionEngine
-        from src.models.policy import Policy, PolicyDomain
-        from src.models.region import Region
         from run_all_domains import _build_national_voter_pool
 
         policy_id = "us_immigration_2026"
-        engine = DecisionEngine()
-        engine.register_region(Region("US", "United States", "national", 331000000))
-        engine.register_policy(
-            Policy(policy_id, "Immigration Policy", "desc", PolicyDomain.SECURITY)
-        )
-
+        engine = self._setup_engine("immigration", policy_id)
         _build_national_voter_pool(engine, "immigration", policy_id)
 
         for voter in engine.voters.values():
@@ -256,8 +288,9 @@ class TestRunDomain(unittest.TestCase):
         from run_all_domains import run_domain
 
         llm_client = LLMClient()
-        result = run_domain("education", llm_client, self.social_mock)
-        self.assertGreater(result["decision"]["total_voters"], 50)
+        result = run_domain("climate", llm_client, self.social_mock)
+        # Minimum: 9 experts + 50 states + 10 counties + 50 public = 119
+        self.assertGreater(result["decision"]["total_voters"], 100)
 
     def test_run_domain_outcome_valid(self):
         from src.llm.integration import LLMClient

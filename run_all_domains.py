@@ -23,6 +23,7 @@ import json
 import datetime
 import argparse
 import traceback
+import random
 from pathlib import Path
 from typing import List, Dict, Any
 
@@ -80,6 +81,36 @@ def log_banner(title: str, char: str = "=", width: int = 80) -> None:
 
 # ── voter registration helpers ────────────────────────────────────────────────
 
+# Number of public voters sampled per state, scaled by population share.
+# Total public delegates ≈ sum of these across all 50 states.
+# We allocate 1 public voter per ~1,000,000 residents, minimum 1.
+_PUBLIC_VOTERS_PER_MILLION = 1
+_PUBLIC_VOTERS_MIN_PER_STATE = 1
+
+# Number of domain expert voters per domain — reflects the realistic ratio of
+# credentialled specialists who actively participate in federal policy input
+# (e.g., advisory panels, public comment processes). Set to one per major
+# federal agency/department relevant to the domain.
+_EXPERTS_PER_DOMAIN: Dict[str, int] = {
+    "economy": 12,  # Treasury, Fed, CEA, CBO, OMB, SBA, Commerce, Labor, Trade, SEC, CFTC, IRS
+    "healthcare": 10,  # HHS, CDC, NIH, CMS, FDA, HRSA, SAMHSA, VA, DOD health, AHRQ
+    "education": 8,  # ED, NSF, NEH, NEA, IES, OSERS, OESE, OCTAE
+    "immigration": 7,  # DHS, CBP, ICE, USCIS, DOS, DOJ, HHS refugee
+    "climate": 9,  # EPA, DOE, NOAA, NASA climate, USFS, Interior, BLM, CEQ, FEMA
+    "infrastructure": 11,  # DOT, FAA, FRA, FTA, FHWA, FMCSA, maritime, Corps of Engineers, EIA, FCC, USACE
+}
+
+# Reproducible seed so preferences are deterministic across runs
+_RNG_SEED = 42
+
+
+def _state_public_voter_count(state_pop: int) -> int:
+    """Return the number of public voters to allocate for a state."""
+    return max(
+        _PUBLIC_VOTERS_MIN_PER_STATE,
+        round(state_pop / 1_000_000 * _PUBLIC_VOTERS_PER_MILLION),
+    )
+
 
 def _build_national_voter_pool(
     engine: DecisionEngine, domain: str, policy_id: str
@@ -87,95 +118,167 @@ def _build_national_voter_pool(
     """
     Register a voter pool representing the entire US population distribution.
 
-    Tiers:
-      - National experts  (domain specialists, high trust)
-      - State delegates   (one per state, population-weighted)
-      - County delegates  (one per representative county)
-      - General public    (synthetic random sample proportional to population)
+    Voter tiers (all three tiers feed into the trust-weighted decision):
+
+    1. DOMAIN EXPERTS
+       Count    : _EXPERTS_PER_DOMAIN[domain]  (8–12, based on federal agencies)
+       Weight   : proportional to expertise score (0.85–0.95)
+       Expertise: 0.85–0.95 (staggered per expert slot)
+       Preference: drawn from a normal distribution centred on 0.65 with
+                   σ=0.10, reflecting that domain experts broadly support
+                   evidence-based policy but vary in degree. Clamped to
+                   [-1.0, 1.0].
+
+    2. STATE DELEGATES  (one per US state — all 50)
+       Count    : 50 (fixed — one delegate per state, mirroring the Senate
+                   principle that each state has equal deliberative standing
+                   regardless of size)
+       Weight   : proportional to the state's electoral college weight, which
+                   itself reflects population. Specifically:
+                   weight = state_population / US_NATIONAL_POPULATION
+                   This gives California ~11.9x the weight of Wyoming while
+                   still giving every state a voice.
+       Preference: drawn from a seeded normal distribution with μ=0.60, σ=0.15
+                   — different states lean differently on policy.
+
+    3. COUNTY DELEGATES  (all REPRESENTATIVE_COUNTIES)
+       Count    : len(REPRESENTATIVE_COUNTIES)  (10 — urban/suburban/rural mix)
+       Weight   : county_population / US_NATIONAL_POPULATION
+       Preference: urban 0.68±0.08, suburban 0.60±0.10, rural 0.48±0.12
+                   (seeded random, reflecting different community priorities)
+
+    4. GENERAL PUBLIC  (synthetic, population-proportional sample)
+       Count    : ∑ _state_public_voter_count(state_pop) across all 50 states
+                 ≈ 1 voter per 1M residents  → ~331 public voters total
+       Weight   : 1.0 (equal weight — direct democracy component)
+       Preference: uniform random in [-0.3, 0.9] seeded by (state, domain, i)
+                   to reflect diverse public opinion.
+
+    Total voters: ~50 experts + 50 state delegates + 10 county + ~331 public
+                = ~441 voters per domain
     """
     log(f"  Registering national voter pool for domain={domain} ...")
 
-    # National expert voters (10)
-    expert_domains = {
-        "economy": "macroeconomics",
-        "healthcare": "public_health",
-        "education": "pedagogy",
-        "immigration": "immigration_law",
-        "climate": "climate_science",
-        "infrastructure": "civil_engineering",
-    }
-    expertise_field = expert_domains.get(domain, domain)
-    for i in range(10):
+    rng = random.Random(_RNG_SEED)
+
+    # ── 1. Domain experts ─────────────────────────────────────────────────────
+    n_experts = _EXPERTS_PER_DOMAIN.get(domain, 8)
+    for i in range(n_experts):
+        expertise_score = round(0.85 + (i / n_experts) * 0.10, 3)  # 0.85..0.95
+        pref = max(-1.0, min(1.0, rng.gauss(0.65, 0.10)))
         v = Voter(
             voter_id=f"expert_{domain}_{i:02d}",
             region_id="US",
             voter_type=VoterType.EXPERT,
-            expertise={policy_id: 0.85 + i * 0.01},
+            expertise={policy_id: expertise_score},
+            voting_weight=expertise_score,  # higher expertise → more weight
         )
-        v.add_preference(policy_id, 0.6 + (i % 4) * 0.05)
+        v.add_preference(policy_id, round(pref, 4))
         engine.register_voter(v)
 
-    # State-level delegates (1 per state, 50 total)
+    log(f"    experts: {n_experts} (weight=expertise_score, pref~N(0.65,0.10))")
+
+    # ── 2. State delegates (all 50 states) ───────────────────────────────────
     for abbr, state_data in US_STATES.items():
         region_id = f"state_{abbr}"
-        # Ensure region is registered
+        state_pop = state_data["population"]
+
         if region_id not in engine.regions:
             engine.register_region(
                 Region(
                     region_id=region_id,
                     name=state_data["name"],
                     region_type="state",
-                    population=state_data["population"],
+                    population=state_pop,
                 )
             )
-        # Weight preference by state population (normalised 0.4–0.8)
-        weight = 0.4 + 0.4 * (state_data["population"] / 40_000_000)
+
+        # Population-proportional weight (California ~11.9x Wyoming)
+        pop_weight = round(state_pop / US_NATIONAL_POPULATION, 6)
+
+        # Seeded preference: μ=0.60 σ=0.15 — state-level variation
+        pref = max(-1.0, min(1.0, rng.gauss(0.60, 0.15)))
+
         v = Voter(
-            voter_id=f"state_{abbr}_{domain}",
+            voter_id=f"state_delegate_{abbr}_{domain}",
             region_id=region_id,
             voter_type=VoterType.REPRESENTATIVE,
-            expertise={policy_id: 0.6},
+            expertise={policy_id: 0.65},
+            voting_weight=pop_weight,
         )
-        v.add_preference(policy_id, min(0.85, weight))
+        v.add_preference(policy_id, round(pref, 4))
         engine.register_voter(v)
 
-    # County-level delegates (representative counties)
+    log(
+        f"    state delegates: 50  "
+        f"(weight=pop/US_pop, range "
+        f"{min(s['population'] for s in US_STATES.values()) / US_NATIONAL_POPULATION:.5f}"
+        f"–{max(s['population'] for s in US_STATES.values()) / US_NATIONAL_POPULATION:.5f})"
+    )
+
+    # ── 3. County delegates ───────────────────────────────────────────────────
     from src.llm.integration import REPRESENTATIVE_COUNTIES
 
+    pref_params: Dict[str, tuple] = {
+        "urban": (0.68, 0.08),
+        "suburban": (0.60, 0.10),
+        "rural": (0.48, 0.12),
+    }
     for county in REPRESENTATIVE_COUNTIES:
         region_id = f"county_{county['state']}_{county['name'].replace(' ', '_')}"
+        county_pop = county["population"]
+
         if region_id not in engine.regions:
             engine.register_region(
                 Region(
                     region_id=region_id,
                     name=county["name"],
                     region_type="county",
-                    population=county["population"],
+                    population=county_pop,
                 )
             )
+
+        mu, sigma = pref_params.get(county.get("type", "suburban"), (0.60, 0.10))
+        pref = max(-1.0, min(1.0, rng.gauss(mu, sigma)))
+        pop_weight = round(county_pop / US_NATIONAL_POPULATION, 7)
+
         v = Voter(
             voter_id=f"county_{region_id}_{domain}",
             region_id=region_id,
             voter_type=VoterType.PARTICIPANT,
+            voting_weight=pop_weight,
         )
-        # Rural counties slightly more conservative on change
-        pref = 0.55 if county.get("type") == "rural" else 0.65
-        v.add_preference(policy_id, pref)
+        v.add_preference(policy_id, round(pref, 4))
         engine.register_voter(v)
 
-    # General public sample (100 synthetic voters, population-weighted by state)
-    for i, (abbr, state_data) in enumerate(list(US_STATES.items())[:50]):
+    log(
+        f"    county delegates: {len(REPRESENTATIVE_COUNTIES)} (urban/suburban/rural mix)"
+    )
+
+    # ── 4. General public (population-proportional sample) ───────────────────
+    public_count = 0
+    for abbr, state_data in US_STATES.items():
         region_id = f"state_{abbr}"
-        v = Voter(
-            voter_id=f"public_{abbr}_{domain}_{i}",
-            region_id=region_id,
-            voter_type=VoterType.PARTICIPANT,
-        )
-        # Diverse preferences simulate public opinion distribution
-        pref = 0.3 + (hash(f"{abbr}{domain}{i}") % 60) / 100.0
-        v.add_preference(policy_id, pref)
-        engine.register_voter(v)
+        state_pop = state_data["population"]
+        n_voters = _state_public_voter_count(state_pop)
 
+        for j in range(n_voters):
+            # Uniform [-0.3, 0.9] → represents the full range of public opinion
+            pref = round(rng.uniform(-0.3, 0.9), 4)
+            v = Voter(
+                voter_id=f"public_{abbr}_{domain}_{j:03d}",
+                region_id=region_id,
+                voter_type=VoterType.PARTICIPANT,
+                voting_weight=1.0,  # equal weight for direct democracy tier
+            )
+            v.add_preference(policy_id, pref)
+            engine.register_voter(v)
+            public_count += 1
+
+    log(
+        f"    public sample: {public_count} voters "
+        f"(~1 per 1M residents, pref~Uniform(-0.3,0.9))"
+    )
     log(f"  ✅ Voter pool registered: {len(engine.voters)} voters total")
 
 
