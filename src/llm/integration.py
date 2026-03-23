@@ -222,7 +222,7 @@ class LLMClient:
             "LLAMA_CPP_ENDPOINT", "http://localhost:8080"
         )
         self.model = model or os.environ.get("LLAMA_MODEL", "llama.cpp-model")
-        self.timeout = int(os.environ.get("LLAMA_TIMEOUT", "180"))
+        self.timeout = int(os.environ.get("LLAMA_TIMEOUT", "900"))  # default 15 min
         self._call_count: int = 0
         self._total_tokens: int = 0
 
@@ -247,7 +247,7 @@ class LLMClient:
                 data=data,
                 headers={"Content-Type": "application/json"},
             )
-            with urllib.request.urlopen(req, timeout=10) as response:
+            with urllib.request.urlopen(req, timeout=30) as response:  # 30s for connection test
                 return response.getcode() == 200
         except Exception:
             return False
