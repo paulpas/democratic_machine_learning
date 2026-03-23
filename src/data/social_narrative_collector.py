@@ -93,17 +93,17 @@ class SocialNarrativeCollector:
                     )  # respect Reddit rate limit (60 req/min unauthenticated)
                     response = self.session.get(url, timeout=15)
                     if response.status_code == 429:
-                        logger.warning(f"Reddit rate-limited, sleeping 5s ...")
+                        logger.debug(f"Reddit rate-limited on {url}, sleeping 5s")
                         time.sleep(5)
                         response = self.session.get(url, timeout=15)
                     if response.status_code == 200:
                         data = response.json()
+                        logger.debug(f"Reddit OK: {url}")
                         break
-                    logger.warning(
-                        f"Reddit endpoint {url} returned {response.status_code}"
-                    )
+                    # 403 is expected on www.reddit.com — silently try next endpoint
+                    logger.debug(f"Reddit {response.status_code} on {url}, trying next")
                 except Exception as endpoint_err:
-                    logger.warning(f"Reddit endpoint {url} failed: {endpoint_err}")
+                    logger.debug(f"Reddit endpoint {url} failed: {endpoint_err}")
                     continue
 
             if data is None:
