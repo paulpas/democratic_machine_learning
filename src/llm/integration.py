@@ -39,43 +39,70 @@ _LOG_FILE = _LOG_DIR / "llm_calls.log"
 # True when PYTHONLOGGING=DEBUG is set in the environment
 _DEBUG_TO_STDOUT: bool = os.environ.get("PYTHONLOGGING", "").upper() == "DEBUG"
 
-# Module-level audit logger — one shared instance for the whole process
+# Module-level audit logger — one shared instance for the whole process.
+# Guard against duplicate handlers when the module is imported multiple times
+# within the same process (e.g. DecisionEngine creates its own LLMClient).
 _audit_logger = logging.getLogger("llm.audit")
 _audit_logger.setLevel(logging.DEBUG)
 _audit_logger.propagate = False  # don't bubble up to root logger
 
-# Rotating file handler — always active
-_file_handler = logging.handlers.RotatingFileHandler(
-    _LOG_FILE,
-    maxBytes=50 * 1024 * 1024,  # 50 MB per file
-    backupCount=5,
-    encoding="utf-8",
-)
-_file_handler.setLevel(logging.DEBUG)
-_file_handler.setFormatter(
-    logging.Formatter(
-        fmt="%(asctime)s  %(levelname)-5s  %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-)
-_audit_logger.addHandler(_file_handler)
 
-# Stdout handler — only active when PYTHONLOGGING=DEBUG
-if _DEBUG_TO_STDOUT:
-    _stdout_handler = logging.StreamHandler(sys.stdout)
-    _stdout_handler.setLevel(logging.DEBUG)
-    _stdout_handler.setFormatter(
+def _has_handler(logger: logging.Logger, handler_type: type) -> bool:
+    """Return True if logger already has a handler of exactly the given type.
+
+    Uses exact type matching (type(h) is handler_type) not isinstance, because
+    RotatingFileHandler is a subclass of StreamHandler and isinstance would
+    incorrectly match the file handler when checking for a stdout StreamHandler.
+    """
+    return any(type(h) is handler_type for h in logger.handlers)
+
+
+# Rotating file handler — always active, added only once
+if not _has_handler(_audit_logger, logging.handlers.RotatingFileHandler):
+    _file_handler = logging.handlers.RotatingFileHandler(
+        _LOG_FILE,
+        maxBytes=50 * 1024 * 1024,  # 50 MB per file
+        backupCount=5,
+        encoding="utf-8",
+    )
+    _file_handler.setLevel(logging.DEBUG)
+    _file_handler.setFormatter(
         logging.Formatter(
-            fmt="[DEBUG %(asctime)s] %(message)s",
-            datefmt="%H:%M:%S",
+            fmt="%(asctime)s  %(levelname)-5s  %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
         )
     )
-    _audit_logger.addHandler(_stdout_handler)
+    _audit_logger.addHandler(_file_handler)
+
+# Stdout handler is added lazily on first _audit() call when PYTHONLOGGING=DEBUG.
+# This ensures it works even when the env var is set after module import.
 
 
 def _audit(msg: str) -> None:
-    """Write a message to the audit log (and stdout if DEBUG mode)."""
+    """Write a message to the audit log (and stdout if DEBUG mode).
+
+    PYTHONLOGGING=DEBUG is re-evaluated on every call so it can be set
+    after module import (e.g. in tests or via env change at runtime).
+    """
     _audit_logger.debug(msg)
+
+    # Re-check DEBUG flag each call — ensures the stdout handler is added
+    # even if the env var was set after the module was first imported.
+    if os.environ.get("PYTHONLOGGING", "").upper() == "DEBUG":
+        if not _has_handler(_audit_logger, logging.StreamHandler):
+            _sh = logging.StreamHandler(sys.stdout)
+            _sh.setLevel(logging.DEBUG)
+            _sh.setFormatter(
+                logging.Formatter(
+                    fmt="[DEBUG %(asctime)s] %(message)s",
+                    datefmt="%H:%M:%S",
+                )
+            )
+            _audit_logger.addHandler(_sh)
+
+    # Force immediate flush — no buffering lag on file or stdout
+    for h in _audit_logger.handlers:
+        h.flush()
 
 
 def _audit_call(

@@ -157,7 +157,17 @@ def _build_national_voter_pool(
     Total voters: ~50 experts + 50 state delegates + 10 county + ~331 public
                 = ~441 voters per domain
     """
+    # Real US electorate benchmarks (2024 election cycle)
+    US_TOTAL_POPULATION = US_NATIONAL_POPULATION  # 331,449,281 residents
+    US_REGISTERED_VOTERS = 240_000_000  # ~240M registered voters
+    US_TURNOUT_2024 = 159_000_000  # ~159M votes cast in 2024
+
     log(f"  Registering national voter pool for domain={domain} ...")
+    log(f"    US total population       : {US_TOTAL_POPULATION:>15,}")
+    log(
+        f"    US registered voters      : {US_REGISTERED_VOTERS:>15,}  (source: EAC 2024)"
+    )
+    log(f"    US 2024 general turnout   : {US_TURNOUT_2024:>15,}  (~66% of registered)")
 
     rng = random.Random(_RNG_SEED)
 
@@ -176,12 +186,16 @@ def _build_national_voter_pool(
         v.add_preference(policy_id, round(pref, 4))
         engine.register_voter(v)
 
-    log(f"    experts: {n_experts} (weight=expertise_score, pref~N(0.65,0.10))")
+    log(
+        f"    domain experts            : {n_experts:>15,}  delegates  (1 per relevant federal agency)"
+    )
 
     # ── 2. State delegates (all 50 states) ───────────────────────────────────
+    state_pop_total = 0
     for abbr, state_data in US_STATES.items():
         region_id = f"state_{abbr}"
         state_pop = state_data["population"]
+        state_pop_total += state_pop
 
         if region_id not in engine.regions:
             engine.register_region(
@@ -209,11 +223,15 @@ def _build_national_voter_pool(
         v.add_preference(policy_id, round(pref, 4))
         engine.register_voter(v)
 
+    min_state_pop = min(s["population"] for s in US_STATES.values())
+    max_state_pop = max(s["population"] for s in US_STATES.values())
     log(
-        f"    state delegates: 50  "
-        f"(weight=pop/US_pop, range "
-        f"{min(s['population'] for s in US_STATES.values()) / US_NATIONAL_POPULATION:.5f}"
-        f"–{max(s['population'] for s in US_STATES.values()) / US_NATIONAL_POPULATION:.5f})"
+        f"    state delegates           : {'50':>15}  delegates  "
+        f"representing {state_pop_total:,} residents across all 50 states"
+    )
+    log(
+        f"      weight range            : {min_state_pop / US_NATIONAL_POPULATION:.5f} (WY {min_state_pop:,})"
+        f" – {max_state_pop / US_NATIONAL_POPULATION:.5f} (CA {max_state_pop:,})"
     )
 
     # ── 3. County delegates ───────────────────────────────────────────────────
@@ -224,9 +242,11 @@ def _build_national_voter_pool(
         "suburban": (0.60, 0.10),
         "rural": (0.48, 0.12),
     }
+    county_pop_total = 0
     for county in REPRESENTATIVE_COUNTIES:
         region_id = f"county_{county['state']}_{county['name'].replace(' ', '_')}"
         county_pop = county["population"]
+        county_pop_total += county_pop
 
         if region_id not in engine.regions:
             engine.register_region(
@@ -252,34 +272,62 @@ def _build_national_voter_pool(
         engine.register_voter(v)
 
     log(
-        f"    county delegates: {len(REPRESENTATIVE_COUNTIES)} (urban/suburban/rural mix)"
+        f"    county delegates          : {len(REPRESENTATIVE_COUNTIES):>15,}  delegates  "
+        f"representing {county_pop_total:,} residents (urban/suburban/rural sample)"
     )
 
     # ── 4. General public (population-proportional sample) ───────────────────
     public_count = 0
+    public_pop_represented = 0
     for abbr, state_data in US_STATES.items():
         region_id = f"state_{abbr}"
         state_pop = state_data["population"]
         n_voters = _state_public_voter_count(state_pop)
+        public_pop_represented += state_pop
 
         for j in range(n_voters):
             # Uniform [-0.3, 0.9] → represents the full range of public opinion
             pref = round(rng.uniform(-0.3, 0.9), 4)
+            # Each public voter represents ~1M residents; weight reflects that
+            pop_weight = round(state_pop / (n_voters * US_NATIONAL_POPULATION), 6)
             v = Voter(
                 voter_id=f"public_{abbr}_{domain}_{j:03d}",
                 region_id=region_id,
                 voter_type=VoterType.PARTICIPANT,
-                voting_weight=1.0,  # equal weight for direct democracy tier
+                voting_weight=pop_weight,
             )
             v.add_preference(policy_id, pref)
             engine.register_voter(v)
             public_count += 1
 
     log(
-        f"    public sample: {public_count} voters "
-        f"(~1 per 1M residents, pref~Uniform(-0.3,0.9))"
+        f"    public delegates          : {public_count:>15,}  delegates  "
+        f"representing {public_pop_represented:,} residents (~1 per 1M)"
     )
-    log(f"  ✅ Voter pool registered: {len(engine.voters)} voters total")
+
+    # ── Summary ───────────────────────────────────────────────────────────────
+    total_delegates = len(engine.voters)
+    log("")
+    log(f"  ┌─ VOTER POOL SUMMARY ({'domain=' + domain})")
+    log(f"  │  Delegate count   : {total_delegates:,}  (synthetic representatives)")
+    log(f"  │  Population repr. : {US_TOTAL_POPULATION:,}  total US residents")
+    log(f"  │  Registered voters: {US_REGISTERED_VOTERS:,}  (EAC 2024 estimate)")
+    log(f"  │  2024 turnout     : {US_TURNOUT_2024:,}  (~66% of registered)")
+    log(f"  │")
+    log(f"  │  Tier breakdown:")
+    log(f"  │    National experts  : {n_experts:>5,}  delegates")
+    log(
+        f"  │    State delegates   : {50:>5,}  delegates  → {state_pop_total:,} residents"
+    )
+    log(
+        f"  │    County delegates  : {len(REPRESENTATIVE_COUNTIES):>5,}  delegates  → {county_pop_total:,} residents"
+    )
+    log(
+        f"  │    Public sample     : {public_count:>5,}  delegates  → {public_pop_represented:,} residents"
+    )
+    log(
+        f"  └─ Each delegate's voting_weight = their population / {US_NATIONAL_POPULATION:,}"
+    )
 
 
 # ── per-domain analysis ───────────────────────────────────────────────────────
