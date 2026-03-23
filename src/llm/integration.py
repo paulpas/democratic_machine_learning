@@ -259,7 +259,7 @@ class LLMClient:
     def _call_llm(
         self,
         prompt: str,
-        max_tokens: int = 512,
+        max_tokens: int = 8192,
         temperature: float = 0.7,
         label: str = "",
     ) -> str:
@@ -332,7 +332,7 @@ class LLMClient:
         )
         return self._call_llm(
             prompt,
-            max_tokens=600,
+            max_tokens=4096,
             label=f"domain={domain} tier=national depth=0",
         )
 
@@ -386,7 +386,7 @@ class LLMClient:
         )
         return self._call_llm(
             prompt,
-            max_tokens=512,
+            max_tokens=4096,
             label=f"elaborate domain={domain} subtopic={subtopic[:40]} tier={tier} depth={depth}",
         )
 
@@ -395,7 +395,7 @@ class LLMClient:
         question: str,
         context: Dict[str, Any],
         evidence: List[Dict[str, Any]],
-        max_tokens: int = 600,
+        max_tokens: int = 4096,
         domain: str = "general",
     ) -> Dict[str, Any]:
         """Form a final conjecture synthesizing all evidence."""
@@ -423,7 +423,7 @@ class LLMClient:
         self,
         topic: str,
         research_data: Dict[str, Any],
-        max_tokens: int = 600,
+        max_tokens: int = 4096,
     ) -> Dict[str, Any]:
         """Analyze a policy topic using LLM."""
         context_text = " | ".join(
