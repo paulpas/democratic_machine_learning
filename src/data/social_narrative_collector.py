@@ -30,13 +30,14 @@ class SocialNarrativeCollector:
         self.cache_duration = timedelta(hours=cache_duration_hours)
         self.cache: Dict[str, Dict[str, Any]] = {}
         self.session = requests.Session()
+        # Reddit requires a descriptive User-Agent in the format:
+        #   <platform>:<app_id>:<version> (by /u/<username>)
+        # Browser-spoofed UAs are blocked with 403.
         self.session.headers.update(
             {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-                "Accept-Language": "en-US,en;q=0.5",
-                "Accept-Encoding": "gzip, deflate",
-                "Connection": "keep-alive",
+                "User-Agent": "python:democratic_machine_learning:v1.0 (by /u/democratic_ml_bot)",
+                "Accept": "application/json",
+                "Accept-Language": "en-US,en;q=0.9",
             }
         )
 
@@ -75,13 +76,38 @@ class SocialNarrativeCollector:
                 return cached_data["results"]
 
         try:
-            # Search Reddit using their free JSON API
+            # Reddit free JSON API — requires descriptive User-Agent (not browser UA)
+            # Falls back to old.reddit.com if the main endpoint returns 403/429.
             search_query = f"{topic} {domain}"
-            url = f"https://www.reddit.com/search.json?q={quote_plus(search_query)}&limit={max_results * 2}&sort=relevance"
+            encoded_query = quote_plus(search_query)
+            endpoints = [
+                f"https://www.reddit.com/search.json?q={encoded_query}&limit={max_results * 2}&sort=relevance&type=link",
+                f"https://old.reddit.com/search.json?q={encoded_query}&limit={max_results * 2}&sort=relevance",
+            ]
 
-            response = self.session.get(url, timeout=10)
-            response.raise_for_status()
-            data = response.json()
+            data = None
+            for url in endpoints:
+                try:
+                    time.sleep(
+                        1
+                    )  # respect Reddit rate limit (60 req/min unauthenticated)
+                    response = self.session.get(url, timeout=15)
+                    if response.status_code == 429:
+                        logger.warning(f"Reddit rate-limited, sleeping 5s ...")
+                        time.sleep(5)
+                        response = self.session.get(url, timeout=15)
+                    if response.status_code == 200:
+                        data = response.json()
+                        break
+                    logger.warning(
+                        f"Reddit endpoint {url} returned {response.status_code}"
+                    )
+                except Exception as endpoint_err:
+                    logger.warning(f"Reddit endpoint {url} failed: {endpoint_err}")
+                    continue
+
+            if data is None:
+                raise RuntimeError("All Reddit endpoints failed")
 
             opinions = []
             posts = data.get("data", {}).get("children", [])
