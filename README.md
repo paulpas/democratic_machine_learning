@@ -93,7 +93,7 @@ works. The default endpoint is `http://localhost:8080`.
 # Download a model (example: Mistral-7B-Instruct GGUF)
 wget https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/resolve/main/mistral-7b-instruct-v0.2.Q4_K_M.gguf
 
-# Start the server
+# Start the server — single slot (sequential, default)
 ./llama-server -m mistral-7b-instruct-v0.2.Q4_K_M.gguf --port 8080 --ctx-size 8192
 ```
 
@@ -107,6 +107,51 @@ Override the endpoint without changing any file:
 export LLAMA_CPP_ENDPOINT=http://192.168.1.10:8080
 python3 run_all_domains.py
 ```
+
+### Parallel inference (multiple GPU cards or slots)
+
+If your model is loaded on multiple GPUs, or if llama.cpp is configured with multiple
+decode slots, you can fire concurrent requests to keep all compute busy:
+
+```bash
+# Start llama-server with N parallel decode slots
+./llama-server -m model.gguf --port 8080 --ctx-size 8192 --parallel 4
+
+# Tell the client to use 4 concurrent requests
+# Option A: in config.yaml
+#   llm:
+#     parallel_workers: 4
+
+# Option B: environment variable (no file change)
+DML_LLM__PARALLEL_WORKERS=4 python3 run_all_domains.py
+
+# Option C: auto-detect from server (queries GET /props)
+DML_LLM__PARALLEL_WORKERS=0 python3 run_all_domains.py
+```
+
+The system uses a `threading.Semaphore(N)` to cap in-flight requests at exactly N,
+so the server is never flooded beyond its capacity. All thread-safety is handled
+internally — you just set the number.
+
+**GPU split example** — model sharded across 4 cards, each handling one decode slot:
+
+```bash
+# llama.cpp splits the model layers across all visible GPUs automatically.
+# --parallel 4 opens 4 decode slots so all 4 GPUs stay busy simultaneously.
+./llama-server -m model.gguf --port 8080 \
+  --ctx-size 4096 --parallel 4 \
+  --n-gpu-layers 999   # put all layers on GPU
+```
+
+```yaml
+# config.yaml
+llm:
+  parallel_workers: 4
+  timeout_seconds: 300   # reduce if GPUs are fast
+```
+
+With 4 parallel slots the 50-state geo fan-out (100 sequential calls → 25 batches of 4)
+runs approximately 3–4× faster than sequential.
 
 ---
 

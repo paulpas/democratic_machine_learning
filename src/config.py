@@ -99,6 +99,19 @@ class LLMConfig:
     fallback_confidence_with_evidence: float = 0.6
     fallback_confidence_empty: float = 0.4
 
+    # Parallel request concurrency
+    # How many LLM requests to fire simultaneously.
+    # Set to match the --parallel / -np N value you passed to llama-server.
+    # 0 = auto-probe the server for its slot count (reads /props endpoint).
+    # 1 = fully sequential (original behaviour).
+    parallel_workers: int = 1
+    # When a 503 / slot-full error is returned, wait this many seconds then retry
+    # (exponential backoff up to parallel_retry_max_wait).
+    parallel_retry_base_wait: float = 1.0
+    parallel_retry_max_wait: float = 30.0
+    # Number of automatic retries on transient server errors (503, 429, timeout).
+    parallel_max_retries: int = 3
+
     # Logging
     log_dir: str = ""  # empty → <repo_root>/logs
     log_max_bytes: int = 52_428_800  # 50 MB per rotating file

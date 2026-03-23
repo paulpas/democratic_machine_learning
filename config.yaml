@@ -71,6 +71,26 @@ llm:
   fallback_confidence_with_evidence: 0.6
   fallback_confidence_empty: 0.4
 
+  # Parallel request concurrency --------------------------------------------
+  # Set parallel_workers to match the --parallel / -np N value you passed to
+  # llama-server.  The client will fire up to N HTTP requests simultaneously.
+  #
+  #   0  → auto-detect: query GET /props and read total_slots / n_parallel
+  #   1  → fully sequential (original behaviour, safest)
+  #   N  → fire N requests concurrently (set to match llama-server --parallel N)
+  #
+  # Recommended: start llama-server with --parallel 4 and set this to 4.
+  # With 4 GPUs each holding the model you could try --parallel 4 (one slot per
+  # GPU) and the system will keep all four busy simultaneously.
+  parallel_workers: 1
+
+  # Retry behaviour on 503 (slot busy) or timeout ---------------------------
+  # Exponential backoff: wait = min(parallel_retry_max_wait,
+  #                                 parallel_retry_base_wait * 2^attempt)
+  parallel_retry_base_wait: 1.0       # initial retry wait in seconds
+  parallel_retry_max_wait: 30.0       # maximum retry wait in seconds
+  parallel_max_retries: 3             # retries before giving up and returning ""
+
   # Logging -----------------------------------------------------------------
   log_dir: ""                         # empty → <repo_root>/logs
   log_max_bytes: 52428800             # 50 MB per rotating audit-log file

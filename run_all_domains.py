@@ -24,6 +24,8 @@ import datetime
 import argparse
 import traceback
 import random
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import List, Dict, Any
 
@@ -698,25 +700,40 @@ def main() -> int:
     log(f"  output : {OUTPUT_DIR}")
     log("")
 
-    # Shared clients
+    # Shared clients — both are thread-safe:
+    #   LLMClient uses a semaphore + lock; SocialNarrativeCollector's cache is
+    #   protected by a per-collector lock added below.
     log("  Initialising LLM client ...")
     llm_client = LLMClient()
+    n_workers = llm_client._workers  # respect the same slot count
 
     log("  Initialising social narrative collector ...")
     social_collector = SocialNarrativeCollector()
+    # Add a lock to the social collector so its in-memory cache is thread-safe
+    # when multiple domains fetch data concurrently.
+    social_collector._cache_lock = threading.Lock()  # type: ignore[attr-defined]
 
     results: List[Dict[str, Any]] = []
+    results_lock = threading.Lock()
     failed: List[str] = []
+    failed_lock = threading.Lock()
 
-    for i, domain in enumerate(domains, 1):
+    # ── Domain processing — parallel when workers > 1 ────────────────────────
+    # Each domain gets its own DecisionEngine but shares the LLMClient and
+    # SocialNarrativeCollector.  The LLMClient semaphore ensures the server is
+    # never overloaded regardless of how many domain threads run simultaneously.
+    # We cap domain-level parallelism at min(n_domains, n_workers) so we don't
+    # spawn more domain threads than the server can serve.
+    n_domain_workers = min(len(domains), max(1, n_workers))
+
+    def _run_domain_safe(domain: str, idx: int) -> None:
         log("")
         log_banner(
-            f"PROCESSING DOMAIN {i}/{len(domains)}: {domain.upper()}",
+            f"PROCESSING DOMAIN {idx}/{len(domains)}: {domain.upper()}",
             char="*",
         )
         try:
             result = run_domain(domain, llm_client, social_collector)
-            results.append(result)
             report_path = write_report(result)
             log(
                 f"  ✅ {domain} complete — "
@@ -724,11 +741,37 @@ def main() -> int:
                 f"confidence={result['decision']['confidence']:.3f}  "
                 f"llm_calls={result['total_llm_calls']}"
             )
+            with results_lock:
+                results.append(result)
         except Exception as exc:
             log(f"  ❌ DOMAIN FAILED: {domain}")
             log(f"     {exc}")
             traceback.print_exc(file=sys.stdout)
-            failed.append(domain)
+            with failed_lock:
+                failed.append(domain)
+
+    if n_domain_workers == 1:
+        log(f"  Domain processing: sequential (parallel_workers=1)")
+        for i, domain in enumerate(domains, 1):
+            _run_domain_safe(domain, i)
+    else:
+        log(
+            f"  Domain processing: {n_domain_workers} parallel domain threads "
+            f"(parallel_workers={n_workers})"
+        )
+        with ThreadPoolExecutor(
+            max_workers=n_domain_workers, thread_name_prefix="domain"
+        ) as ex:
+            futs = {
+                ex.submit(_run_domain_safe, domain, i): domain
+                for i, domain in enumerate(domains, 1)
+            }
+            for fut in as_completed(futs):
+                domain = futs[fut]
+                try:
+                    fut.result()
+                except Exception as exc:
+                    log(f"  ❌ Unhandled error in domain thread [{domain}]: {exc}")
 
     # ── session summary ───────────────────────────────────────────────────────
     elapsed = (datetime.datetime.now() - session_start).total_seconds()

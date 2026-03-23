@@ -19,8 +19,11 @@ import os
 import re
 import sys
 import datetime
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed, Future
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 import urllib.request
 import urllib.error
 
@@ -382,6 +385,9 @@ class LLMClient:
         self.model = model or os.environ.get("LLAMA_MODEL", "") or _cfg.model
         self.timeout = int(os.environ.get("LLAMA_TIMEOUT", "") or _cfg.timeout_seconds)
         self._cfg = _cfg  # keep reference for per-call token budgets etc.
+
+        # Thread-safe counters (multiple threads share one LLMClient instance)
+        self._lock = threading.Lock()
         self._call_count: int = 0
         self._total_tokens: int = 0
 
@@ -391,8 +397,21 @@ class LLMClient:
         else:
             _log(f"⚠️  LLM endpoint unavailable: {self.endpoint} — using fallback")
 
+        # Determine worker count and set up the semaphore that caps concurrency
+        self._workers: int = self._resolve_workers()
+        self._semaphore = threading.Semaphore(self._workers)
+        if self._workers > 1:
+            _log(
+                f"⚡ Parallel mode: {self._workers} concurrent slots "
+                f"(llama-server --parallel {self._workers})"
+            )
+        else:
+            _log(
+                "  Sequential mode: 1 worker (set llm.parallel_workers > 1 to enable parallel)"
+            )
+
     # ──────────────────────────────────────────────────────────────────────────
-    # Connection test
+    # Connection test and worker-count resolution
     # ──────────────────────────────────────────────────────────────────────────
 
     def _test_connection(self) -> bool:
@@ -412,6 +431,52 @@ class LLMClient:
         except Exception:
             return False
 
+    def _probe_server_slots(self) -> int:
+        """Query llama.cpp /props to discover how many parallel slots are configured.
+
+        llama-server exposes GET /props which returns JSON including
+        ``"n_ctx_train"``, ``"total_slots"``, and (in newer builds) ``"n_parallel"``.
+        We read ``total_slots`` first, then fall back to ``n_parallel``.
+
+        Returns the slot count, or 1 if the endpoint is unavailable or doesn't
+        support /props.
+        """
+        try:
+            req = urllib.request.Request(
+                f"{self.endpoint}/props",
+                headers={"Accept": "application/json"},
+            )
+            with urllib.request.urlopen(
+                req, timeout=self._cfg.connect_test_timeout
+            ) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                # newer llama.cpp: "total_slots" field
+                if "total_slots" in data and isinstance(data["total_slots"], int):
+                    return max(1, int(data["total_slots"]))
+                # older builds: "n_parallel"
+                if "n_parallel" in data and isinstance(data["n_parallel"], int):
+                    return max(1, int(data["n_parallel"]))
+        except Exception as exc:
+            _log(f"  ℹ️  /props probe failed ({exc}); defaulting to 1 worker")
+        return 1
+
+    def _resolve_workers(self) -> int:
+        """Determine how many parallel workers to use.
+
+        Logic:
+          - If ``llm.parallel_workers == 0``: auto-probe the server via /props.
+          - If ``llm.parallel_workers >= 1``: use that value directly.
+          - If server is unavailable: always 1.
+        """
+        if not self.available:
+            return 1
+        configured = self._cfg.parallel_workers
+        if configured == 0:
+            detected = self._probe_server_slots()
+            _log(f"  🔍 Auto-detected {detected} parallel slot(s) from server /props")
+            return detected
+        return max(1, configured)
+
     # ──────────────────────────────────────────────────────────────────────────
     # Core LLM call — single responsibility, full logging
     # ──────────────────────────────────────────────────────────────────────────
@@ -425,6 +490,12 @@ class LLMClient:
     ) -> str:
         """
         Send a single prompt to the LLM endpoint and return the response text.
+
+        Thread-safe: multiple threads may call this simultaneously up to
+        ``self._workers`` concurrent requests.  Each attempt acquires the
+        semaphore, fires the HTTP request, and releases the semaphore on exit.
+        On 503 (slot busy) or transient errors the call is retried with
+        exponential backoff up to ``llm.parallel_max_retries`` attempts.
 
         Args:
             prompt:      The prompt string.
@@ -447,17 +518,21 @@ class LLMClient:
             _audit(f"LLM SKIPPED  |  {label}  |  endpoint unavailable")
             return ""
 
-        self._call_count += 1
+        # Thread-safe call number allocation
+        with self._lock:
+            self._call_count += 1
+            call_num = self._call_count
+
         _log("")
-        _log(f"  🔄 LLM CALL #{self._call_count} | {label}")
+        _log(f"  🔄 LLM CALL #{call_num} | {label}")
         _log(
-            f"     prompt_chars={len(prompt)}  max_tokens={max_tokens}  temp={temperature}"
+            f"     prompt_chars={len(prompt)}  max_tokens={max_tokens}  "
+            f"temp={temperature}  workers={self._workers}"
         )
         _log(f"     endpoint={self.endpoint}/completion")
 
-        # Full audit log — always written to file, stdout only in DEBUG mode
         _audit_call(
-            call_number=self._call_count,
+            call_number=call_num,
             label=label,
             prompt=prompt,
             max_tokens=max_tokens,
@@ -471,43 +546,101 @@ class LLMClient:
             "temperature": temperature,
         }
 
-        t_start = datetime.datetime.now()
-        try:
-            data = json.dumps(payload).encode("utf-8")
-            req = urllib.request.Request(
-                f"{self.endpoint}/completion",
-                data=data,
-                headers={"Content-Type": "application/json"},
-            )
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-                result = json.loads(resp.read().decode("utf-8"))
-                content = result.get("content", "").strip()
-                tokens = result.get("tokens_predicted", len(content.split()))
-                elapsed_ms = (datetime.datetime.now() - t_start).total_seconds() * 1000
-                self._total_tokens += tokens
-                _log(
-                    f"  ✅ RESPONSE  tokens={tokens}  cumulative={self._total_tokens}  elapsed={elapsed_ms / 1000:.1f}s"
+        max_retries = _cfg.parallel_max_retries
+        base_wait = _cfg.parallel_retry_base_wait
+        max_wait = _cfg.parallel_retry_max_wait
+
+        for attempt in range(max_retries + 1):
+            # Acquire a slot before sending — this is the concurrency gate.
+            # At most `_workers` threads may be inside this block simultaneously.
+            self._semaphore.acquire()
+            released = False  # track whether we released early for a retry
+            t_start = datetime.datetime.now()
+            try:
+                raw_data = json.dumps(payload).encode("utf-8")
+                req = urllib.request.Request(
+                    f"{self.endpoint}/completion",
+                    data=raw_data,
+                    headers={"Content-Type": "application/json"},
                 )
-                _preview_len = self._cfg.preview_chars
-                preview = content[:_preview_len].replace("\n", " ")
-                _log(
-                    f"     preview: {preview}{'…' if len(content) > _preview_len else ''}"
+                with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                    result = json.loads(resp.read().decode("utf-8"))
+                    content = result.get("content", "").strip()
+                    tokens = result.get("tokens_predicted", len(content.split()))
+                    elapsed_ms = (
+                        datetime.datetime.now() - t_start
+                    ).total_seconds() * 1000
+
+                    with self._lock:
+                        self._total_tokens += tokens
+                        total_tok = self._total_tokens
+
+                    _log(
+                        f"  ✅ RESPONSE #{call_num}  tokens={tokens}  "
+                        f"cumulative={total_tok}  elapsed={elapsed_ms / 1000:.1f}s"
+                    )
+                    _preview_len = _cfg.preview_chars
+                    preview = content[:_preview_len].replace("\n", " ")
+                    _log(
+                        f"     preview: {preview}"
+                        f"{'…' if len(content) > _preview_len else ''}"
+                    )
+                    _audit_response(
+                        call_number=call_num,
+                        label=label,
+                        content=content,
+                        tokens=tokens,
+                        cumulative_tokens=total_tok,
+                        elapsed_ms=elapsed_ms,
+                    )
+                    return content
+
+            except urllib.error.HTTPError as exc:
+                # 503 = all slots busy; 429 = rate-limited — both are retryable
+                if exc.code in (429, 503) and attempt < max_retries:
+                    wait = min(max_wait, base_wait * (2**attempt))
+                    _log(
+                        f"  ⏳ HTTP {exc.code} on call #{call_num} "
+                        f"(attempt {attempt + 1}/{max_retries + 1}) — "
+                        f"retrying in {wait:.1f}s"
+                    )
+                    _audit(
+                        f"RETRY  call={call_num}  label={label}  "
+                        f"http={exc.code}  attempt={attempt + 1}  wait={wait:.1f}s"
+                    )
+                    self._semaphore.release()
+                    released = True
+                    time.sleep(wait)
+                    continue
+                _log(f"  ❌ HTTP ERROR #{call_num}: {exc}")
+                _audit_error(call_num, label, exc)
+                return ""
+
+            except Exception as exc:
+                # Retry on timeout / connection reset
+                is_timeout = (
+                    "timed out" in str(exc).lower() or "timeout" in str(exc).lower()
                 )
-                # Full response to audit log
-                _audit_response(
-                    call_number=self._call_count,
-                    label=label,
-                    content=content,
-                    tokens=tokens,
-                    cumulative_tokens=self._total_tokens,
-                    elapsed_ms=elapsed_ms,
-                )
-                return content
-        except Exception as exc:
-            elapsed_ms = (datetime.datetime.now() - t_start).total_seconds() * 1000
-            _log(f"  ❌ LLM ERROR: {exc}")
-            _audit_error(self._call_count, label, exc)
-            return ""
+                if is_timeout and attempt < max_retries:
+                    wait = min(max_wait, base_wait * (2**attempt))
+                    _log(
+                        f"  ⏳ TIMEOUT on call #{call_num} "
+                        f"(attempt {attempt + 1}/{max_retries + 1}) — "
+                        f"retrying in {wait:.1f}s"
+                    )
+                    self._semaphore.release()
+                    released = True
+                    time.sleep(wait)
+                    continue
+                _log(f"  ❌ LLM ERROR #{call_num}: {exc}")
+                _audit_error(call_num, label, exc)
+                return ""
+
+            finally:
+                if not released:
+                    self._semaphore.release()
+
+        return ""
 
     # ──────────────────────────────────────────────────────────────────────────
     # Public high-level methods
@@ -768,76 +901,121 @@ class LLMClient:
                 f"{len(current_subtopics)} subtopics"
             )
 
-            level_elaborations: List[Dict[str, Any]] = []
-            next_subtopics: List[str] = []
+            active_subtopics = current_subtopics[:subtopics_per_level]
 
-            for idx, subtopic in enumerate(current_subtopics[:subtopics_per_level], 1):
+            def _process_one_subtopic(
+                idx_subtopic: Tuple[int, str],
+                _domain: str = domain,
+                _depth: int = depth,
+                _principles: List[str] = principles,
+                _level0: str = level0_reasoning,
+                _include_geo: bool = include_state_county_rep,
+                _spl: int = subtopics_per_level,
+            ) -> Tuple[List[Dict[str, Any]], List[str]]:
+                """Process a single subtopic (national + optional geo fan-out).
+
+                Returns (elaborations_list, sub_subtopics_list).
+                Designed to run in a thread.
+                """
+                idx, subtopic = idx_subtopic
                 _log("")
                 _log_subsection(
-                    f"SUBTOPIC {idx}/{min(len(current_subtopics), subtopics_per_level)} "
-                    f"| depth={depth} | {subtopic}"
+                    f"SUBTOPIC {idx}/{len(active_subtopics)} "
+                    f"| depth={_depth} | {subtopic}"
                 )
 
                 # ── national level ────────────────────────────────────────────
                 _log(f"  🌐 NATIONAL  population={US_NATIONAL_POPULATION:,}")
                 nat_reasoning = self.investigate_subtopic(
-                    domain=domain,
+                    domain=_domain,
                     subtopic=subtopic,
                     tier="national",
                     tier_label="United States",
                     tier_population=US_NATIONAL_POPULATION,
-                    depth=depth,
-                    principles=principles,
-                    parent_context=level0_reasoning,
+                    depth=_depth,
+                    principles=_principles,
+                    parent_context=_level0,
                 )
                 nat_elab = self.elaborate_subtopic(
-                    domain=domain,
+                    domain=_domain,
                     subtopic=subtopic,
                     tier="national",
                     tier_label="United States",
                     tier_population=US_NATIONAL_POPULATION,
-                    depth=depth,
-                    principles=principles,
+                    depth=_depth,
+                    principles=_principles,
                     prior_reasoning=nat_reasoning,
                 )
                 nat_entry: Dict[str, Any] = {
-                    "domain": domain,
+                    "domain": _domain,
                     "subtopic": subtopic,
                     "tier": "national",
                     "tier_label": "United States",
                     "tier_population": US_NATIONAL_POPULATION,
-                    "depth": depth,
+                    "depth": _depth,
                     "reasoning": nat_reasoning,
                     "elaboration": nat_elab,
                     "finding": (nat_reasoning + " " + nat_elab)[:600],
                 }
-                level_elaborations.append(nat_entry)
-                results["all_elaborations"].append(nat_entry)
+                elab_list: List[Dict[str, Any]] = [nat_entry]
 
                 # ── geographic fan-out ────────────────────────────────────────
-                if include_state_county_rep:
-                    state_entries, county_entries = self._geographic_fan_out(
-                        domain=domain,
+                if _include_geo:
+                    st_entries, co_entries = self._geographic_fan_out(
+                        domain=_domain,
                         subtopic=subtopic,
-                        depth=depth,
-                        principles=principles,
+                        depth=_depth,
+                        principles=_principles,
                         prior_reasoning=nat_reasoning,
                     )
-                    level_elaborations.extend(state_entries)
-                    level_elaborations.extend(county_entries)
-                    results["all_elaborations"].extend(state_entries)
-                    results["all_elaborations"].extend(county_entries)
-
+                    elab_list.extend(st_entries)
+                    elab_list.extend(co_entries)
                     _log(
-                        f"  ✅ Geo fan-out complete: {len(state_entries)} states, "
-                        f"{len(county_entries)} counties"
+                        f"  ✅ Geo fan-out complete: {len(st_entries)} states, "
+                        f"{len(co_entries)} counties"
                     )
 
-                # Extract sub-subtopics for the next depth level
-                sub_subtopics = self._extract_subtopics_from_text(
-                    nat_reasoning, subtopic, max(2, subtopics_per_level // (depth + 1))
+                sub_subs = self._extract_subtopics_from_text(
+                    nat_reasoning, subtopic, max(2, _spl // (_depth + 1))
                 )
-                next_subtopics.extend(sub_subtopics)
+                return elab_list, sub_subs
+
+            # ── dispatch subtopics (parallel if workers > 1) ──────────────────
+            level_elaborations: List[Dict[str, Any]] = []
+            next_subtopics: List[str] = []
+
+            if self._workers == 1:
+                # Sequential — preserves original deterministic ordering
+                for idx, subtopic in enumerate(active_subtopics, 1):
+                    elab_list, sub_subs = _process_one_subtopic((idx, subtopic))
+                    level_elaborations.extend(elab_list)
+                    results["all_elaborations"].extend(elab_list)
+                    next_subtopics.extend(sub_subs)
+            else:
+                # Parallel subtopics — each subtopic tree runs concurrently.
+                # The semaphore inside _call_llm caps actual HTTP concurrency.
+                n_sub_threads = min(len(active_subtopics), self._workers)
+                _log(
+                    f"  ⚡ Parallel subtopics: {len(active_subtopics)} items "
+                    f"| threads={n_sub_threads}"
+                )
+                sub_futures: List[Tuple[int, Future]] = []
+                with ThreadPoolExecutor(
+                    max_workers=n_sub_threads, thread_name_prefix="subtopic"
+                ) as ex:
+                    for idx, subtopic in enumerate(active_subtopics, 1):
+                        f = ex.submit(_process_one_subtopic, (idx, subtopic))
+                        sub_futures.append((idx, f))
+
+                # Collect in submission order to keep output deterministic
+                for idx, f in sub_futures:
+                    try:
+                        elab_list, sub_subs = f.result()
+                        level_elaborations.extend(elab_list)
+                        results["all_elaborations"].extend(elab_list)
+                        next_subtopics.extend(sub_subs)
+                    except Exception as exc:
+                        _log(f"  ❌ Subtopic #{idx} error: {exc}")
 
             results["recursive_analysis"][f"level_{depth}"] = level_elaborations
             results["subtopics_by_level"][f"level_{depth}"] = next_subtopics
@@ -924,6 +1102,105 @@ class LLMClient:
     # Geographic fan-out
     # ──────────────────────────────────────────────────────────────────────────
 
+    # ──────────────────────────────────────────────────────────────────────────
+    # Geographic fan-out helpers
+    # ──────────────────────────────────────────────────────────────────────────
+
+    def _investigate_one_state(
+        self,
+        abbr: str,
+        state_data: Dict[str, Any],
+        domain: str,
+        subtopic: str,
+        depth: int,
+        principles: List[str],
+        prior_reasoning: str,
+    ) -> Dict[str, Any]:
+        """Investigate + elaborate a single state.  Called from a thread pool."""
+        state_name = state_data["name"]
+        state_pop = state_data["population"]
+        _log(f"    🏛️  STATE {abbr} | {state_name} | pop={state_pop:,}")
+        reasoning = self.investigate_subtopic(
+            domain=domain,
+            subtopic=subtopic,
+            tier="state",
+            tier_label=state_name,
+            tier_population=state_pop,
+            depth=depth,
+            principles=principles,
+            parent_context=prior_reasoning,
+        )
+        elab = self.elaborate_subtopic(
+            domain=domain,
+            subtopic=subtopic,
+            tier="state",
+            tier_label=state_name,
+            tier_population=state_pop,
+            depth=depth,
+            principles=principles,
+            prior_reasoning=reasoning,
+        )
+        return {
+            "domain": domain,
+            "subtopic": subtopic,
+            "tier": "state",
+            "tier_label": state_name,
+            "state_abbr": abbr,
+            "tier_population": state_pop,
+            "depth": depth,
+            "reasoning": reasoning,
+            "elaboration": elab,
+            "finding": (reasoning + " " + elab)[:600],
+        }
+
+    def _investigate_one_county(
+        self,
+        county_data: Dict[str, Any],
+        domain: str,
+        subtopic: str,
+        depth: int,
+        principles: List[str],
+        prior_reasoning: str,
+    ) -> Dict[str, Any]:
+        """Investigate + elaborate a single county.  Called from a thread pool."""
+        county_name = county_data["name"]
+        county_pop = county_data["population"]
+        county_type = county_data.get("type", "mixed")
+        _log(f"    🏘️  COUNTY {county_name} ({county_type}) | pop={county_pop:,}")
+        reasoning = self.investigate_subtopic(
+            domain=domain,
+            subtopic=subtopic,
+            tier="county",
+            tier_label=county_name,
+            tier_population=county_pop,
+            depth=depth,
+            principles=principles,
+            parent_context=prior_reasoning,
+        )
+        elab = self.elaborate_subtopic(
+            domain=domain,
+            subtopic=subtopic,
+            tier="county",
+            tier_label=county_name,
+            tier_population=county_pop,
+            depth=depth,
+            principles=principles,
+            prior_reasoning=reasoning,
+        )
+        return {
+            "domain": domain,
+            "subtopic": subtopic,
+            "tier": "county",
+            "tier_label": county_name,
+            "state_abbr": county_data["state"],
+            "county_type": county_type,
+            "tier_population": county_pop,
+            "depth": depth,
+            "reasoning": reasoning,
+            "elaboration": elab,
+            "finding": (reasoning + " " + elab)[:600],
+        }
+
     def _geographic_fan_out(
         self,
         domain: str,
@@ -935,91 +1212,106 @@ class LLMClient:
         """
         Investigate a subtopic across all 50 states and representative counties.
 
+        When ``self._workers > 1`` the state and county work items are submitted
+        to a ``ThreadPoolExecutor`` so that up to ``_workers`` HTTP calls run
+        concurrently.  The semaphore inside ``_call_llm`` ensures we never exceed
+        the server's parallel-slot capacity.
+
         Returns:
-            Tuple of (state_elaborations, county_elaborations)
+            Tuple of (state_elaborations, county_elaborations) in stable order.
         """
-        state_entries: List[Dict[str, Any]] = []
-        county_entries: List[Dict[str, Any]] = []
+        workers = self._workers
 
-        # ── All 50 states ─────────────────────────────────────────────────────
-        for abbr, state_data in US_STATES.items():
-            state_name = state_data["name"]
-            state_pop = state_data["population"]
-            _log(f"    🏛️  STATE {abbr} | {state_name} | pop={state_pop:,}")
-            reasoning = self.investigate_subtopic(
-                domain=domain,
-                subtopic=subtopic,
-                tier="state",
-                tier_label=state_name,
-                tier_population=state_pop,
-                depth=depth,
-                principles=principles,
-                parent_context=prior_reasoning,
-            )
-            elab = self.elaborate_subtopic(
-                domain=domain,
-                subtopic=subtopic,
-                tier="state",
-                tier_label=state_name,
-                tier_population=state_pop,
-                depth=depth,
-                principles=principles,
-                prior_reasoning=reasoning,
-            )
-            entry: Dict[str, Any] = {
-                "domain": domain,
-                "subtopic": subtopic,
-                "tier": "state",
-                "tier_label": state_name,
-                "state_abbr": abbr,
-                "tier_population": state_pop,
-                "depth": depth,
-                "reasoning": reasoning,
-                "elaboration": elab,
-                "finding": (reasoning + " " + elab)[:600],
-            }
-            state_entries.append(entry)
+        # Build the full work list: states first, counties second.
+        # Each item is (callable, args) so we can dispatch uniformly.
+        state_items = list(US_STATES.items())  # [(abbr, state_data), ...]
+        county_items = list(REPRESENTATIVE_COUNTIES)  # [county_data, ...]
 
-        # ── Representative counties ───────────────────────────────────────────
-        for county_data in REPRESENTATIVE_COUNTIES:
-            county_name = county_data["name"]
-            county_pop = county_data["population"]
-            county_type = county_data.get("type", "mixed")
-            _log(f"    🏘️  COUNTY {county_name} ({county_type}) | pop={county_pop:,}")
-            reasoning = self.investigate_subtopic(
-                domain=domain,
-                subtopic=subtopic,
-                tier="county",
-                tier_label=county_name,
-                tier_population=county_pop,
-                depth=depth,
-                principles=principles,
-                parent_context=prior_reasoning,
-            )
-            elab = self.elaborate_subtopic(
-                domain=domain,
-                subtopic=subtopic,
-                tier="county",
-                tier_label=county_name,
-                tier_population=county_pop,
-                depth=depth,
-                principles=principles,
-                prior_reasoning=reasoning,
-            )
-            entry = {
-                "domain": domain,
-                "subtopic": subtopic,
-                "tier": "county",
-                "tier_label": county_name,
-                "state_abbr": county_data["state"],
-                "county_type": county_type,
-                "tier_population": county_pop,
-                "depth": depth,
-                "reasoning": reasoning,
-                "elaboration": elab,
-                "finding": (reasoning + " " + elab)[:600],
-            }
-            county_entries.append(entry)
+        if workers == 1:
+            # ── Sequential path (original behaviour) ─────────────────────────
+            state_entries: List[Dict[str, Any]] = []
+            county_entries: List[Dict[str, Any]] = []
+            for abbr, state_data in state_items:
+                state_entries.append(
+                    self._investigate_one_state(
+                        abbr,
+                        state_data,
+                        domain,
+                        subtopic,
+                        depth,
+                        principles,
+                        prior_reasoning,
+                    )
+                )
+            for county_data in county_items:
+                county_entries.append(
+                    self._investigate_one_county(
+                        county_data,
+                        domain,
+                        subtopic,
+                        depth,
+                        principles,
+                        prior_reasoning,
+                    )
+                )
+            return state_entries, county_entries
+
+        # ── Parallel path ─────────────────────────────────────────────────────
+        # We use more threads than workers so the executor queue stays full while
+        # the semaphore gates actual HTTP concurrency.
+        # max_workers = 2 × parallel_workers to keep the queue saturated.
+        n_threads = min(len(state_items) + len(county_items), workers * 2)
+        _log(
+            f"    ⚡ Parallel geo fan-out: {len(state_items)} states + "
+            f"{len(county_items)} counties | threads={n_threads} slots={workers}"
+        )
+
+        # We store futures in submission order to preserve output ordering.
+        state_futures: List[Future] = []
+        county_futures: List[Future] = []
+
+        with ThreadPoolExecutor(
+            max_workers=n_threads, thread_name_prefix="geo_fan"
+        ) as ex:
+            for abbr, state_data in state_items:
+                f = ex.submit(
+                    self._investigate_one_state,
+                    abbr,
+                    state_data,
+                    domain,
+                    subtopic,
+                    depth,
+                    principles,
+                    prior_reasoning,
+                )
+                state_futures.append(f)
+
+            for county_data in county_items:
+                f = ex.submit(
+                    self._investigate_one_county,
+                    county_data,
+                    domain,
+                    subtopic,
+                    depth,
+                    principles,
+                    prior_reasoning,
+                )
+                county_futures.append(f)
+
+        # Collect results in original submission order (futures preserve order)
+        state_entries = []
+        for f in state_futures:
+            try:
+                state_entries.append(f.result())
+            except Exception as exc:
+                _log(f"    ❌ State fan-out error: {exc}")
+
+        county_entries = []
+        for f in county_futures:
+            try:
+                county_entries.append(f.result())
+            except Exception as exc:
+                _log(f"    ❌ County fan-out error: {exc}")
 
         return state_entries, county_entries
 

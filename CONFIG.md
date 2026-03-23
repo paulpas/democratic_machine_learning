@@ -504,6 +504,54 @@ from rule-based heuristics.
 
 ---
 
+### Parallel Concurrency
+
+These settings control how many LLM requests fire simultaneously. They require a
+`llama-server` started with `--parallel N` (or `-np N`).
+
+#### `llm.parallel_workers`
+
+| | |
+|---|---|
+| **Default** | `1` |
+| **Type** | int |
+| **Env var** | `DML_LLM__PARALLEL_WORKERS` |
+| **Effect** | Maximum number of in-flight HTTP requests to the LLM server at any time. A `threading.Semaphore(N)` enforces this limit — threads that would exceed it block until a slot is free. |
+| **Special values** | `0` = auto-detect by querying `GET /props` on the server for its `total_slots` / `n_parallel` field. `1` = fully sequential (original behaviour). |
+| **How to choose** | Set to match the `--parallel N` value passed to `llama-server`. With 4 GPUs each loaded with the model you might use `--parallel 4` and set `parallel_workers: 4`. |
+| **Performance impact** | With `N` slots you can saturate all GPU decoding lanes simultaneously. Ideal speedup is `N×` but real speedup depends on context length and batch efficiency. Expect 2–3× for N=4 on independent, similar-length prompts. |
+| **Thread safety** | All internal counters (`_call_count`, `_total_tokens`) are protected by a `threading.Lock`. The geo fan-out and subtopic loops use `ThreadPoolExecutor` internally so threads never exceed `parallel_workers` concurrent HTTP calls. |
+
+#### `llm.parallel_retry_base_wait`
+
+| | |
+|---|---|
+| **Default** | `1.0` (seconds) |
+| **Type** | float |
+| **Env var** | `DML_LLM__PARALLEL_RETRY_BASE_WAIT` |
+| **Effect** | Initial wait before retrying a failed request. Subsequent retries use exponential backoff: `wait = min(max_wait, base_wait × 2^attempt)`. |
+| **When triggered** | HTTP 503 (all server slots busy), HTTP 429 (rate-limited), or request timeout. |
+
+#### `llm.parallel_retry_max_wait`
+
+| | |
+|---|---|
+| **Default** | `30.0` (seconds) |
+| **Type** | float |
+| **Env var** | `DML_LLM__PARALLEL_RETRY_MAX_WAIT` |
+| **Effect** | Cap on retry backoff wait. No retry waits longer than this regardless of attempt count. |
+
+#### `llm.parallel_max_retries`
+
+| | |
+|---|---|
+| **Default** | `3` |
+| **Type** | int |
+| **Env var** | `DML_LLM__PARALLEL_MAX_RETRIES` |
+| **Effect** | Number of retry attempts before giving up and returning an empty string. The original attempt counts as attempt 0, so 3 retries = 4 total attempts. |
+
+---
+
 ## Section: `decision`
 
 Controls the core `DecisionEngine` behaviour.

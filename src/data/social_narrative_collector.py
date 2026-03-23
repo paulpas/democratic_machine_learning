@@ -7,6 +7,7 @@ to enhance the democratic system with realistic public sentiment data.
 import requests
 import json
 import time
+import threading
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta
 import hashlib
@@ -41,6 +42,7 @@ class SocialNarrativeCollector:
         self.cache_duration = timedelta(hours=hours)
         self._social_cfg = _cfg
         self.cache: Dict[str, Dict[str, Any]] = {}
+        self._cache_lock = threading.Lock()  # protects cache for concurrent access
         self.session = requests.Session()
         # Reddit requires a descriptive User-Agent in the format:
         #   <platform>:<app_id>:<version> (by /u/<username>)
@@ -80,12 +82,13 @@ class SocialNarrativeCollector:
         """
         cache_key = self._get_cache_key(topic, f"reddit_{domain}")
 
-        # Check cache first
-        if cache_key in self.cache:
-            cached_data = self.cache[cache_key]
-            if self._is_cached_valid(cached_data["timestamp"]):
-                logger.info(f"Using cached Reddit opinion data for {topic}")
-                return cached_data["results"]
+        # Check cache first (thread-safe read)
+        with self._cache_lock:
+            if cache_key in self.cache:
+                cached_data = self.cache[cache_key]
+                if self._is_cached_valid(cached_data["timestamp"]):
+                    logger.info(f"Using cached Reddit opinion data for {topic}")
+                    return cached_data["results"]
 
         try:
             # Reddit free JSON API — requires descriptive User-Agent (not browser UA)
@@ -183,11 +186,12 @@ class SocialNarrativeCollector:
                 }
                 opinions.append(opinion)
 
-            # Cache the results
-            self.cache[cache_key] = {
-                "timestamp": datetime.now().isoformat(),
-                "results": opinions,
-            }
+            # Cache the results (thread-safe write)
+            with self._cache_lock:
+                self.cache[cache_key] = {
+                    "timestamp": datetime.now().isoformat(),
+                    "results": opinions,
+                }
 
             logger.info(f"Collected {len(opinions)} Reddit opinions for {topic}")
             return opinions
@@ -212,12 +216,13 @@ class SocialNarrativeCollector:
         """
         cache_key = self._get_cache_key(topic, f"news_{domain}")
 
-        # Check cache first
-        if cache_key in self.cache:
-            cached_data = self.cache[cache_key]
-            if self._is_cached_valid(cached_data["timestamp"]):
-                logger.info(f"Using cached news narrative data for {topic}")
-                return cached_data["results"]
+        # Check cache first (thread-safe read)
+        with self._cache_lock:
+            if cache_key in self.cache:
+                cached_data = self.cache[cache_key]
+                if self._is_cached_valid(cached_data["timestamp"]):
+                    logger.info(f"Using cached news narrative data for {topic}")
+                    return cached_data["results"]
 
         try:
             # Use a free news API or scrape from free sources
@@ -235,11 +240,12 @@ class SocialNarrativeCollector:
                 )
                 narratives.extend(simulated)
 
-            # Cache the results
-            self.cache[cache_key] = {
-                "timestamp": datetime.now().isoformat(),
-                "results": narratives[:max_results],
-            }
+            # Cache the results (thread-safe write)
+            with self._cache_lock:
+                self.cache[cache_key] = {
+                    "timestamp": datetime.now().isoformat(),
+                    "results": narratives[:max_results],
+                }
 
             logger.info(
                 f"Collected {len(narratives[:max_results])} news narratives for {topic}"
