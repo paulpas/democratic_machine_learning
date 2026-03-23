@@ -692,7 +692,7 @@ class LLMClient:
         return self._call_llm(
             prompt,
             max_tokens=self._cfg.max_tokens_subtopic,
-            label=f"domain={domain} subtopic={subtopic[:40]} tier={tier} depth={depth}",
+            label=f"domain={domain} subtopic={subtopic[:30]} tier={tier}:{tier_label[:20]} depth={depth}",
         )
 
     def elaborate_subtopic(
@@ -720,7 +720,7 @@ class LLMClient:
         return self._call_llm(
             prompt,
             max_tokens=self._cfg.max_tokens_elaboration,
-            label=f"elaborate domain={domain} subtopic={subtopic[:40]} tier={tier} depth={depth}",
+            label=f"elaborate domain={domain} subtopic={subtopic[:30]} tier={tier}:{tier_label[:20]} depth={depth}",
         )
 
     def form_conjecture(
