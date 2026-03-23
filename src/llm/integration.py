@@ -360,7 +360,7 @@ class LLMClient:
         )
         return self._call_llm(
             prompt,
-            max_tokens=512,
+            max_tokens=4096,
             label=f"domain={domain} subtopic={subtopic[:40]} tier={tier} depth={depth}",
         )
 
@@ -1006,7 +1006,7 @@ class LLMClient:
         context: Dict[str, Any],
         research_questions: List[str],
         principles: List[str],
-        max_tokens: int = 512,
+        max_tokens: int = 4096,
         domain: str = "general",
         tier: str = "national",
         depth: int = 0,
