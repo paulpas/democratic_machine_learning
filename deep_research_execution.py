@@ -14,7 +14,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from src.research.deep_research_engine import DeepResearchEngine
-from src.logging.verbose_logger import get_logger, reset_logger
+from src.verbose_logging.verbose_logger import get_logger, reset_logger
 
 
 async def run_deep_research_on_topic(topic: str) -> dict:

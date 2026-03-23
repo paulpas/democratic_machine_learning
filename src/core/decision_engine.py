@@ -68,6 +68,11 @@ class DecisionEngine:
     ) -> Decision:
         """Make a decision on a policy for a specific region.
 
+        This method implements multi-tiered representation:
+        - If region_id is "US", includes voters from entire country
+        - If region_id is a state, includes voters from that state
+        - If region_id is a county, includes voters from that county
+
         Args:
             policy_id: ID of the policy to decide on
             region_id: ID of the region to apply the decision to
@@ -84,12 +89,8 @@ class DecisionEngine:
         if not region:
             raise ValueError(f"Region {region_id} not found")
 
-        # Get voters in region
-        voters_in_region = [
-            v
-            for v in self.voters.values()
-            if v.region_id == region_id or region_id in v.region_id
-        ]
+        # Get voters in region with multi-tiered support
+        voters_in_region = self._get_voters_for_region(region_id)
 
         votes_for = 0
         votes_against = 0
@@ -127,6 +128,48 @@ class DecisionEngine:
 
         self.decisions.append(decision)
         return decision
+
+    def _get_voters_for_region(self, region_id: str) -> List[Voter]:
+        """Get voters for a region, supporting multi-tiered representation.
+
+        Supports:
+        - "US" or "national" for entire country
+        - State abbreviations (e.g., "CA", "TX")
+        - County names
+        - Region IDs
+
+        Args:
+            region_id: The region identifier
+
+        Returns:
+            List of voters in the specified region
+        """
+        if region_id.lower() in ["us", "national", "usa", "united states"]:
+            # Return all voters (entire country)
+            return list(self.voters.values())
+
+        # Check if it's a state
+        state_voters = []
+        if len(region_id) == 2:  # Likely state abbreviation
+            state_voters = [
+                v
+                for v in self.voters.values()
+                if v.region_id.upper().startswith(region_id.upper())
+            ]
+
+        if state_voters:
+            return state_voters
+
+        # Check for county or other region
+        county_voters = [
+            v for v in self.voters.values() if region_id.lower() in v.region_id.lower()
+        ]
+
+        if county_voters:
+            return county_voters
+
+        # Fallback: return all voters if region not found
+        return list(self.voters.values())
 
     def check_fairness(self) -> bool:
         """Check if all recent decisions meet fairness threshold.
@@ -245,7 +288,9 @@ class DecisionEngine:
     def _analyze_policy_context(
         self, policy: Policy, region: Region, voters: List[Voter]
     ) -> Dict[str, Any]:
-        print(f"Analyzing policy context for policy: {policy.name} in region: {region.name}")
+        print(
+            f"Analyzing policy context for policy: {policy.name} in region: {region.name}"
+        )
         """Analyze policy context using LLM and real-world social data for enhanced understanding.
 
         :param policy: Policy being decided on
@@ -342,7 +387,9 @@ class DecisionEngine:
                         "sentiment": nar.get("sentiment_score", 0.0),
                         "credibility": nar.get("credibility_score", 0.0),
                     }
-                    for nar in social_data.get("media_narratives", [])[:3]  # Top 3 narratives
+                    for nar in social_data.get("media_narratives", [])[
+                        :3
+                    ]  # Top 3 narratives
                 ],
             }
 
@@ -364,20 +411,36 @@ class DecisionEngine:
                 "Context-Aware: Consider current social narratives and media discourse in policy analysis",
             ]
 
-            reasoning = self.llm_client.generate_reasoning(  # Add type hint here
-                context=context_data,
-                research_questions=research_questions,
-                principles=principles,
-                max_tokens=1500,  # Increased for richer analysis with social data
+            # Use recursive LLM investigation for comprehensive domain analysis
+            recursive_results = self.llm_client.generate_reasoning_with_recursion(
+                domain=str(policy.domain),
+                initial_context=context_data,
+                max_depth=3,
+                subtopics_per_level=5,
+                principles=[
+                    "Inclusivity",
+                    "Transparency",
+                    "Accountability",
+                    "Adaptability",
+                    "Equity",
+                    "Evidence-Based",
+                    "Context-Aware",
+                ],
             )
 
+            # Extract reasoning from recursive results
+            final_conjecture = recursive_results.get("final_conjecture", {})
+            reasoning = final_conjecture.get("statement", "")
+
             return {
-                "analysis_method": "llm_enhanced_with_social_data",
+                "analysis_method": "recursive_llm_analysis",
                 "reasoning": reasoning,
+                "recursive_results": recursive_results,
                 "context_data": context_data,
-                "social_data": social_data,  # Include full social data for transparency
-                "key_insights": self._extract_key_insights(reasoning),
-                "confidence": 0.90,  # Higher confidence due to real data integration
+                "social_data": social_data,
+                "final_conjecture": final_conjecture,
+                "best_solutions": recursive_results.get("best_solutions", []),
+                "confidence": final_conjecture.get("confidence", 0.75),
             }
         except Exception as e:
             print(f"LLM policy context analysis error: {e}")

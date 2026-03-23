@@ -1,283 +1,32 @@
-#!/bin/bash
-# Script to run enhanced democratic_engine.py for all policy domains and save outputs to well-formatted markdown files
+#!/usr/bin/env bash
+# run_all_domains.sh — Shell entry point for the Democratic Machine Learning System
+#
+# Usage:
+#   ./run_all_domains.sh                          # all 6 domains
+#   ./run_all_domains.sh healthcare economy        # specific domains
+#
+# All output (including LLM call logs, geographic fan-out, voter registration,
+# conjecture formation, and report writing) streams to stdout in real-time.
+#
+# Requirements:
+#   - Python 3.11+
+#   - llama.cpp server running on http://localhost:8080 (or set LLAMA_CPP_ENDPOINT)
+#   - pip install -r requirements.txt
 
-# Create output directory if it doesn't exist
-mkdir -p output
+set -euo pipefail
 
-# Define policy domains to process
-domains=(
-    "economy"
-    "healthcare" 
-    "education"
-    "immigration"
-    "climate"
-    "infrastructure"
-)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PYTHON="${PYTHON:-python3}"
 
-echo "🚀 Starting Democratic Machine Learning System - LLM Enhanced Governance Modeling"
-echo "📋 Processing $((${#domains[@]})) policy domains..."
+echo "=============================================================="
+echo "  DEMOCRATIC MACHINE LEARNING SYSTEM"
+echo "  $(date '+%Y-%m-%d %H:%M:%S')"
+echo "=============================================================="
+echo ""
+echo "  Python   : $($PYTHON --version 2>&1)"
+echo "  Script   : $SCRIPT_DIR/run_all_domains.py"
+echo "  Endpoint : ${LLAMA_CPP_ENDPOINT:-http://localhost:8080}"
+echo "  Output   : $SCRIPT_DIR/output/"
 echo ""
 
-# Process each domain
-for domain in "${domains[@]}"; do
-    echo "📊 Processing domain: $domain"
-    
-    # Run our enhanced DecisionEngine directly using Python
-    output=$(PYTHONPATH=$(pwd) timeout 60 python3 -c "
-import sys
-import json
-from src.core.decision_engine import DecisionEngine
-from src.models.policy import Policy, PolicyDomain
-from src.models.region import Region
-from src.models.voter import Voter, VoterType
-
-def run_domain_analysis(domain_name):
-    # Map domain name to PolicyDomain enum
-    domain_mapping = {
-        'economy': PolicyDomain.ECONOMIC,
-        'healthcare': PolicyDomain.HEALTHCARE,
-        'education': PolicyDomain.EDUCATION,
-        'immigration': PolicyDomain.SECURITY,
-        'climate': PolicyDomain.ENVIRONMENT,
-        'infrastructure': PolicyDomain.INFRASTRUCTURE
-    }
-    
-    if domain_name not in domain_mapping:
-        return {'error': f'Unknown domain: {domain_name}'}
-        
-    policy_domain = domain_mapping[domain_name]
-    
-    # Create engine
-    engine = DecisionEngine()
-    
-    # Create a simple set of regions for testing
-    regions = [
-        Region(region_id='test_001', name='Test Region', region_type='state', population=1000000)
-    ]
-    
-    for region_obj in regions:
-        engine.register_region(region_obj)
-    
-    # Create a policy for this domain
-    policy_name_map = {
-        'economy': 'Economic Policy Test',
-        'healthcare': 'Healthcare Policy Test',
-        'education': 'Education Policy Test',
-        'immigration': 'Immigration Policy Test',
-        'climate': 'Climate Policy Test',
-        'infrastructure': 'Infrastructure Policy Test'
-    }
-    
-    policy_desc_map = {
-        'economy': 'Test economic policy',
-        'healthcare': 'Test healthcare policy',
-        'education': 'Test education policy',
-        'immigration': 'Immigration Policy Test',
-        'climate': 'Test climate policy',
-        'infrastructure': 'Infrastructure Policy Test'
-    }
-    
-    policy = Policy(
-        policy_id=f'us_{domain_name}_test',
-        name=policy_name_map[domain_name],
-        description=policy_desc_map[domain_name],
-        domain=policy_domain
-    )
-    engine.register_policy(policy)
-    
-    # Create a simple voter panel for testing
-    voters = [
-        Voter(voter_id='voter_1', region_id='test_001', voter_type=VoterType.EXPERT, 
-              expertise={f'us_{domain_name}_test': 0.8}),
-        Voter(voter_id='voter_2', region_id='test_001', voter_type=VoterType.PARTICIPANT),
-        Voter(voter_id='voter_3', region_id='test_001', voter_type=VoterType.PARTICIPANT)
-    ]
-    
-    # Set test preferences
-    voters[0].add_preference(f'us_{domain_name}_test', 0.7)  # Expert support
-    voters[1].add_preference(f'us_{domain_name}_test', 0.5)  # Public support
-    voters[2].add_preference(f'us_{domain_name}_test', -0.3) # Public opposition
-    
-    for voter in voters:
-        engine.register_voter(voter)
-    
-    # Run the decision analysis
-    try:
-        decision = engine.make_decision(
-            policy_id=f'us_{domain_name}_test',
-            region_id='test_001'
-        )
-        
-        # Get additional context analysis if LLM is available
-        context_analysis = {}
-        if engine.llm_client.available:
-            context_analysis = engine._analyze_policy_context(policy, regions[0], voters)
-        
-        return {
-            'domain': domain_name,
-            'policy_name': policy.name,
-            'policy_description': policy.description,
-            'decision': {
-                'outcome': decision.outcome,
-                'confidence': decision.confidence,
-                'votes_for': decision.votes_for,
-                'votes_against': decision.votes_against,
-                'voters_participated': len(decision.voters_participated)
-            },
-            'context_analysis': context_analysis,
-            'llm_enhanced': engine.llm_client.available,
-            'timestamp': str(__import__('datetime').datetime.now()),
-            'total_regions': len(regions),
-            'total_voters': len(voters)
-        }
-    except Exception as e:
-        return {'error': str(e)}
-
-result = run_domain_analysis('$domain')
-print(json.dumps(result, indent=2))
-    " 2>&1)
-    
-    # Create intuitive filename
-    filename="output/us_${domain}_governance_model.md"
-    
-    # Generate a proper markdown report instead of JSON dump
-    {
-        echo "# United States $domain Governance Model"
-        echo ""
-        echo "*Generated by Democratic Machine Learning System with LLM Enhancement*"
-        echo ""
-        echo "---"
-        echo ""
-        
-        # Check if output contains JSON
-         if echo "$output" | grep -q '"domain"'; then
-             # Extract values from JSON using jq (more reliable than grep/sed)
-             if command -v jq >/dev/null 2>&1; then
-                 domain_val=$(echo "$output" | jq -r '.domain // ""' 2>/dev/null || echo "")
-                 policy_name=$(echo "$output" | jq -r '.policy_name // ""' 2>/dev/null || echo "")
-                 policy_description=$(echo "$output" | jq -r '.policy_description // ""' 2>/dev/null || echo "")
-                 decision_outcome=$(echo "$output" | jq -r '.decision.outcome // ""' 2>/dev/null || echo "")
-                 decision_confidence_raw=$(echo "$output" | jq -r '.decision.confidence // "0"' 2>/dev/null || echo "0")
-                 votes_for=$(echo "$output" | jq -r '.decision.votes_for // "0"' 2>/dev/null || echo "0")
-                 votes_against=$(echo "$output" | jq -r '.decision.votes_against // "0"' 2>/dev/null || echo "0")
-                 voters_participated=$(echo "$output" | jq -r '.decision.voters_participated // "0"' 2>/dev/null || echo "0")
-                 llm_enhanced=$(echo "$output" | jq -r '.llm_enhanced // "false"' 2>/dev/null || echo "false")
-                 reasoning=$(echo "$output" | jq -r '.context_analysis.reasoning // ""' 2>/dev/null || echo "")
-             else
-                 # Fallback to grep/sed method (less reliable)
-                 domain_val=$(echo "$output" | grep -o '"domain": *"[^"]*"' | cut -d'"' -f4)
-                 policy_name=$(echo "$output" | grep -o '"policy_name": *"[^"]*"' | cut -d'"' -f4)
-                 policy_description=$(echo "$output" | grep -o '"policy_description": *"[^"]*"' | cut -d'"' -f4)
-                 decision_outcome=$(echo "$output" | grep -o '"outcome": *"[^"]*"' | cut -d'"' -f4)
-                 decision_confidence_raw=$(echo "$output" | grep -o '"confidence": *[0-9.]*' | cut -d'"' -f2 | tr -d '"')
-                 votes_for=$(echo "$output" | grep -o '"votes_for": *[0-9]*' | cut -d'"' -f2 | tr -d '"')
-                 votes_against=$(echo "$output" | grep -o '"votes_against": *[0-9]*' | cut -d'"' -f2 | tr -d '"')
-                 voters_participated=$(echo="$output" | grep -o '"voters_participated": *[0-9]*' | cut -d'"' -f2 | tr -d '"')
-                 llm_enhanced=$(echo="$output" | grep -o '"llm_enhanced": *[a-z]*' | cut -d'"' -f2 | tr -d '"')
-                 reasoning=$(echo="$output" | grep -o '"reasoning": *"[^"]*"' | head -1 | cut -d'"' -f4)
-             fi
-             
-             # Calculate confidence percentage
-             if [ -n "$decision_confidence_raw" ] && [ "$decision_confidence_raw" != "null" ] && [ "$decision_confidence_raw" != "0" ]; then
-                 # Use awk for floating point math
-                 confidence_percent=$(echo "$decision_confidence_raw" | awk '{printf "%.1f", $1 * 100}')
-             else
-                 confidence_percent="0.0"
-             fi
-            
-            echo "## 📋 Executive Summary"
-            echo ""
-            echo "This report presents a comprehensive LLM-enhanced analysis of the **$policy_name** for the United States $domain sector."
-            echo ""
-            echo "### Key Decision Metrics"
-            echo ""
-            echo "| Metric | Value |"
-            echo "|--------|-------|"
-            echo "| **Decision Outcome** | $(echo "$decision_outcome" | tr '[:lower:]' '[:upper:]') |"
-            echo "| **Confidence Level** | ${confidence_percent}% |"
-            echo "| **Vote Tally** | $votes_for FOR, $votes_against AGAINST |"
-            echo "| **Voter Participation** | $voters_participated voters |"
-            echo "| **LLM Enhancement** | $(if [ "$llm_enhanced" = "true" ]; then echo "✅ ACTIVE"; else echo "❌ INACTIVE"; fi) |"
-            echo ""
-            echo "### 📄 Policy Overview"
-            echo ""
-            echo "**Policy Name:** $policy_name"
-            echo ""
-            echo "**Policy Description:** $policy_description"
-            echo ""
-            echo "### 🧠 LLM-Enhanced Policy Context Analysis"
-            echo ""
-            if [ "$llm_enhanced" = "true" ] && [ -n "$reasoning" ] && [ "$reasoning" != "null" ]; then
-                # Clean up the reasoning text
-                cleaned_reasoning=$(echo "$reasoning" | sed 's/^ Do not make any final decisions[^.]*\.\s*//' | sed 's/\[Reasoning complete\]//g')
-                echo "$cleaned_reasoning"
-                echo ""
-                echo "*Analysis generated by LLM endpoint: http://localhost:8080*"
-                echo ""
-            else
-                echo "*LLM enhancement not available for this analysis - using rule-based reasoning*"
-                echo ""
-            fi
-            echo "### 🗳️ Democratic Decision Process"
-            echo ""
-            echo "The decision was reached through a trust-weighted voting process involving:"
-            echo ""
-            echo "- **Expert Voters**: Individuals with verified expertise in the $domain domain"
-            echo "- **Stakeholder Representatives**: Representatives from key stakeholder groups"
-            echo "- **Public Representatives**: Cross-section of general public perspectives"
-            echo ""
-            echo "The system applies trust weights based on voter expertise, participation history, and consistency to ensure that knowledgeable and engaged participants have appropriate influence on the outcome."
-            echo ""
-            echo "### ⚖️ Fairness Constraint Assessment"
-            echo ""
-            echo "The decision was evaluated against core fairness constraints:"
-            echo ""
-            echo "- **Minimum 30% Satisfaction Per Affected Group**: ✅ MET"
-            echo "- **Maximum 40% Disparity Between Groups**: ✅ MET"
-            echo ""
-            echo "### 🔍 Anti-Pattern Detection"
-            echo ""
-            echo "The decision was screened for historical governance anti-patterns:"
-            echo ""
-            echo "- **Power Concentration**: ✅ NOT DETECTED"
-            echo "- **Elite Capture': ✅ NOT DETECTED"
-            echo "- **Populist Decay': ✅ NOT DETECTED"
-            echo "- **Information Manipulation': ✅ NOT DETECTED"
-            echo ""
-            echo "### 📊 Technical Details"
-            echo ""
-            echo "- **Analysis Timestamp**: $(echo "$output" | sed -n 's/.*"timestamp": *"[^"]*"' | cut -d'"' -f4)"
-            echo "- **LLM Endpoint**: http://localhost:8080"
-            echo "- **Total Regions Analyzed**: 1 (representative sample)"
-            echo "- **Total Voters in Panel**: $voters_participated voters"
-            echo ""
-        else
-            # If not JSON, just output the raw content
-            echo "$output"
-            echo ""
-        fi
-        
-        echo "---"
-        echo ""
-        echo "*Report completed at: $(date)*"
-        echo "*Democratic Machine Learning System - LLM Enhanced Governance Modeling*"
-    } > "$filename"
-    
-    echo "   ✅ Saved to: $filename"
-    echo ""
-done
-
-echo "🎉 All domains processed successfully!"
-echo "📁 Output files saved in: ./output/"
-echo ""
-echo "📋 Generated files:"
-ls -la output/
-echo ""
-echo "💡 Each markdown file contains:"
-echo "   • Well-formatted governance report (not JSON dump)"
-echo "   • LLM-enhanced policy analysis (when available)"
-echo "   • Trust-weighted voting results"
-echo "   • Fairness constraint assessments"
-echo "   • Anti-pattern detection results"
-echo ""
-echo "🔧 To view any file: cat output/us_<domain>_governance_model.md"
+exec "$PYTHON" "$SCRIPT_DIR/run_all_domains.py" "$@"

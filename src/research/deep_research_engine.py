@@ -13,7 +13,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from src.logging.verbose_logger import (
+from src.verbose_logging.verbose_logger import (
     VerboseLogger,
     LogStep,
     get_logger,

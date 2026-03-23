@@ -267,12 +267,20 @@ sequenceDiagram
     Note right of SNC: Fetch Google News narratives
     SNC-->>DE: social_data = {opinions, narratives, summary}
 
-    Note over DE,LLM: Step 2: LLM Reasoning
-    DE->>LLM: generate_reasoning(context, questions, principles)
-    Note right of LLM: Build prompt with context + social data
-    LLM->>LLM: Send to llama.cpp endpoint
-    Note right of LLM: Generate reasoning (4096 tokens)
-    LLM-->>DE: enhanced_reasoning
+    Note over DE,LLM: Step 2: Recursive LLM Investigation
+    DE->>LLM: generate_reasoning_with_recursion(domain, context)
+    Note right of LLM: Initiate recursive investigation
+    LLM->>LLM: Level 0: Initial domain investigation
+    Note right of LLM: Generate initial reasoning + extract subtopics
+    LLM->>LLM: Level 1: Fan out to subtopics
+    Note right of LLM: Investigate 5 subtopics with deep analysis
+    LLM->>LLM: Level 2: Recursive subtopic investigation
+    Note right of LLM: Each subtopic fans out further
+    LLM->>LLM: Level 3: Final elaboration
+    Note right of LLM: Comprehensive analysis at all levels
+    LLM->>LLM: Synthesize final conjecture
+    Note right of LLM: Rank solutions and determine best approaches
+    LLM-->>DE: recursive_results = {analysis, conjecture, solutions}
 
     Note over DE,TS: Step 3: Trust & Security Analysis
     DE->>TS: calculate_trust_scores(voters)
@@ -382,12 +390,19 @@ sequenceDiagram
     SNC->>SNC: Collect News narratives (12 results)
     SNC-->>DE: social_data
     
-    Note over DE: 2. LLM Enhanced Analysis
-    DE->>LLM: analyze_policy(topic, research_data)
-    LLM->>LLM: Build policy analysis prompt
-    LLM->>LLM: Include context + social data + research
-    LLM->>LLM: Generate analysis (2048 tokens)
-    LLM-->>DE: {findings, consensus, recommendations}
+    Note over DE: 2. Recursive LLM Investigation
+    DE->>LLM: generate_reasoning_with_recursion(domain, context)
+    LLM->>LLM: Level 0: Initial domain investigation
+    Note right of LLM: Generate initial reasoning + extract subtopics
+    LLM->>LLM: Level 1: Fan out to 5 subtopics
+    Note right of LLM: Each subtopic investigated in depth
+    LLM->>LLM: Level 2: Recursive subtopic investigation
+    Note right of LLM: Each subtopic fans out further
+    LLM->>LLM: Level 3: Final elaboration
+    Note right of LLM: Comprehensive analysis at all levels
+    LLM->>LLM: Synthesize final conjecture
+    Note right of LLM: Rank solutions and determine best approaches
+    LLM-->>DE: recursive_results = {analysis, conjecture, solutions}
     
     Note over DE: 3. Build Policy Tree
     DE->>PM: build_policy_tree(domain, legislation)

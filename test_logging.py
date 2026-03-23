@@ -5,7 +5,7 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from src.logging.verbose_logger import VerboseLogger, get_logger
+from src.verbose_logging.verbose_logger import VerboseLogger, get_logger
 
 
 def test_verbose_logging():

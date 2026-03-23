@@ -4,20 +4,64 @@
 
 ---
 
-Traceback (most recent call last):
-  File "<string>", line 4, in <module>
-  File "/home/paulpas/git/democratic_machine_learning/src/__init__.py", line 11, in <module>
-    from src.core.decision_engine import DecisionEngine
-  File "/home/paulpas/git/democratic_machine_learning/src/core/__init__.py", line 7, in <module>
-    from src.core.decision_engine import DecisionEngine
-  File "/home/paulpas/git/democratic_machine_learning/src/core/decision_engine.py", line 17, in <module>
-    from src.llm.integration import LLMClient
-  File "/home/paulpas/git/democratic_machine_learning/src/llm/integration.py", line 58
-    def generate_reasoning(
-                           ^
-IndentationError: unindent does not match any outer indentation level
+## 📋 Executive Summary
+
+This report presents a comprehensive LLM-enhanced analysis of the **Healthcare Policy Test** for the United States healthcare sector.
+
+### Key Decision Metrics
+
+| Metric | Value |
+|--------|-------|
+| **Decision Outcome** | APPROVED |
+| **Confidence Level** | 33.3% |
+| **Vote Tally** | 2 FOR, 1 AGAINST |
+| **Voter Participation** | 3 voters |
+| **LLM Enhancement** | ✅ ACTIVE |
+
+### 📄 Policy Overview
+
+**Policy Name:** Healthcare Policy Test
+
+**Policy Description:** Test healthcare policy
+
+### 🧠 LLM-Enhanced Policy Context Analysis
+
+*LLM enhancement not available for this analysis - using rule-based reasoning*
+
+### 🗳️ Democratic Decision Process
+
+The decision was reached through a trust-weighted voting process involving:
+
+- **Expert Voters**: Individuals with verified expertise in the healthcare domain
+- **Stakeholder Representatives**: Representatives from key stakeholder groups
+- **Public Representatives**: Cross-section of general public perspectives
+
+The system applies trust weights based on voter expertise, participation history, and consistency to ensure that knowledgeable and engaged participants have appropriate influence on the outcome.
+
+### ⚖️ Fairness Constraint Assessment
+
+The decision was evaluated against core fairness constraints:
+
+- **Minimum 30% Satisfaction Per Affected Group**: ✅ MET
+- **Maximum 40% Disparity Between Groups**: ✅ MET
+
+### 🔍 Anti-Pattern Detection
+
+The decision was screened for historical governance anti-patterns:
+
+- **Power Concentration**: ✅ NOT DETECTED
+- **Elite Capture**: ✅ NOT DETECTED
+- **Populist Decay**: ✅ NOT DETECTED
+- **Information Manipulation**: ✅ NOT DETECTED
+
+### 📊 Technical Details
+
+- **Analysis Timestamp**: 2026-03-22 16:53:18.823845
+- **LLM Endpoint**: http://localhost:8080
+- **Total Regions Analyzed**: 1 (representative sample)
+- **Total Voters in Panel**: 3 voters
 
 ---
 
-*Report completed at: Sat Mar 21 11:19:44 AM CDT 2026*
+*Report completed at: Sun Mar 22 04:53:18 PM CDT 2026*
 *Democratic Machine Learning System - LLM Enhanced Governance Modeling*

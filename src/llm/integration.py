@@ -2,17 +2,214 @@
 
 This module provides LLM-based reasoning, analysis, and conjecture formation
 using a llama.cpp endpoint at http://localhost:8080.
+
+Production-grade implementation with:
+- Concise prompts that produce real LLM responses
+- Deep recursive investigation with geographic fan-out
+- Full national/state/county representation
+- Comprehensive stdout logging at every step
 """
 
 import json
 import os
-from typing import Any, Dict, List, Optional
+import re
+import sys
+import datetime
+from typing import Any, Dict, List, Optional, Tuple
 import urllib.request
 import urllib.error
 
+# ──────────────────────────────────────────────────────────────────────────────
+# US GEOGRAPHY DATA - All 50 states + representative counties
+# ──────────────────────────────────────────────────────────────────────────────
+
+US_STATES: Dict[str, Dict[str, Any]] = {
+    "AL": {"name": "Alabama", "population": 5024279, "counties": 67},
+    "AK": {"name": "Alaska", "population": 733391, "counties": 30},
+    "AZ": {"name": "Arizona", "population": 7151502, "counties": 15},
+    "AR": {"name": "Arkansas", "population": 3011524, "counties": 75},
+    "CA": {"name": "California", "population": 39538223, "counties": 58},
+    "CO": {"name": "Colorado", "population": 5773714, "counties": 64},
+    "CT": {"name": "Connecticut", "population": 3605944, "counties": 8},
+    "DE": {"name": "Delaware", "population": 989948, "counties": 3},
+    "FL": {"name": "Florida", "population": 21538187, "counties": 67},
+    "GA": {"name": "Georgia", "population": 10711908, "counties": 159},
+    "HI": {"name": "Hawaii", "population": 1455271, "counties": 5},
+    "ID": {"name": "Idaho", "population": 1839106, "counties": 44},
+    "IL": {"name": "Illinois", "population": 12812508, "counties": 102},
+    "IN": {"name": "Indiana", "population": 6785528, "counties": 92},
+    "IA": {"name": "Iowa", "population": 3190369, "counties": 99},
+    "KS": {"name": "Kansas", "population": 2937880, "counties": 105},
+    "KY": {"name": "Kentucky", "population": 4505836, "counties": 120},
+    "LA": {"name": "Louisiana", "population": 4657757, "counties": 64},
+    "ME": {"name": "Maine", "population": 1362359, "counties": 16},
+    "MD": {"name": "Maryland", "population": 6177224, "counties": 24},
+    "MA": {"name": "Massachusetts", "population": 7029917, "counties": 14},
+    "MI": {"name": "Michigan", "population": 10077331, "counties": 83},
+    "MN": {"name": "Minnesota", "population": 5706494, "counties": 87},
+    "MS": {"name": "Mississippi", "population": 2961279, "counties": 82},
+    "MO": {"name": "Missouri", "population": 6154913, "counties": 115},
+    "MT": {"name": "Montana", "population": 1084225, "counties": 56},
+    "NE": {"name": "Nebraska", "population": 1961504, "counties": 93},
+    "NV": {"name": "Nevada", "population": 3104614, "counties": 17},
+    "NH": {"name": "New Hampshire", "population": 1377529, "counties": 10},
+    "NJ": {"name": "New Jersey", "population": 9288994, "counties": 21},
+    "NM": {"name": "New Mexico", "population": 2117522, "counties": 33},
+    "NY": {"name": "New York", "population": 20201249, "counties": 62},
+    "NC": {"name": "North Carolina", "population": 10439388, "counties": 100},
+    "ND": {"name": "North Dakota", "population": 779094, "counties": 53},
+    "OH": {"name": "Ohio", "population": 11799448, "counties": 88},
+    "OK": {"name": "Oklahoma", "population": 3959353, "counties": 77},
+    "OR": {"name": "Oregon", "population": 4237256, "counties": 36},
+    "PA": {"name": "Pennsylvania", "population": 13002700, "counties": 67},
+    "RI": {"name": "Rhode Island", "population": 1097379, "counties": 5},
+    "SC": {"name": "South Carolina", "population": 5118425, "counties": 46},
+    "SD": {"name": "South Dakota", "population": 886667, "counties": 66},
+    "TN": {"name": "Tennessee", "population": 6910840, "counties": 95},
+    "TX": {"name": "Texas", "population": 29145505, "counties": 254},
+    "UT": {"name": "Utah", "population": 3271616, "counties": 29},
+    "VT": {"name": "Vermont", "population": 643077, "counties": 14},
+    "VA": {"name": "Virginia", "population": 8631393, "counties": 95},
+    "WA": {"name": "Washington", "population": 7705281, "counties": 39},
+    "WV": {"name": "West Virginia", "population": 1793716, "counties": 55},
+    "WI": {"name": "Wisconsin", "population": 5893718, "counties": 72},
+    "WY": {"name": "Wyoming", "population": 576851, "counties": 23},
+}
+
+US_NATIONAL_POPULATION = 331449281
+US_TOTAL_COUNTIES = 3143
+
+# Representative counties per region for geographic diversity
+REPRESENTATIVE_COUNTIES: List[Dict[str, Any]] = [
+    {
+        "state": "CA",
+        "name": "Los Angeles County",
+        "population": 10014009,
+        "type": "urban",
+    },
+    {"state": "TX", "name": "Harris County", "population": 4713325, "type": "urban"},
+    {
+        "state": "FL",
+        "name": "Miami-Dade County",
+        "population": 2716940,
+        "type": "urban",
+    },
+    {"state": "NY", "name": "Kings County", "population": 2736074, "type": "urban"},
+    {"state": "IL", "name": "Cook County", "population": 5275541, "type": "urban"},
+    {
+        "state": "PA",
+        "name": "Philadelphia County",
+        "population": 1603797,
+        "type": "urban",
+    },
+    {"state": "TX", "name": "Bexar County", "population": 2009324, "type": "suburban"},
+    {
+        "state": "NC",
+        "name": "Mecklenburg County",
+        "population": 1115482,
+        "type": "suburban",
+    },
+    {"state": "KY", "name": "Leslie County", "population": 10000, "type": "rural"},
+    {"state": "MS", "name": "Holmes County", "population": 17010, "type": "rural"},
+]
+
+# Domain-specific subtopic seeds — used as fallback when LLM returns too few items
+DOMAIN_SUBTOPICS: Dict[str, List[str]] = {
+    "healthcare": [
+        "Health Insurance Coverage and Access",
+        "Healthcare Cost Control and Affordability",
+        "Healthcare Quality and Outcomes",
+        "Public Health Infrastructure and Prevention",
+        "Health Equity and Social Determinants",
+        "Mental Health and Substance Abuse",
+        "Pharmaceutical Pricing and Drug Access",
+        "Electronic Health Records and Data Privacy",
+        "Rural Healthcare Access",
+        "Workforce Shortages and Training",
+    ],
+    "economy": [
+        "Job Creation and Employment",
+        "Wage Growth and Income Inequality",
+        "Small Business Support",
+        "Trade Policy and International Commerce",
+        "Tax Policy and Revenue",
+        "Infrastructure Investment",
+        "Technology and Innovation",
+        "Social Safety Net Programs",
+        "Housing Affordability",
+        "Financial Regulation",
+    ],
+    "education": [
+        "K-12 Funding Equity",
+        "Teacher Recruitment and Retention",
+        "Higher Education Affordability",
+        "Early Childhood Education",
+        "Curriculum Standards and Accountability",
+        "School Choice and Charter Schools",
+        "Special Education Services",
+        "STEM Education",
+        "Student Loan Debt",
+        "Vocational and Trade Education",
+    ],
+    "immigration": [
+        "Border Security and Management",
+        "Legal Immigration Pathways",
+        "Refugee and Asylum Policy",
+        "Undocumented Immigrant Integration",
+        "Visa Programs and Worker Permits",
+        "Citizenship and Naturalization",
+        "Deportation Policy",
+        "Immigration Courts",
+        "Community Integration Programs",
+        "Economic Impacts of Immigration",
+    ],
+    "climate": [
+        "Greenhouse Gas Emissions Reduction",
+        "Renewable Energy Transition",
+        "Carbon Pricing Mechanisms",
+        "Climate Adaptation and Resilience",
+        "Environmental Justice",
+        "Clean Transportation",
+        "Energy Efficiency Standards",
+        "Forest and Land Conservation",
+        "Coastal and Flood Management",
+        "Green Jobs and Economic Transition",
+    ],
+    "infrastructure": [
+        "Roads and Bridges Modernization",
+        "Public Transit Expansion",
+        "Broadband Internet Access",
+        "Water Systems and Drinking Water",
+        "Electrical Grid Modernization",
+        "Airport and Port Improvements",
+        "Cybersecurity for Infrastructure",
+        "Rural Infrastructure Access",
+        "Climate-Resilient Infrastructure",
+        "Public-Private Partnerships",
+    ],
+}
+
+
+def _log(msg: str, *, flush: bool = True) -> None:
+    """Write to stdout immediately with timestamp."""
+    ts = datetime.datetime.now().strftime("%H:%M:%S")
+    print(f"[{ts}] {msg}", flush=flush)
+
+
+def _log_section(title: str, width: int = 80) -> None:
+    _log("=" * width)
+    _log(f"  {title}")
+    _log("=" * width)
+
+
+def _log_subsection(title: str, width: int = 80) -> None:
+    _log("-" * width)
+    _log(f"  {title}")
+    _log("-" * width)
+
 
 class LLMClient:
-    """Client for LLM-based reasoning using llama.cpp endpoint."""
+    """Production-grade client for LLM-based reasoning using llama.cpp endpoint."""
 
     def __init__(self, endpoint: Optional[str] = None, model: Optional[str] = None):
         """Initialize LLM client.
@@ -25,527 +222,851 @@ class LLMClient:
             "LLAMA_CPP_ENDPOINT", "http://localhost:8080"
         )
         self.model = model or os.environ.get("LLAMA_MODEL", "llama.cpp-model")
-        self.timeout = int(os.environ.get("LLAMA_TIMEOUT", "120"))
+        self.timeout = int(os.environ.get("LLAMA_TIMEOUT", "180"))
+        self._call_count: int = 0
+        self._total_tokens: int = 0
 
-        # Test connection to endpoint
         self.available = self._test_connection()
         if self.available:
-            print(f"Initialized llama.cpp client with endpoint: {self.endpoint}")
+            _log(f"✅ LLM endpoint connected: {self.endpoint}")
         else:
-            print(
-                f"Warning: Could not connect to llama.cpp endpoint at {self.endpoint} - LLM will use fallback"
-            )
+            _log(f"⚠️  LLM endpoint unavailable: {self.endpoint} — using fallback")
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Connection test
+    # ──────────────────────────────────────────────────────────────────────────
 
     def _test_connection(self) -> bool:
         """Test if the llama.cpp endpoint is available."""
         try:
-            # Simple health check - try to make a minimal request
             data = json.dumps(
-                {"prompt": "test", "max_tokens": 1, "temperature": 0.0}
+                {"prompt": "Hi", "max_tokens": 5, "temperature": 0.0}
             ).encode("utf-8")
-
             req = urllib.request.Request(
                 f"{self.endpoint}/completion",
                 data=data,
                 headers={"Content-Type": "application/json"},
             )
-
-            with urllib.request.urlopen(req, timeout=5) as response:
+            with urllib.request.urlopen(req, timeout=10) as response:
                 return response.getcode() == 200
         except Exception:
             return False
 
-    def generate_reasoning(
+    # ──────────────────────────────────────────────────────────────────────────
+    # Core LLM call — single responsibility, full logging
+    # ──────────────────────────────────────────────────────────────────────────
+
+    def _call_llm(
         self,
-        context: Dict[str, Any],
-        research_questions: List[str],
-        principles: List[str],
-        max_tokens: int = 4096,
+        prompt: str,
+        max_tokens: int = 512,
+        temperature: float = 0.7,
+        label: str = "",
     ) -> str:
-        """Generate governance reasoning using LLM.
+        """
+        Send a single prompt to the LLM endpoint and return the response text.
 
         Args:
-            context: Governance context (population, diversity, etc.)
-            research_questions: List of research questions
-            principles: List of core principles
-            max_tokens: Maximum tokens for response
+            prompt:      The prompt string.
+            max_tokens:  Token budget for the response.
+            temperature: Sampling temperature.
+            label:       Human-readable label for logging (domain/tier/subtopic).
 
         Returns:
-            Generated reasoning text
+            The generated text, or an empty string on failure.
         """
-        if self.available:
-            prompt = self._build_reasoning_prompt(
-                context, research_questions, principles
+        if not self.available:
+            _log(f"  ⚠️  LLM unavailable — skipping call [{label}]")
+            return ""
+
+        self._call_count += 1
+        _log("")
+        _log(f"  🔄 LLM CALL #{self._call_count} | {label}")
+        _log(
+            f"     prompt_chars={len(prompt)}  max_tokens={max_tokens}  temp={temperature}"
+        )
+        _log(f"     endpoint={self.endpoint}/completion")
+
+        payload = {
+            "prompt": prompt,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+        }
+
+        try:
+            data = json.dumps(payload).encode("utf-8")
+            req = urllib.request.Request(
+                f"{self.endpoint}/completion",
+                data=data,
+                headers={"Content-Type": "application/json"},
             )
+            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                result = json.loads(resp.read().decode("utf-8"))
+                content = result.get("content", "").strip()
+                tokens = result.get("tokens_predicted", len(content.split()))
+                self._total_tokens += tokens
+                _log(f"  ✅ RESPONSE  tokens={tokens}  cumulative={self._total_tokens}")
+                preview = content[:120].replace("\n", " ")
+                _log(f"     preview: {preview}{'…' if len(content) > 120 else ''}")
+                return content
+        except Exception as exc:
+            _log(f"  ❌ LLM ERROR: {exc}")
+            return ""
 
-            # Log the LLM call to stdout
-            print(
-                f"🔄 LLM CALL: Generating reasoning with {len(research_questions)} research questions and {len(principles)} principles"
-            )
-            print(f"📝 Prompt length: {len(prompt)} characters")
-            print(f"🎯 Max tokens: {max_tokens}")
+    # ──────────────────────────────────────────────────────────────────────────
+    # Public high-level methods
+    # ──────────────────────────────────────────────────────────────────────────
 
-            try:
-                data = json.dumps(
-                    {
-                        "prompt": prompt,
-                        "max_tokens": max_tokens,
-                        "temperature": 0.7,
-                        "stop": ["\n\n\n", ""],
-                    }
-                ).encode("utf-8")
+    def investigate_domain_initial(
+        self,
+        domain: str,
+        context: Dict[str, Any],
+        principles: List[str],
+    ) -> str:
+        """Level-0 domain investigation — returns full reasoning text."""
+        pop = context.get("population", US_NATIONAL_POPULATION)
+        prompt = (
+            f"You are a US policy expert. Analyze {domain} policy for the United States "
+            f"(population {pop:,}). List the 5 most important subtopics as a numbered list, "
+            f"then briefly explain each. Principles: {', '.join(principles[:5])}."
+        )
+        return self._call_llm(
+            prompt,
+            max_tokens=600,
+            label=f"domain={domain} tier=national depth=0",
+        )
 
-                req = urllib.request.Request(
-                    f"{self.endpoint}/completion",
-                    data=data,
-                    headers={"Content-Type": "application/json"},
-                )
+    def investigate_subtopic(
+        self,
+        domain: str,
+        subtopic: str,
+        tier: str,
+        tier_label: str,
+        tier_population: int,
+        depth: int,
+        principles: List[str],
+        parent_context: str = "",
+    ) -> str:
+        """Investigate a subtopic at a specific geographic tier."""
+        context_snippet = parent_context[:300] if parent_context else ""
+        prompt = (
+            f"You are a US {tier}-level policy expert. "
+            f"Analyze '{subtopic}' as a subtopic of {domain} policy "
+            f"for {tier_label} (population {tier_population:,}). "
+            f"Provide: (1) current state, (2) key challenges, (3) best policy approaches, "
+            f"(4) implementation steps, (5) expected outcomes. "
+            f"Principles: {', '.join(principles[:5])}."
+            + (f" Context: {context_snippet}" if context_snippet else "")
+        )
+        return self._call_llm(
+            prompt,
+            max_tokens=512,
+            label=f"domain={domain} subtopic={subtopic[:40]} tier={tier} depth={depth}",
+        )
 
-                print(f"🚀 Sending request to {self.endpoint}/completion")
-                with urllib.request.urlopen(req, timeout=self.timeout) as response:
-                    result = json.loads(response.read().decode("utf-8"))
-                    content = result.get("content", "")
-                    tokens_used = len(content.split()) if content else 0
-                    print(f"✅ LLM RESPONSE: {tokens_used} tokens generated")
-                    print(
-                        f"📄 Response preview: {content[:100]}{'...' if len(content) > 100 else ''}"
-                    )
-                    return content
-            except Exception as e:
-                print(f"❦ LLM error: {e}")
-                return self._generate_fallback_reasoning(context, principles)
-        else:
-            print("⚠️  LLM not available, using fallback reasoning")
-            return self._generate_fallback_reasoning(context, principles)
+    def elaborate_subtopic(
+        self,
+        domain: str,
+        subtopic: str,
+        tier: str,
+        tier_label: str,
+        tier_population: int,
+        depth: int,
+        principles: List[str],
+        prior_reasoning: str,
+    ) -> str:
+        """Deep elaboration on a subtopic — calls after initial investigation."""
+        snippet = prior_reasoning[:400] if prior_reasoning else ""
+        prompt = (
+            f"Elaborate further on '{subtopic}' in {domain} policy at the {tier} level "
+            f"({tier_label}, population {tier_population:,}). "
+            f"Prior analysis: {snippet} "
+            f"Provide: evidence for each approach, equity implications, "
+            f"stakeholder concerns, and measurable success metrics."
+        )
+        return self._call_llm(
+            prompt,
+            max_tokens=512,
+            label=f"elaborate domain={domain} subtopic={subtopic[:40]} tier={tier} depth={depth}",
+        )
 
     def form_conjecture(
         self,
         question: str,
         context: Dict[str, Any],
         evidence: List[Dict[str, Any]],
-        max_tokens: int = 1024,
+        max_tokens: int = 600,
+        domain: str = "general",
     ) -> Dict[str, Any]:
-        """Form a conjecture from evidence using LLM.
-
-        Args:
-            question: Research question
-            context: Context information
-            evidence: List of evidence items
-            max_tokens: Maximum tokens for response
-
-        Returns:
-            Conjecture with statement, confidence, and supporting evidence
-        """
-        if self.available:
-            prompt = self._build_conjecture_prompt(question, context, evidence)
-
-            try:
-                data = json.dumps(
-                    {
-                        "prompt": prompt,
-                        "max_tokens": max_tokens,
-                        "temperature": 0.7,
-                        "stop": ["</s>", "\n\n\n"],
-                    }
-                ).encode("utf-8")
-
-                req = urllib.request.Request(
-                    f"{self.endpoint}/completion",
-                    data=data,
-                    headers={"Content-Type": "application/json"},
-                )
-
-                with urllib.request.urlopen(req, timeout=self.timeout) as response:
-                    result = json.loads(response.read().decode("utf-8"))
-                    response_text = result.get("content", "")
-                    return self._parse_conjecture_response(response_text)
-            except Exception as e:
-                print(f"LLM error: {e}")
-                return self._form_fallback_conjecture(question, evidence)
-        else:
-            return self._form_fallback_conjecture(question, evidence)
+        """Form a final conjecture synthesizing all evidence."""
+        evidence_text = "\n".join(
+            f"- [{e.get('tier', '?')} depth={e.get('depth', 0)}] "
+            f"{e.get('finding', e.get('reasoning', ''))[:200]}"
+            for e in evidence[:15]
+        )
+        prompt = (
+            f"Based on the following evidence about {domain} policy, "
+            f"answer: {question}\n\n"
+            f"Evidence:\n{evidence_text}\n\n"
+            f"Provide: (1) Conjecture statement, (2) Confidence 0-1, "
+            f"(3) Top 3 supporting points, (4) Key contradictions."
+        )
+        raw = self._call_llm(
+            prompt,
+            max_tokens=max_tokens,
+            temperature=0.6,
+            label=f"conjecture domain={domain}",
+        )
+        return self._parse_conjecture(raw, question, evidence)
 
     def analyze_policy(
-        self, topic: str, research_data: Dict[str, Any], max_tokens: int = 2048
+        self,
+        topic: str,
+        research_data: Dict[str, Any],
+        max_tokens: int = 600,
     ) -> Dict[str, Any]:
-        """Analyze policy using LLM.
+        """Analyze a policy topic using LLM."""
+        context_text = " | ".join(
+            f"{k}: {str(v)[:80]}" for k, v in list(research_data.items())[:5]
+        )
+        prompt = (
+            f"Analyze {topic} policy. Context: {context_text}. "
+            f"Provide: key findings, consensus level 0-1, top 3 recommendations, "
+            f"implementation steps, expected outcomes."
+        )
+        raw = self._call_llm(
+            prompt, max_tokens=max_tokens, label=f"analyze policy={topic}"
+        )
+        return self._parse_analysis(raw, topic)
 
-        Args:
-            topic: Policy topic
-            research_data: Research data
-            max_tokens: Maximum tokens for response
+    # ──────────────────────────────────────────────────────────────────────────
+    # Deep recursive investigation — THE MAIN ENTRY POINT
+    # ──────────────────────────────────────────────────────────────────────────
 
-        Returns:
-            Analysis with recommendations
+    def generate_reasoning_with_recursion(
+        self,
+        domain: str,
+        initial_context: Dict[str, Any],
+        max_depth: int = 4,
+        subtopics_per_level: int = 5,
+        principles: Optional[List[str]] = None,
+        include_state_county_rep: bool = True,
+    ) -> Dict[str, Any]:
         """
-        if self.available:
-            prompt = self._build_policy_analysis_prompt(topic, research_data)
+        Full deep-recursive LLM investigation with geographic fan-out.
 
-            # Log the LLM call to stdout
-            print(f"🔄 LLM CALL: Analyzing policy '{topic}'")
-            print(f"📝 Prompt length: {len(prompt)} characters")
-            print(f"🎯 Max tokens: {max_tokens}")
+        Architecture:
+          Level 0 : Initial domain overview → extract top-N subtopics
+          Level 1…N: For each subtopic:
+                       - national investigation
+                       - (if enabled) all 50 states
+                       - (if enabled) representative counties
+                       - elaborate on each finding
+                       - extract sub-subtopics for next level
+          Synthesis: form_conjecture from all elaborations
+          Ranking:   rank solutions by score × geographic weight
 
-            try:
-                data = json.dumps(
-                    {
-                        "prompt": prompt,
-                        "max_tokens": max_tokens,
-                        "temperature": 0.7,
-                        "stop": ["\n\n\n", ""],
-                    }
-                ).encode("utf-8")
+        All stdout logging goes to terminal in real-time.
+        """
+        if principles is None:
+            principles = [
+                "Inclusivity",
+                "Transparency",
+                "Accountability",
+                "Adaptability",
+                "Equity",
+                "Evidence-Based",
+                "Context-Aware",
+            ]
 
-                req = urllib.request.Request(
-                    f"{self.endpoint}/completion",
-                    data=data,
-                    headers={"Content-Type": "application/json"},
+        started_at = datetime.datetime.now()
+
+        _log("")
+        _log_section(f"DEEP RECURSIVE LLM INVESTIGATION  |  domain={domain}")
+        _log(f"  started        : {started_at.strftime('%Y-%m-%d %H:%M:%S')}")
+        _log(f"  max_depth      : {max_depth}")
+        _log(f"  subtopics/level: {subtopics_per_level}")
+        _log(f"  geo_rep        : {include_state_county_rep}")
+        _log(f"  endpoint       : {self.endpoint}")
+        _log("")
+
+        results: Dict[str, Any] = {
+            "domain": domain,
+            "max_depth": max_depth,
+            "subtopics_per_level": subtopics_per_level,
+            "include_state_county_rep": include_state_county_rep,
+            "started_at": started_at.isoformat(),
+            "recursive_analysis": {},
+            "subtopics_by_level": {},
+            "all_elaborations": [],
+            "final_conjecture": {},
+            "best_solutions": [],
+        }
+
+        context = {
+            **initial_context,
+            "domain": domain,
+            "population": initial_context.get("population", US_NATIONAL_POPULATION),
+        }
+
+        # ── LEVEL 0: initial domain overview ──────────────────────────────────
+        _log_section(f"LEVEL 0 | domain={domain} | tier=national | depth=0")
+
+        level0_reasoning = self.investigate_domain_initial(domain, context, principles)
+        if not level0_reasoning:
+            level0_reasoning = f"Overview of {domain} policy for the United States."
+
+        results["recursive_analysis"]["level_0"] = {
+            "tier": "national",
+            "depth": 0,
+            "domain": domain,
+            "reasoning": level0_reasoning,
+        }
+
+        # Extract initial subtopics from the LLM response, fall back to seeds
+        current_subtopics = self._extract_subtopics_from_text(
+            level0_reasoning, domain, subtopics_per_level
+        )
+        results["subtopics_by_level"]["level_0"] = current_subtopics
+        _log(f"  subtopics extracted: {len(current_subtopics)}")
+        for i, s in enumerate(current_subtopics, 1):
+            _log(f"    {i}. {s}")
+
+        # ── LEVELS 1..max_depth ───────────────────────────────────────────────
+        for depth in range(1, max_depth + 1):
+            if not current_subtopics:
+                _log(f"  ⚠️  No subtopics for depth {depth}, ending early")
+                break
+
+            _log_section(
+                f"LEVEL {depth}/{max_depth} | domain={domain} | "
+                f"{len(current_subtopics)} subtopics"
+            )
+
+            level_elaborations: List[Dict[str, Any]] = []
+            next_subtopics: List[str] = []
+
+            for idx, subtopic in enumerate(current_subtopics[:subtopics_per_level], 1):
+                _log("")
+                _log_subsection(
+                    f"SUBTOPIC {idx}/{min(len(current_subtopics), subtopics_per_level)} "
+                    f"| depth={depth} | {subtopic}"
                 )
 
-                print(f"🚀 Sending request to {self.endpoint}/completion")
-                with urllib.request.urlopen(req, timeout=self.timeout) as response:
-                    result = json.loads(response.read().decode("utf-8"))
-                    response_text = result.get("content", "")
-                    tokens_used = len(response_text.split()) if response_text else 0
-                    print(
-                        f"✅ LLM RESPONSE: {tokens_used} tokens generated for policy '{topic}'"
-                    )
-                    print(
-                        f"📄 Response preview: {response_text[:100]}{'...' if len(response_text) > 100 else ''}"
-                    )
-                    return self._parse_analysis_response(response_text, topic)
-            except Exception as e:
-                print(f"❦ LLM error for policy '{topic}': {e}")
-                return self._generate_fallback_analysis(topic, research_data)
-        else:
-            print(f"⚠️  LLM not available for policy '{topic}', using fallback analysis")
-            return self._generate_fallback_analysis(topic, research_data)
+                # ── national level ────────────────────────────────────────────
+                _log(f"  🌐 NATIONAL  population={US_NATIONAL_POPULATION:,}")
+                nat_reasoning = self.investigate_subtopic(
+                    domain=domain,
+                    subtopic=subtopic,
+                    tier="national",
+                    tier_label="United States",
+                    tier_population=US_NATIONAL_POPULATION,
+                    depth=depth,
+                    principles=principles,
+                    parent_context=level0_reasoning,
+                )
+                nat_elab = self.elaborate_subtopic(
+                    domain=domain,
+                    subtopic=subtopic,
+                    tier="national",
+                    tier_label="United States",
+                    tier_population=US_NATIONAL_POPULATION,
+                    depth=depth,
+                    principles=principles,
+                    prior_reasoning=nat_reasoning,
+                )
+                nat_entry: Dict[str, Any] = {
+                    "domain": domain,
+                    "subtopic": subtopic,
+                    "tier": "national",
+                    "tier_label": "United States",
+                    "tier_population": US_NATIONAL_POPULATION,
+                    "depth": depth,
+                    "reasoning": nat_reasoning,
+                    "elaboration": nat_elab,
+                    "finding": (nat_reasoning + " " + nat_elab)[:600],
+                }
+                level_elaborations.append(nat_entry)
+                results["all_elaborations"].append(nat_entry)
 
-    def _build_reasoning_prompt(
+                # ── geographic fan-out ────────────────────────────────────────
+                if include_state_county_rep:
+                    state_entries, county_entries = self._geographic_fan_out(
+                        domain=domain,
+                        subtopic=subtopic,
+                        depth=depth,
+                        principles=principles,
+                        prior_reasoning=nat_reasoning,
+                    )
+                    level_elaborations.extend(state_entries)
+                    level_elaborations.extend(county_entries)
+                    results["all_elaborations"].extend(state_entries)
+                    results["all_elaborations"].extend(county_entries)
+
+                    _log(
+                        f"  ✅ Geo fan-out complete: {len(state_entries)} states, "
+                        f"{len(county_entries)} counties"
+                    )
+
+                # Extract sub-subtopics for the next depth level
+                sub_subtopics = self._extract_subtopics_from_text(
+                    nat_reasoning, subtopic, max(2, subtopics_per_level // (depth + 1))
+                )
+                next_subtopics.extend(sub_subtopics)
+
+            results["recursive_analysis"][f"level_{depth}"] = level_elaborations
+            results["subtopics_by_level"][f"level_{depth}"] = next_subtopics
+
+            # Deduplicate and cap for next level
+            seen: set = set()
+            deduped: List[str] = []
+            for s in next_subtopics:
+                key = s.lower().strip()
+                if key not in seen:
+                    seen.add(key)
+                    deduped.append(s)
+            current_subtopics = deduped[:subtopics_per_level]
+
+            _log(
+                f"  Level {depth} done — {len(level_elaborations)} elaborations, "
+                f"{len(current_subtopics)} sub-subtopics queued"
+            )
+
+        # ── SYNTHESIS ─────────────────────────────────────────────────────────
+        total_elab = len(results["all_elaborations"])
+        _log("")
+        _log_section(f"SYNTHESIS | domain={domain} | total_elaborations={total_elab}")
+
+        final_question = (
+            f"Based on all evidence, what are the optimal governance mechanisms "
+            f"for {domain} policy in the United States, considering national, state, "
+            f"and county perspectives?"
+        )
+        final_conjecture = self.form_conjecture(
+            question=final_question,
+            context=context,
+            evidence=results["all_elaborations"][:20],
+            domain=domain,
+            max_tokens=700,
+        )
+        results["final_conjecture"] = final_conjecture
+
+        _log(f"  conjecture confidence: {final_conjecture.get('confidence', 0):.2f}")
+        _log(f"  statement: {final_conjecture.get('statement', '')[:100]}…")
+
+        # ── RANKING ───────────────────────────────────────────────────────────
+        _log("")
+        _log_section(f"RANKING SOLUTIONS | domain={domain}")
+        best_solutions = self._rank_solutions_with_geographic_weighting(
+            all_elaborations=results["all_elaborations"],
+            domain=domain,
+        )
+        results["best_solutions"] = best_solutions
+        _log(f"  solutions ranked: {len(best_solutions)}")
+        for i, sol in enumerate(best_solutions[:5], 1):
+            _log(
+                f"  {i}. score={sol['score']:.3f} tier={sol['tier']} | {sol['solution'][:80]}…"
+            )
+
+        # ── FINAL SUMMARY ─────────────────────────────────────────────────────
+        elapsed = (datetime.datetime.now() - started_at).total_seconds()
+        _log("")
+        _log_section(f"INVESTIGATION COMPLETE | domain={domain}")
+        _log(f"  elapsed       : {elapsed:.1f}s")
+        _log(f"  llm_calls     : {self._call_count}")
+        _log(f"  total_tokens  : {self._total_tokens}")
+        _log(f"  elaborations  : {total_elab}")
+        _log(f"  best_solutions: {len(best_solutions)}")
+        _log(f"  confidence    : {final_conjecture.get('confidence', 0):.2f}")
+        _log("")
+
+        results["elapsed_seconds"] = elapsed
+        results["llm_calls"] = self._call_count
+        results["total_tokens"] = self._total_tokens
+        return results
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Geographic fan-out
+    # ──────────────────────────────────────────────────────────────────────────
+
+    def _geographic_fan_out(
+        self,
+        domain: str,
+        subtopic: str,
+        depth: int,
+        principles: List[str],
+        prior_reasoning: str,
+    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+        """
+        Investigate a subtopic across all 50 states and representative counties.
+
+        Returns:
+            Tuple of (state_elaborations, county_elaborations)
+        """
+        state_entries: List[Dict[str, Any]] = []
+        county_entries: List[Dict[str, Any]] = []
+
+        # ── All 50 states ─────────────────────────────────────────────────────
+        for abbr, state_data in US_STATES.items():
+            state_name = state_data["name"]
+            state_pop = state_data["population"]
+            _log(f"    🏛️  STATE {abbr} | {state_name} | pop={state_pop:,}")
+            reasoning = self.investigate_subtopic(
+                domain=domain,
+                subtopic=subtopic,
+                tier="state",
+                tier_label=state_name,
+                tier_population=state_pop,
+                depth=depth,
+                principles=principles,
+                parent_context=prior_reasoning,
+            )
+            elab = self.elaborate_subtopic(
+                domain=domain,
+                subtopic=subtopic,
+                tier="state",
+                tier_label=state_name,
+                tier_population=state_pop,
+                depth=depth,
+                principles=principles,
+                prior_reasoning=reasoning,
+            )
+            entry: Dict[str, Any] = {
+                "domain": domain,
+                "subtopic": subtopic,
+                "tier": "state",
+                "tier_label": state_name,
+                "state_abbr": abbr,
+                "tier_population": state_pop,
+                "depth": depth,
+                "reasoning": reasoning,
+                "elaboration": elab,
+                "finding": (reasoning + " " + elab)[:600],
+            }
+            state_entries.append(entry)
+
+        # ── Representative counties ───────────────────────────────────────────
+        for county_data in REPRESENTATIVE_COUNTIES:
+            county_name = county_data["name"]
+            county_pop = county_data["population"]
+            county_type = county_data.get("type", "mixed")
+            _log(f"    🏘️  COUNTY {county_name} ({county_type}) | pop={county_pop:,}")
+            reasoning = self.investigate_subtopic(
+                domain=domain,
+                subtopic=subtopic,
+                tier="county",
+                tier_label=county_name,
+                tier_population=county_pop,
+                depth=depth,
+                principles=principles,
+                parent_context=prior_reasoning,
+            )
+            elab = self.elaborate_subtopic(
+                domain=domain,
+                subtopic=subtopic,
+                tier="county",
+                tier_label=county_name,
+                tier_population=county_pop,
+                depth=depth,
+                principles=principles,
+                prior_reasoning=reasoning,
+            )
+            entry = {
+                "domain": domain,
+                "subtopic": subtopic,
+                "tier": "county",
+                "tier_label": county_name,
+                "state_abbr": county_data["state"],
+                "county_type": county_type,
+                "tier_population": county_pop,
+                "depth": depth,
+                "reasoning": reasoning,
+                "elaboration": elab,
+                "finding": (reasoning + " " + elab)[:600],
+            }
+            county_entries.append(entry)
+
+        return state_entries, county_entries
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Ranking
+    # ──────────────────────────────────────────────────────────────────────────
+
+    def _rank_solutions_with_geographic_weighting(
+        self,
+        all_elaborations: List[Dict[str, Any]],
+        domain: str,
+    ) -> List[Dict[str, Any]]:
+        """Rank all elaborations by quality score × geographic tier weight."""
+        tier_weights = {
+            "national": 1.0,
+            "state": 0.8,
+            "county": 0.6,
+        }
+        solutions: List[Dict[str, Any]] = []
+        for elab in all_elaborations:
+            tier = elab.get("tier", "national")
+            weight = tier_weights.get(tier, 0.5)
+            text = elab.get("finding", elab.get("reasoning", ""))
+            # Quality score: length (capped) × quality keywords × tier weight
+            length_score = min(1.0, len(text) / 800)
+            keywords = [
+                "equit",
+                "access",
+                "afford",
+                "implement",
+                "evidence",
+                "outcome",
+                "stakeholder",
+                "fund",
+                "reform",
+                "impact",
+            ]
+            kw_score = sum(0.1 for kw in keywords if kw in text.lower())
+            score = (length_score + kw_score) * weight
+            solutions.append(
+                {
+                    "solution": text[:300],
+                    "tier": tier,
+                    "tier_label": elab.get("tier_label", ""),
+                    "domain": domain,
+                    "subtopic": elab.get("subtopic", ""),
+                    "depth": elab.get("depth", 0),
+                    "score": round(score, 4),
+                    "should_capture": score > 0.5,
+                }
+            )
+        solutions.sort(key=lambda x: x["score"], reverse=True)
+        return solutions
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Subtopic extraction
+    # ──────────────────────────────────────────────────────────────────────────
+
+    def _extract_subtopics_from_text(
+        self,
+        text: str,
+        domain: str,
+        count: int,
+    ) -> List[str]:
+        """
+        Extract subtopic strings from LLM-generated text.
+
+        Strategy:
+          1. Look for numbered list items  (1. ... / 1) ...)
+          2. Look for bold markdown (**Topic**)
+          3. Look for bullet lines (- / * / •)
+          4. Fall back to domain seed list
+        """
+        extracted: List[str] = []
+        seen: set = set()
+
+        patterns = [
+            r"^\s*\d+[.)]\s+\*{0,2}([A-Z][^\n*]{4,80}?)\*{0,2}\s*$",  # numbered
+            r"\*\*([A-Z][^*\n]{4,80}?)\*\*",  # bold
+            r"^\s*[-*•]\s+([A-Z][^\n]{4,80}?)\s*$",  # bullets
+        ]
+        for pattern in patterns:
+            for m in re.finditer(pattern, text, re.MULTILINE):
+                candidate = m.group(1).strip(" .:,")
+                key = candidate.lower()
+                if key not in seen and len(candidate) > 5:
+                    seen.add(key)
+                    extracted.append(candidate)
+                    if len(extracted) >= count:
+                        return extracted
+
+        # Fallback to domain seed list
+        seeds = DOMAIN_SUBTOPICS.get(domain.lower(), [])
+        for seed in seeds:
+            key = seed.lower()
+            if key not in seen:
+                seen.add(key)
+                extracted.append(seed)
+                if len(extracted) >= count:
+                    break
+
+        return extracted[:count]
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Response parsers
+    # ──────────────────────────────────────────────────────────────────────────
+
+    def _parse_conjecture(
+        self,
+        response: str,
+        question: str,
+        evidence: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """Parse the conjecture response into a structured dict."""
+        statement = ""
+        confidence = 0.75
+        supporting: List[str] = []
+        contradicting: List[str] = []
+        current_section: Optional[str] = None
+
+        for raw_line in response.splitlines():
+            line = raw_line.strip()
+            if not line:
+                current_section = None
+                continue
+            low = line.lower()
+            if low.startswith(("conjecture:", "statement:", "1.")):
+                current_section = "statement"
+                after_colon = line.split(":", 1)[-1].strip() if ":" in line else line
+                statement += (" " + after_colon).strip()
+            elif low.startswith("confidence:"):
+                m = re.search(r"([0-9]+\.?[0-9]*)", line)
+                if m:
+                    val = float(m.group(1))
+                    confidence = val / 100 if val > 1.0 else val
+            elif "support" in low and ":" in low:
+                current_section = "supporting"
+            elif "contradict" in low or "challenge" in low:
+                current_section = "contradicting"
+            elif line.startswith(("-", "*", "•")):
+                item = line.lstrip("-*• ").strip()
+                if current_section == "supporting":
+                    supporting.append(item)
+                elif current_section == "contradicting":
+                    contradicting.append(item)
+            elif current_section == "statement":
+                statement += " " + line
+
+        if not statement:
+            # Use first non-empty substantial line
+            for line in response.splitlines():
+                if len(line.strip()) > 20:
+                    statement = line.strip()
+                    break
+        if not statement:
+            statement = f"Based on the evidence, optimal {question} requires multi-tiered governance."
+
+        return {
+            "statement": statement.strip()[:600],
+            "confidence": max(0.0, min(1.0, confidence)),
+            "supporting_evidence": supporting[:10],
+            "contradicting_evidence": contradicting[:10],
+            "update_reason": "LLM synthesis via llama.cpp",
+            "evidence_count": len(evidence),
+        }
+
+    def _parse_analysis(
+        self,
+        response: str,
+        topic: str,
+    ) -> Dict[str, Any]:
+        """Parse analysis response."""
+        findings = response[:500] if response else f"Analysis of {topic}."
+        recommendations: List[str] = []
+        implementation: List[str] = []
+        outcomes: List[str] = []
+        consensus = 0.75
+        current_section: Optional[str] = None
+
+        for raw_line in response.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            low = line.lower()
+            if "recommend" in low and ":" in low:
+                current_section = "rec"
+            elif "implement" in low and ":" in low:
+                current_section = "impl"
+            elif "outcome" in low and ":" in low:
+                current_section = "out"
+            elif "consensus" in low:
+                m = re.search(r"([0-9]+\.?[0-9]*)", line)
+                if m:
+                    val = float(m.group(1))
+                    consensus = val / 100 if val > 1.0 else val
+            elif line.startswith(("-", "*", "•")):
+                item = line.lstrip("-*• ").strip()
+                if current_section == "rec":
+                    recommendations.append(item)
+                elif current_section == "impl":
+                    implementation.append(item)
+                elif current_section == "out":
+                    outcomes.append(item)
+
+        return {
+            "findings": findings,
+            "consensus": max(0.0, min(1.0, consensus)),
+            "recommendations": recommendations or ["Phased implementation"],
+            "implementation": implementation or ["Pilot → evaluate → scale"],
+            "outcomes": outcomes or ["Improved governance"],
+        }
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Legacy compatibility shims
+    # ──────────────────────────────────────────────────────────────────────────
+
+    def generate_reasoning(
         self,
         context: Dict[str, Any],
         research_questions: List[str],
         principles: List[str],
+        max_tokens: int = 512,
+        domain: str = "general",
+        tier: str = "national",
+        depth: int = 0,
+        subtopic: str = "",
     ) -> str:
-        """Build reasoning prompt for LLM."""
-        return f"""You are an expert in democratic governance and political philosophy.
-
-GOVERNANCE CONTEXT:
-- Population: {context.get("population", "N/A")}
-- Diversity Index: {context.get("diversity_index", "N/A")}
-- Urban Ratio: {context.get("urban_ratio", "N/A")}
-
-RESEARCH QUESTIONS:
-{chr(10).join(f"- {q}" for q in research_questions)}
-
-CORE PRINCIPLES:
-{chr(10).join(f"- {p}" for p in principles)}
-
-Based on this context, research questions, and principles, provide comprehensive reasoning for designing a democratic governance system. Your reasoning should:
-1. Analyze the challenges posed by the context
-2. Explain how the principles address these challenges
-3. Recommend specific governance mechanisms
-4. Address potential anti-patterns
-
-Provide your reasoning in a structured format."""
-
-    def _build_conjecture_prompt(
-        self, question: str, context: Dict[str, Any], evidence: List[Dict[str, Any]]
-    ) -> str:
-        """Build conjecture formation prompt."""
-        return f"""You are forming a conjecture based on evidence.
-
-QUESTION: {question}
-
-CONTEXT:
-- Population: {context.get("population", "N/A")}
-- Diversity Index: {context.get("diversity_index", "N/A")}
-
-EVIDENCE:
-{chr(10).join(f"- {e.get('finding', 'N/A')} (confidence: {e.get('confidence', 0):.2f})" for e in evidence)}
-
-Form a conjecture that answers the question based on this evidence. Include:
-1. The conjecture statement
-2. Confidence level (0-1)
-3. Supporting evidence from the provided evidence
-4. Any contradicting evidence found"""
-
-    def _build_policy_analysis_prompt(
-        self, topic: str, research_data: Dict[str, Any]
-    ) -> str:
-        """Build policy analysis prompt."""
-        return f"""You are analyzing a policy topic for democratic decision-making.
-
-TOPIC: {topic}
-
-RESEARCH DATA:
-{self._format_research_data(research_data)}
-
-Provide analysis including:
-1. Key findings from the research
-2. Consensus levels across different perspectives
-3. Policy recommendations
-4. Implementation considerations
-5. Expected outcomes"""
-
-    def _format_research_data(self, data: Dict[str, Any]) -> str:
-        """Format research data for prompt."""
-        lines = []
-        for key, value in data.items():
-            if isinstance(value, dict):
-                lines.append(f"{key}:")
-                for subkey, subval in value.items():
-                    lines.append(f"  - {subkey}: {subval}")
-            else:
-                lines.append(f"{key}: {value}")
-        return chr(10).join(lines)
-
-    def _parse_conjecture_response(self, response: str) -> Dict[str, Any]:
-        """Parse conjecture response from LLM."""
-        # Extract structured information from LLM response
-        lines = response.strip().split("\n")
-        statement = ""
-        confidence = 0.75
-        supporting_evidence = []
-        contradicting_evidence = []
-
-        current_section = None
-        for line in lines:
-            line = line.strip()
-            if not line:
-                continue
-
-            # Look for section headers
-            if line.lower().startswith("statement:") or line.lower().startswith(
-                "conjecture:"
-            ):
-                current_section = "statement"
-                statement = line.split(":", 1)[1].strip() if ":" in line else ""
-            elif line.lower().startswith("confidence:"):
-                current_section = "confidence"
-                try:
-                    conf_str = line.split(":", 1)[1].strip()
-                    # Extract numeric value
-                    import re
-
-                    num_match = re.search(r"(\d+\.?\d*)", conf_str)
-                    if num_match:
-                        confidence = float(num_match.group(1))
-                        # Ensure it's in 0-1 range
-                        if confidence > 1.0:
-                            confidence = (
-                                confidence / 100.0 if confidence <= 100.0 else 1.0
-                            )
-                except:
-                    confidence = 0.75
-            elif line.lower().startswith(
-                "supporting evidence:"
-            ) or line.lower().startswith("supports:"):
-                current_section = "supporting"
-            elif line.lower().startswith(
-                "contradicting evidence:"
-            ) or line.lower().startswith("contradicts:"):
-                current_section = "contradicting"
-            elif (
-                line.startswith("- ") or line.startswith("* ") or line.startswith("• ")
-            ):
-                # List item
-                item = line[2:].strip()
-                if current_section == "supporting":
-                    supporting_evidence.append(item)
-                elif current_section == "contradicting":
-                    contradicting_evidence.append(item)
-            elif current_section == "statement" and not line.startswith("#"):
-                # Continue building statement
-                if statement:
-                    statement += " " + line
-                else:
-                    statement = line
-
-        # If we didn't find a clear statement, use the first substantial line
-        if not statement:
-            for line in lines:
-                if len(line.strip()) > 10 and not line.startswith("#"):
-                    statement = line.strip()
-                    break
-
-        # Default fallback
-        if not statement:
-            statement = "Based on the available evidence, a reasonable conjecture can be formed."
-
-        return {
-            "statement": statement[:500] if statement else "No conjecture formed",
-            "confidence": max(0.0, min(1.0, confidence)),  # Clamp to 0-1
-            "supporting_evidence": supporting_evidence[:10],  # Limit to 10 items
-            "contradicting_evidence": contradicting_evidence[:10],  # Limit to 10 items
-            "update_reason": "LLM reasoning via llama.cpp",
-        }
-
-    def _parse_analysis_response(self, response: str, topic: str) -> Dict[str, Any]:
-        """Parse analysis response from LLM."""
-        # Extract structured information from LLM response
-        lines = response.strip().split("\n")
-        findings = ""
-        consensus = 0.75
-        recommendations = []
-        implementation = []
-        outcomes = []
-
-        current_section = None
-        for line in lines:
-            line = line.strip()
-            if not line:
-                continue
-
-            # Look for section headers
-            if line.lower().startswith("findings:") or line.lower().startswith(
-                "key findings:"
-            ):
-                current_section = "findings"
-                findings = line.split(":", 1)[1].strip() if ":" in line else ""
-            elif line.lower().startswith("consensus:"):
-                current_section = "consensus"
-                try:
-                    conf_str = line.split(":", 1)[1].strip()
-                    # Extract numeric value
-                    import re
-
-                    num_match = re.search(r"(\d+\.?\d*)", conf_str)
-                    if num_match:
-                        consensus = float(num_match.group(1))
-                        # Ensure it's in 0-1 range
-                        if consensus > 1.0:
-                            consensus = consensus / 100.0 if consensus <= 100.0 else 1.0
-                except:
-                    consensus = 0.75
-            elif line.lower().startswith("recommendations:") or line.lower().startswith(
-                "recommend:"
-            ):
-                current_section = "recommendations"
-            elif line.lower().startswith("implementation:") or line.lower().startswith(
-                "implement:"
-            ):
-                current_section = "implementation"
-            elif line.lower().startswith("outcomes:") or line.lower().startswith(
-                "expected outcomes:"
-            ):
-                current_section = "outcomes"
-            elif (
-                line.startswith("- ") or line.startswith("* ") or line.startswith("• ")
-            ):
-                # List item
-                item = line[2:].strip()
-                if current_section == "recommendations":
-                    recommendations.append(item)
-                elif current_section == "implementation":
-                    implementation.append(item)
-                elif current_section == "outcomes":
-                    outcomes.append(item)
-            elif current_section == "findings" and not line.startswith("#"):
-                # Continue building findings
-                if findings:
-                    findings += " " + line
-                else:
-                    findings = line
-
-        # If we didn't find clear sections, use heuristics
-        if not findings:
-            # Use first substantial paragraph as findings
-            for line in lines:
-                if (
-                    len(line.strip()) > 15
-                    and not line.startswith("#")
-                    and not line.lower().startswith(
-                        ("recommend", "implement", "outcome")
-                    )
-                ):
-                    findings = line.strip()
-                    break
-
-        # Default fallbacks
-        if not findings:
-            findings = f"Analysis of {topic} based on available research data."
-        if not recommendations:
-            recommendations = [
-                "Implement policy with phased approach",
-                "Monitor outcomes and adjust as needed",
-            ]
-        if not implementation:
-            implementation = [
-                "Phase 1: Planning and stakeholder engagement",
-                "Phase 2: Pilot implementation",
-                "Phase 3: Full rollout",
-            ]
-        if not outcomes:
-            outcomes = [
-                "Improved governance",
-                "Increased citizen satisfaction",
-                "Better policy outcomes",
-            ]
-
-        return {
-            "findings": findings[:1000] if findings else "No findings",
-            "consensus": max(0.0, min(1.0, consensus)),  # Clamp to 0-1
-            "recommendations": recommendations[:10],  # Limit to 10 items
-            "implementation": implementation[:10],  # Limit to 10 items
-            "outcomes": outcomes[:10],  # Limit to 10 items
-        }
+        """Legacy shim — calls _call_llm with a concise prompt."""
+        pop = context.get("population", US_NATIONAL_POPULATION)
+        q = research_questions[0] if research_questions else "key policy considerations"
+        prompt = (
+            f"You are a {tier}-level policy expert on {domain}. "
+            f"Population: {pop:,}. "
+            + (f"Subtopic: {subtopic}. " if subtopic else "")
+            + f"Answer: {q} "
+            f"Principles: {', '.join(principles[:4])}. "
+            f"Be specific and practical."
+        )
+        return self._call_llm(
+            prompt,
+            max_tokens=max_tokens,
+            label=f"domain={domain} tier={tier} depth={depth}"
+            + (f" sub={subtopic[:30]}" if subtopic else ""),
+        )
 
     def _generate_fallback_reasoning(
-        self, context: Dict[str, Any], principles: List[str]
+        self,
+        context: Dict[str, Any],
+        principles: List[str],
     ) -> str:
-        """Generate fallback reasoning when LLM unavailable."""
-        return f"""Based on comprehensive research into historical governance models and anti-patterns, 
-this system is designed to serve ALL citizens in a virtuous society.
-
-Key Principles Applied:
-{chr(10).join(f"- {p}" for p in principles)}
-
-Context Analysis:
-- Population: {context.get("population", "N/A")} citizens
-- Diversity Index: {context.get("diversity_index", "N/A")} (high diversity requires inclusive mechanisms)
-- Urban Ratio: {context.get("urban_ratio", "N/A")}
-
-Design Rationale:
-1. Multi-tiered representation (Local → State → National) ensures geographic balance
-2. Weighted proportional representation balances majority rule with minority protection
-3. Approval voting allows expressing support for multiple options
-4. 55% approval threshold prevents tyranny of the majority
-5. Continuous feedback enables adaptation to changing needs
-6. Full transparency builds trust and prevents corruption
-
-Anti-Pattern Prevention:
-- Power concentration: Prevented through tiered representation and term limits
-- Elite capture: Prevented through campaign finance reform and transparency
-- Populist decay: Prevented through evidence-based decision-making
-- Information manipulation: Prevented through source verification and oversight"""
+        """Fallback when LLM unavailable."""
+        return (
+            f"Governance principles: {', '.join(principles[:5])}. "
+            f"Population: {context.get('population', 'N/A')}. "
+            "Multi-tiered representation ensures democratic accountability."
+        )
 
     def _form_fallback_conjecture(
-        self, question: str, evidence: List[Dict[str, Any]]
+        self,
+        question: str,
+        evidence: List[Dict[str, Any]],
     ) -> Dict[str, Any]:
-        """Form fallback conjecture when LLM unavailable."""
+        """Fallback conjecture when LLM unavailable."""
         return {
-            "statement": f"Based on available evidence for: {question}",
-            "confidence": 0.7 if evidence else 0.5,
-            "supporting_evidence": [
-                e.get("finding", "No finding") for e in evidence[:3]
-            ],
+            "statement": f"Based on evidence: {question}",
+            "confidence": 0.6 if evidence else 0.4,
+            "supporting_evidence": [e.get("finding", "")[:100] for e in evidence[:3]],
             "contradicting_evidence": [],
-            "update_reason": "Fallback reasoning",
+            "update_reason": "Fallback (LLM unavailable)",
+            "evidence_count": len(evidence),
         }
 
     def _generate_fallback_analysis(
-        self, topic: str, research_data: Dict[str, Any]
+        self,
+        topic: str,
+        research_data: Dict[str, Any],
     ) -> Dict[str, Any]:
-        """Generate fallback analysis when LLM unavailable."""
+        """Fallback analysis when LLM unavailable."""
         return {
-            "findings": f"Analysis of {topic} based on research data",
-            "consensus": 0.75,
-            "recommendations": ["Implement policy with phased approach"],
-            "implementation": [
-                "Phase 1: Planning",
-                "Phase 2: Implementation",
-                "Phase 3: Evaluation",
-            ],
-            "outcomes": ["Improved governance", "Increased citizen satisfaction"],
+            "findings": f"Analysis of {topic} based on available data.",
+            "consensus": 0.6,
+            "recommendations": ["Phased policy rollout", "Stakeholder consultation"],
+            "implementation": ["Pilot program", "Evaluation", "Scale-up"],
+            "outcomes": ["Improved outcomes", "Higher satisfaction"],
         }
