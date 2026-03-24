@@ -5,16 +5,16 @@
 # Prerequisites:
 #   uv   — https://docs.astral.sh/uv/
 #          install: curl -LsSf https://astral.sh/uv/install.sh | sh
-#   just — https://just.systems/
-#          install: sudo apt install just  OR  cargo install just
+#   just — https://just.systems/  (≥1.39 required for require(), path_exists())
+#          install: curl -LsSf https://just.systems/install.sh | sudo bash -s -- --to /usr/local/bin
 #
 # Quick reference:
-#   just              — list all recipes
+#   just              — list all recipes with descriptions
 #   just run          — full production run (all 6 domains)
-#   just demo-run     — quick smoke-test run (~30 s, economy domain only)
+#   just demo-run     — quick smoke-test (~30 s, economy domain only)
 #   just collect      — fetch Reddit + Google News data for all domains
-#   just test         — run test suite
-#   just show-config  — print active configuration and exit
+#   just test         — run the full test suite
+#   just show-config  — print the active configuration and exit
 # =============================================================================
 
 # ---------------------------------------------------------------------------
@@ -28,7 +28,7 @@ set dotenv-load
 set shell := ["bash", "-uc"]
 
 # ---------------------------------------------------------------------------
-# Variables — built-ins and / operator; backtick only for external tools
+# Variables — built-in functions only, no shell backticks
 # ---------------------------------------------------------------------------
 
 root    := justfile_directory()
@@ -38,18 +38,22 @@ scripts := root / "scripts"
 configs := root / "configs"
 output  := root / "output"
 
-# Locate uv via backtick — gives a clear path in error messages
-uv := `which uv`
+# require() aborts with a clear message if the binary is not in PATH
+uv     := require("uv")
+python := require("python3")
 
-# Config file paths resolved with the / operator (no shell needed)
-cfg_demo := configs / "demo.yaml"
-cfg_prod := configs / "production.yaml"
+# Config file paths — / operator, no shell needed
+cfg_demo    := configs / "demo.yaml"
+cfg_prod    := configs / "production.yaml"
+
+# Informational: detect whether a local .env override file exists
+has_dotenv  := if path_exists(root / ".env") == "true" { "yes (loaded)" } else { "no" }
 
 # ---------------------------------------------------------------------------
 # Default recipe — shown on bare `just`
 # ---------------------------------------------------------------------------
 
-# List all available recipes with their comments
+[doc("List all available recipes")]
 default:
     @just --list
 
@@ -57,18 +61,22 @@ default:
 # Environment setup
 # ---------------------------------------------------------------------------
 
-# Install / sync all dependencies (runtime + dev) into .venv
+[doc("Sync virtual environment from pyproject.toml via uv")]
+[group("setup")]
 sync:
     {{ uv }} sync --all-groups
 
-# Print environment info
+[doc("Show just, uv, and Python versions plus venv location")]
+[group("setup")]
 env-info: sync
     @echo "── Environment ──────────────────────────────────────"
-    @echo "just : $(just --version)"
-    @echo "uv   : $({{ uv }} --version)"
+    @echo "just   : $(just --version)"
+    @echo "uv     : $({{ uv }} --version)"
     @{{ uv }} run python --version
-    @echo "root : {{ root }}"
-    @echo "venv : {{ root }}/.venv"
+    @echo "python : {{ python }}"
+    @echo "root   : {{ root }}"
+    @echo "venv   : {{ root }}/.venv"
+    @echo "dotenv : {{ has_dotenv }}"
     @echo "─────────────────────────────────────────────────────"
 
 # ---------------------------------------------------------------------------
@@ -77,17 +85,26 @@ env-info: sync
 
 # Full production run — all 6 domains, full depth, geo fan-out enabled.
 # Pass domain names to limit scope: `just run economy healthcare`
+[doc("Full production run — all domains, full depth, geo fan-out enabled")]
+[group("run")]
 run *domains="": sync
     {{ uv }} run run_all_domains.py {{ domains }}
 
-# Quick demo run — exercises every code path in ~30 seconds.
+# Quick demo run that exercises every code path in ~30 seconds.
 # Uses configs/demo.yaml: depth=1, 1 subtopic, no geo fan-out, 256-token budgets.
-# Default domain is economy. Override: `just demo-run healthcare`
+# Default domain is economy; override with: `just demo-run healthcare`
+[doc("Demo run — shallow depth, no geo fan-out, ~30 s per domain (default: economy)")]
+[group("run")]
 demo-run *domains="economy": sync
     {{ uv }} run run_all_domains.py --config {{ cfg_demo }} {{ domains }}
 
-# Fetch Reddit opinions + Google News narratives and save to output/social_<domain>.json.
-# Runs all 6 domains by default. Pass names to limit: `just collect economy climate`
+# Collect Reddit opinions + Google News narratives for all domains (or a subset).
+# Results are written to output/social_<domain>.json.
+# Examples:
+#   just collect                   → all 6 domains
+#   just collect economy climate   → only those two
+[doc("Fetch Reddit + Google News social data → output/social_<domain>.json")]
+[group("run")]
 collect *domains="": sync
     {{ uv }} run {{ scripts / "collect_social.py" }} {{ domains }}
 
@@ -95,15 +112,18 @@ collect *domains="": sync
 # Configuration inspection
 # ---------------------------------------------------------------------------
 
-# Print the effective configuration (config.yaml + env overrides) and exit
+[doc("Print the effective configuration (config.yaml + env overrides) and exit")]
+[group("config")]
 show-config:
     {{ uv }} run run_all_domains.py --show-config
 
-# Print the demo configuration and exit
+[doc("Print the demo configuration and exit")]
+[group("config")]
 show-config-demo:
     {{ uv }} run run_all_domains.py --config {{ cfg_demo }} --show-config
 
-# Print the production configuration and exit
+[doc("Print the production configuration and exit")]
+[group("config")]
 show-config-prod:
     {{ uv }} run run_all_domains.py --config {{ cfg_prod }} --show-config
 
@@ -111,37 +131,45 @@ show-config-prod:
 # Development
 # ---------------------------------------------------------------------------
 
-# Run the full test suite with coverage (≥95% required)
+[doc("Run pytest with coverage report (≥95% required)")]
+[group("dev")]
 test *flags="": sync
     {{ uv }} run pytest --cov={{ src }} --cov-report=term-missing --cov-fail-under=95 {{ tests }} {{ flags }}
 
-# Run a single test file or test function:
+# Run a single test file or function:
 #   just test-one tests/unit/test_config.py
 #   just test-one tests/unit/test_config.py::TestDefaults::test_default_max_depth
+[doc("Run a single test file or function: `just test-one tests/unit/test_config.py`")]
+[group("dev")]
 test-one target: sync
     {{ uv }} run pytest -v {{ target }}
 
-# Run ruff linter
+[doc("Run ruff linter over src/ and tests/")]
+[group("dev")]
 lint: sync
     {{ uv }} run ruff check {{ src }} {{ tests }}
 
-# Auto-format and auto-fix lint issues
+[doc("Auto-format and auto-fix lint issues in src/ and tests/")]
+[group("dev")]
 fmt: sync
     {{ uv }} run ruff format {{ src }} {{ tests }}
     {{ uv }} run ruff check --fix {{ src }} {{ tests }}
 
-# Run mypy type checker
+[doc("Run mypy type checker over src/")]
+[group("dev")]
 typecheck: sync
     {{ uv }} run mypy {{ src }}
 
-# Run all CI checks: lint → typecheck → test
+[doc("Run all CI checks: lint → typecheck → test")]
+[group("dev")]
 check: lint typecheck test
 
 # ---------------------------------------------------------------------------
 # Maintenance
 # ---------------------------------------------------------------------------
 
-# Remove __pycache__, .pytest_cache, .ruff_cache, coverage artifacts
+[doc("Remove __pycache__, .pytest_cache, .ruff_cache, and coverage artifacts")]
+[group("maintenance")]
 clean:
     -find {{ root }} -type d -name "__pycache__" -not -path "*/.venv/*" -exec rm -rf {} +
     -rm -rf {{ root / ".pytest_cache" }}
@@ -150,13 +178,15 @@ clean:
     -rm -rf {{ root / "coverage.xml" }}
     -rm -rf {{ root / "htmlcov" }}
 
-# Remove generated output reports and social data files (keeps .gitkeep)
-[confirm]
+[doc("Remove generated output reports and social data files (keeps .gitkeep)")]
+[confirm("Delete all generated output files in output/?")]
+[group("maintenance")]
 clean-output:
     -find {{ output }} -name "*.md" -not -name ".gitkeep" -delete
     -find {{ output }} -name "*.json" -not -name ".gitkeep" -delete
 
-# Upgrade all dependencies and regenerate uv.lock
+[doc("Upgrade all dependencies and regenerate uv.lock")]
+[group("maintenance")]
 upgrade:
     {{ uv }} lock --upgrade
     {{ uv }} sync --all-groups
