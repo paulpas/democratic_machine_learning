@@ -79,10 +79,10 @@ llm:
   #   1  → fully sequential (original behaviour, safest)
   #   N  → fire N requests concurrently (set to match llama-server --parallel N)
   #
-  # Recommended: start llama-server with --parallel 4 and set this to 4.
-  # With 4 GPUs each holding the model you could try --parallel 4 (one slot per
-  # GPU) and the system will keep all four busy simultaneously.
-  parallel_workers: 1
+  # Recommended: start llama-server with --parallel N and set this to N.
+  # With 4 GPUs each holding the model try --parallel 4 (one slot per GPU).
+  # Default is 2 — a safe baseline that works with any server that has ≥2 slots.
+  parallel_workers: 2
 
   # Retry behaviour on 503 (slot busy) or timeout ---------------------------
   # Exponential backoff: wait = min(parallel_retry_max_wait,

@@ -1,0 +1,80 @@
+# ============================================================================
+# Demo Configuration — quick smoke-test (~30 seconds per domain)
+# ============================================================================
+#
+# Designed to exercise every code path (LLM call, geo fan-out disabled,
+# social collection, decision engine, trust scoring, fairness metrics)
+# without triggering hundreds of LLM calls.
+#
+# Usage:
+#   just demo-run                  # runs economy domain by default
+#   just demo-run healthcare       # specific domain
+#   python3 run_all_domains.py --config configs/demo.yaml economy
+#
+# Expected: ~6 LLM calls per domain, < 60 s on any GPU, < 5 min on CPU.
+# ============================================================================
+
+llm:
+  # Parallel slots — 2 concurrent requests keeps both slots busy during
+  # the small number of calls this config generates.
+  parallel_workers: 2
+
+  # Shallow recursion — 1 level is enough to exercise the full call chain
+  max_depth: 1
+  subtopics_per_level: 1
+
+  # Small token budgets — enough for coherent but brief responses
+  max_tokens_default: 256
+  max_tokens_domain_initial: 256
+  max_tokens_subtopic: 256
+  max_tokens_elaboration: 256
+  max_tokens_conjecture: 256
+  max_tokens_policy_analysis: 256
+  max_tokens_synthesis: 128
+  max_tokens_legacy: 256
+
+  # Shorter timeout is fine for small token budgets
+  timeout_seconds: 120
+
+  # Retry once on transient errors, don't wait long
+  parallel_retry_base_wait: 0.5
+  parallel_retry_max_wait: 5.0
+  parallel_max_retries: 1
+
+
+voter_pool:
+  # Match llm.parallel_workers
+  prod_llm_max_depth: 1
+  prod_llm_subtopics_per_level: 1
+
+  # Disable geographic fan-out — this eliminates the 50-state × 2 call loop
+  # (100 calls per subtopic per level) and keeps the run to ~6 calls total.
+  prod_geo_fan_out: false
+
+  # Fewer experts to register — speeds up voter pool construction
+  experts_per_domain:
+    economy: 3
+    healthcare: 3
+    education: 3
+    immigration: 3
+    climate: 3
+    infrastructure: 3
+
+
+decision:
+  # Shallower analysis inside DecisionEngine._analyze_policy_context()
+  policy_analysis_max_depth: 1
+  policy_analysis_subtopics: 1
+
+  # Feed fewer social items to the LLM prompt
+  llm_context_max_opinions: 2
+  llm_context_max_narratives: 1
+
+
+social:
+  # Long cache TTL so repeated demo runs don't re-fetch social data
+  cache_hours: 168
+
+  # Fetch just enough to exercise the code path
+  max_opinions: 3
+  max_narratives: 3

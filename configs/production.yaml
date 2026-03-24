@@ -1,0 +1,76 @@
+# ============================================================================
+# Production Configuration — full-depth analysis across all 50 states
+# ============================================================================
+#
+# This mirrors and documents the values already in config.yaml (the root
+# default config).  Use this file explicitly when you want to be certain
+# you are running full production settings regardless of any local config.yaml
+# modifications.
+#
+# Usage:
+#   just run                                    # uses root config.yaml
+#   python3 run_all_domains.py --config configs/production.yaml
+#
+# Expected: ~700 LLM calls per domain, 2–4 h on CPU, 20–40 min on GPU.
+# ============================================================================
+
+llm:
+  endpoint: "http://localhost:8080"
+  model: "llama.cpp-model"
+  timeout_seconds: 900
+  connect_test_timeout: 30
+
+  # 2 parallel workers by default — set higher to match llama-server --parallel N
+  parallel_workers: 2
+
+  max_depth: 3
+  subtopics_per_level: 2
+
+  max_tokens_default: 8192
+  max_tokens_domain_initial: 8192
+  max_tokens_subtopic: 8192
+  max_tokens_elaboration: 8192
+  max_tokens_conjecture: 8192
+  max_tokens_policy_analysis: 8192
+  max_tokens_synthesis: 8192
+  max_tokens_legacy: 8192
+
+  temperature_default: 0.7
+  temperature_conjecture: 0.4
+
+  preview_chars: 120
+  context_snippet_chars: 300
+  prior_snippet_chars: 400
+  conjecture_evidence_limit: 15
+  analysis_context_limit: 5
+  synthesis_evidence_limit: 20
+
+  parallel_retry_base_wait: 1.0
+  parallel_retry_max_wait: 30.0
+  parallel_max_retries: 3
+
+  log_dir: ""
+  log_max_bytes: 52428800
+  log_backup_count: 5
+
+
+voter_pool:
+  rng_seed: 42
+  prod_llm_max_depth: 2
+  prod_llm_subtopics_per_level: 3
+  prod_geo_fan_out: true          # full 50-state + county fan-out
+
+
+decision:
+  fairness_threshold: 0.7
+  policy_analysis_max_depth: 3
+  policy_analysis_subtopics: 5
+  fairness_check_window: 10
+  llm_context_max_opinions: 5
+  llm_context_max_narratives: 3
+
+
+social:
+  cache_hours: 6
+  max_opinions: 45
+  max_narratives: 42

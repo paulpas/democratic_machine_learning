@@ -64,6 +64,11 @@ local_settings.py
 # Keep the directory placeholder (.gitkeep) but ignore all log content.
 logs/*.log
 logs/*.log.[0-9]*
+
+# Generated output files (reports and social data) — not source artifacts.
+# Keep .gitkeep so the output/ directory exists on fresh clones.
+output/social_*.json
+output/session_summary.json
 db.sqlite3
 db.sqlite3-journal
 
@@ -149,6 +154,11 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+# uv
+# uv.lock is intentionally committed — it guarantees reproducible installs.
+# The virtual environment itself is not committed.
+# (uv.lock line intentionally absent — we DO commit it)
 
 # Spyder project settings
 .spyderproject

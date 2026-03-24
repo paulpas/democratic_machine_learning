@@ -104,7 +104,8 @@ class LLMConfig:
     # Set to match the --parallel / -np N value you passed to llama-server.
     # 0 = auto-probe the server for its slot count (reads /props endpoint).
     # 1 = fully sequential (original behaviour).
-    parallel_workers: int = 1
+    # 2 = default — safe baseline for any server with ≥2 parallel slots.
+    parallel_workers: int = 2
     # When a 503 / slot-full error is returned, wait this many seconds then retry
     # (exponential backoff up to parallel_retry_max_wait).
     parallel_retry_base_wait: float = 1.0
@@ -202,9 +203,7 @@ class SocialConfig:
     """Social narrative collector settings."""
 
     cache_hours: int = 6
-    reddit_user_agent: str = (
-        "python:democratic_machine_learning:v1.0 (by /u/democratic_ml_bot)"
-    )
+    reddit_user_agent: str = "python:democratic_machine_learning:v1.0 (by /u/democratic_ml_bot)"
     reddit_timeout: int = 15
     reddit_rate_limit_sleep: float = 1.0
     reddit_retry_sleep: float = 5.0
@@ -321,8 +320,7 @@ def _load_yaml(path: Path) -> Dict[str, Any]:
         import yaml  # type: ignore
     except ImportError:
         logger.warning(
-            "PyYAML is not installed; cannot load %s.  "
-            "Install it with: pip install pyyaml",
+            "PyYAML is not installed; cannot load %s.  Install it with: pip install pyyaml",
             path,
         )
         return {}
@@ -331,9 +329,7 @@ def _load_yaml(path: Path) -> Dict[str, Any]:
         with path.open(encoding="utf-8") as fh:
             data = yaml.safe_load(fh) or {}
         if not isinstance(data, dict):
-            logger.warning(
-                "Config file %s did not contain a YAML mapping; ignored.", path
-            )
+            logger.warning("Config file %s did not contain a YAML mapping; ignored.", path)
             return {}
         return data
     except Exception as exc:
@@ -433,9 +429,7 @@ def _apply_raw_dict(cfg: AppConfig, raw: Dict[str, Any]) -> None:
             logger.debug("Config: unknown section '%s' — skipped.", section_name)
             continue
         if not isinstance(section_data, dict):
-            logger.debug(
-                "Config: section '%s' is not a mapping — skipped.", section_name
-            )
+            logger.debug("Config: section '%s' is not a mapping — skipped.", section_name)
             continue
         _apply_section_dict(section_map[section_name], section_data)
 
