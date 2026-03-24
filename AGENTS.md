@@ -3,26 +3,40 @@
 ## Build/Lint/Test Commands
 
 ```bash
-# Run all tests with coverage
-pytest --cov=. --cov-report=term-missing --cov-report=xml --cov-fail-under=95 tests/
+# ── Preferred: use just (manages uv + venv automatically) ────────────────────
+just sync          # install / update .venv
+just test          # full test suite with ≥95% coverage
+just test-one tests/unit/test_config.py  # single file
+just lint          # ruff check
+just fmt           # ruff format + fix
+just typecheck     # mypy
+just check         # lint + typecheck + test
 
-# Run a single test file
-pytest tests/test_module.py
+# ── Direct uv commands (if just is not available) ────────────────────────────
+uv run pytest --cov=src --cov-report=term-missing --cov-fail-under=95 tests/
+uv run pytest tests/unit/test_config.py
+uv run pytest tests/unit/test_config.py::TestDefaults::test_default_max_depth
+uv run ruff check src/ tests/
+uv run mypy src/
+uv run ruff format src/ tests/
+```
 
-# Run a single test
-pytest tests/test_module.py::test_function_name
+## Output Location
 
-# Lint with ruff
-ruff check src/ tests/
+All generated thesis documents and analysis artifacts are written to **`output/`**:
 
-# Type check
-mypy src/ tests/
+```
+output/us_<domain>_governance_model.md   ← final thesis per domain
+output/session_summary.json              ← run metadata (tokens, calls, outcomes)
+output/social_<domain>.json              ← collected Reddit + News data
+```
 
-# Format code
-ruff format src/ tests/
+These files are **not committed** (generated artifacts). Reproduce them with:
 
-# All checks
-make check  # or make test
+```bash
+just run          # full production run
+just demo-run     # quick ~30 s smoke-test
+just collect      # social data only
 ```
 
 ## Code Style Guidelines
@@ -238,33 +252,45 @@ Enhanced the Democratic Machine Learning System with LLM integration using llama
 - `output/us_climate_governance_model.md`
 - `output/us_infrastructure_governance_model.md`
 
-### 🔧 **Usage:**
+### Usage
+
 ```bash
-chmod +x run_all_domains_simple.sh
-./run_all_domains_simple.sh
+just run           # full production run — generates output/us_<domain>_governance_model.md
+just demo-run      # quick smoke-test (~30 s, economy domain, no geo fan-out)
+just collect       # collect Reddit + News data → output/social_<domain>.json
 ```
 
-Each markdown report contains:
+Each thesis document (`output/us_<domain>_governance_model.md`) contains:
 - Executive summary with key decision metrics
-- Policy overview and LLM-enhanced context analysis
-- Democratic decision process details (trust-weighted voting)
+- Social data summary (Reddit opinions + media narratives)
+- **Final Conjecture** — the LLM-synthesised policy thesis with confidence score
+- Contradicting evidence surfaced during recursive investigation
+- Top-ranked policy solutions (scored by tier weight × quality)
+- Democratic decision details (trust-weighted voting)
 - Fairness constraint assessments
 - Anti-pattern detection results
-- Technical details including LLM endpoint and social data sources
+- Technical metadata (LLM calls, tokens, config file, timestamps)
 
-### 🎯 **Core Principles Maintained:**
-1. Adaptive Weighting - Voter weights based on expertise, proximity, participation
-2. Multi-Tiered Representation - County → State → National feedback loop
-3. Fairness Constraints - Minimum 30% group satisfaction, max 40% disparity
-4. Feedback Loop - Continuous learning and weight adjustment
-5. Security First - Malicious influence detection and mitigation
-6. Environmental Context - Geography and climate as decision factors
-7. **NEW**: Real-World Data Integration - Social narratives and media opinions from free internet sources
+## Current System State (for new sessions)
 
-## 🔄 **RESUMING WORK:**
-To continue enhancement work in a new session:
-1. Social narrative collection is working and integrated
-2. LLM logging is active and visible in stdout
-3. Core democratic algorithms remain intact
-4. All output files are in the `output/` directory
-5. Use `run_all_domains_simple.sh` to regenerate reports
+The system is fully operational. Key facts:
+
+| Component | Status |
+|-----------|--------|
+| Config system | `src/config.py` — YAML + env vars + defaults, 9 sections, ~90 params |
+| LLM client | `src/llm/integration.py` — parallel via ThreadPoolExecutor + Semaphore |
+| Social collector | `src/data/social_narrative_collector.py` — Reddit + Google News, thread-safe cache |
+| Decision engine | `src/core/decision_engine.py` — trust-weighted voting, anti-pattern detection |
+| Test suite | 129 tests passing, ≥95% coverage |
+| just recipes | `justfile` — run, demo-run, collect, test, lint, fmt, typecheck, check |
+| uv project | `pyproject.toml` + `uv.lock` — reproducible 39-package environment |
+| Output | `output/us_<domain>_governance_model.md` per domain (not committed) |
+
+**Default parallel_workers: 2** — set `llm.parallel_workers` to match `--parallel N` on llama-server.
+
+**To resume work in a new session:**
+1. Read `ARCHITECTURE.md` for system overview and output location
+2. Read `CONFIG.md` for all configurable parameters
+3. Run `just env-info` to verify the environment
+4. Run `just demo-run` to smoke-test the full pipeline
+5. Run `just run` for full production analysis

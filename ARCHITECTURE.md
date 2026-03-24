@@ -2,22 +2,53 @@
 
 ## Overview
 
-This system implements a multi-tiered democratic decision-making algorithm that scales with society and adapts to individual and community needs. It combines traditional democratic principles with machine learning to create a self-balancing, fair decision-making system.
+This system implements a multi-tiered democratic decision-making algorithm that scales
+with society and adapts to individual and community needs. It combines traditional
+democratic principles with LLM-augmented machine learning to produce **final thesis
+documents** — structured policy governance reports — for each of six US policy domains.
 
-### Recent Enhancements
+---
 
-#### LLM Integration (llama.cpp)
-- **Intelligent Policy Analysis**: Uses LLM to generate reasoning, form conjectures, and analyze policies
-- **Real-time Context**: LLM processes social narratives and research data for enriched decision-making
-- **Fallback Mechanisms**: Gracefully degrades to rule-based reasoning when LLM unavailable
-- **Endpoint**: http://localhost:8080 (configurable via `LLAMA_CPP_ENDPOINT`)
+## Output: Where the Thesis Documents Live
 
-#### Real-World Social Data Collection
-- **Reddit Integration**: Collects public opinions from Reddit JSON API (free, no API keys)
-- **Google News RSS**: Gathers media narratives and news perspectives (free, no API keys)
-- **Sentiment Analysis**: Automatically categorizes perspectives (supportive, critical, neutral)
-- **Credibility Scoring**: Assesses source reliability for different media outlets
-- **Cache System**: 6-hour cache reduces API calls and improves performance
+All generated artifacts are written to the **`output/`** directory at the repository root.
+This directory is the primary research destination — it is where completed analysis,
+conjectures, and policy recommendations accumulate after each run.
+
+```
+output/
+├── us_economy_governance_model.md        ← thesis: Economy
+├── us_healthcare_governance_model.md     ← thesis: Healthcare
+├── us_education_governance_model.md      ← thesis: Education
+├── us_immigration_governance_model.md    ← thesis: Immigration
+├── us_climate_governance_model.md        ← thesis: Climate
+├── us_infrastructure_governance_model.md ← thesis: Infrastructure
+├── governance_model_us_national.md       ← national-level summary
+├── session_summary.json                  ← machine-readable run metadata
+└── social_<domain>.json                  ← raw Reddit + News social data
+```
+
+Each `us_<domain>_governance_model.md` is structured as:
+
+| Section | Contents |
+|---------|---------|
+| Executive Summary | Decision outcome, confidence, vote tally, LLM stats |
+| Social Data | Reddit/News opinion counts and sentiment averages |
+| **Final Conjecture** | **LLM-synthesised policy thesis with confidence score** |
+| Contradicting Evidence | Counter-arguments surfaced during recursive investigation |
+| Top Ranked Solutions | Policy recommendations ranked by tier weight × quality score |
+| Democratic Decision | Full trust-weighted vote breakdown |
+| Fairness Assessment | Proportional representation and disparity checks |
+| Anti-Pattern Analysis | Detection results for 15+ governance failure patterns |
+| Technical Metadata | Timestamps, LLM calls, tokens, config file used |
+
+The thesis documents are **not committed to git** (generated artifacts). Run `just run`
+or `just demo-run` to produce them locally. `just collect` populates the social JSON
+files separately and is a prerequisite for the richest LLM context.
+
+---
+
+## System Components
 
 ### Core Principles
 

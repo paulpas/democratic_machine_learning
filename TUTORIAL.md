@@ -1,6 +1,51 @@
 # Tutorial: Using the Democratic Machine Learning System
 
-## Quick Start
+## Quick Start — just (recommended)
+
+The fastest way to use the system is through the `just` recipes, which handle
+dependency management via `uv` automatically.
+
+```bash
+# Install dependencies once
+just sync
+
+# Full production run — all 6 domains
+just run
+
+# Quick demo (~30 s per domain, exercises every code path)
+just demo-run
+
+# Collect social data only (Reddit + Google News)
+just collect
+
+# Inspect what configuration will be used
+just show-config
+just show-config-demo
+```
+
+### Where output goes
+
+All results — thesis documents, vote records, and social data — are written to the
+**`output/`** directory:
+
+```
+output/us_economy_governance_model.md        ← final thesis
+output/us_healthcare_governance_model.md
+output/us_education_governance_model.md
+output/us_immigration_governance_model.md
+output/us_climate_governance_model.md
+output/us_infrastructure_governance_model.md
+output/session_summary.json                  ← machine-readable summary
+output/social_<domain>.json                  ← collected social narratives
+```
+
+Each thesis document contains the **Final Conjecture** — the LLM-synthesised policy
+statement with confidence score — along with ranked solutions, vote breakdown, fairness
+assessment, and anti-pattern detection results. This is the primary research output.
+
+---
+
+## Quick Start — Python API
 
 ### Basic Decision Making
 

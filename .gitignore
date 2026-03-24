@@ -67,8 +67,14 @@ logs/*.log.[0-9]*
 
 # Generated output files (reports and social data) — not source artifacts.
 # Keep .gitkeep so the output/ directory exists on fresh clones.
+# Regenerate with: just run / just demo-run / just collect
+output/us_*_governance_model.md
+output/governance_model_*.md
+output/governance_model_*.json
 output/social_*.json
 output/session_summary.json
+output/deep_research_*.json
+output/logs/
 db.sqlite3
 db.sqlite3-journal
 

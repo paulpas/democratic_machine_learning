@@ -5,6 +5,30 @@ System, including its default value, valid range, runtime effect, and performanc
 
 ---
 
+## Where Output Lives
+
+Configuration affects **where** and **how much** content the system generates. All
+output artifacts are written to the **`output/`** directory:
+
+```
+output/us_<domain>_governance_model.md   ← final thesis document per domain
+output/session_summary.json              ← run metadata (tokens, calls, timing)
+output/social_<domain>.json              ← collected Reddit + News social data
+```
+
+The thesis documents are the primary research output. The configuration parameters
+in this file control their depth, quality, and the computational resources consumed
+to produce them. The most impactful settings are:
+
+| Setting | Location | Effect on output |
+|---------|----------|-----------------|
+| `voter_pool.prod_llm_max_depth` | `config.yaml` | Recursion depth — higher = richer thesis |
+| `voter_pool.prod_geo_fan_out` | `config.yaml` | Include all 50 states in analysis |
+| `llm.max_tokens_*` | `config.yaml` | Response length — higher = more detailed sections |
+| `llm.parallel_workers` | `config.yaml` | Concurrent requests — higher = faster runtime |
+
+---
+
 ## Table of Contents
 
 1. [How Configuration Works](#how-configuration-works)
