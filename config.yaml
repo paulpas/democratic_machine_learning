@@ -258,3 +258,39 @@ logging:
   verbose_log_dir: "output/logs"
   verbose_log_prefix: "chain_of_reasoning"
   show_locals_in_tracebacks: false
+
+
+# ----------------------------------------------------------------------------
+# Web Search (Playwright-based with JavaScript rendering)
+# ----------------------------------------------------------------------------
+web_search:
+  enabled: true                       # Enable web search for real-time information
+  cache_hours: 6                      # Cache TTL in hours (avoid redundant searches)
+  search_timeout: 30                  # Timeout per search in seconds
+
+  # Primary search engine
+  primary_engine: "duckduckgo"        # 'duckduckgo' or 'google' (no API keys needed)
+  max_results_per_search: 10          # Raw results to fetch per query
+  max_results_in_prompt: 5            # Results to feed to LLM context
+  max_snippet_length: 300             # Max characters per snippet
+
+  # Geographic fan-out search
+  search_on_fanout: true              # Enable searches at state/county levels
+
+  # JavaScript rendering settings (for dynamic content)
+  use_javascript: true                # Enable Playwright for modern sites
+  browser_type: "chromium"            # 'chromium', 'firefox', or 'webkit'
+  viewport_width: 1920                # Browser viewport width
+  viewport_height: 1080               # Browser viewport height
+  wait_for_network_idle: 2.0          # Seconds to wait for network to be idle
+  scroll_delay: 0.5                   # Delay between scroll actions (infinite scroll)
+  max_scroll_attempts: 3              # Max scroll attempts for infinite scroll pages
+
+  # Fallback methods (if JavaScript fails)
+  fallback_engines: ["duckduckgo", "google"]
+  use_cache_only: false               # If true, only use cached results (no live searches)
+
+  # Search query augmentation
+  add_current_date: true              # Append current date to queries
+  add_location_context: true          # Add US location context
+  location_bias: "United States"      # Geographic bias for results

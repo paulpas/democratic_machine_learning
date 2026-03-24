@@ -2,9 +2,10 @@
 
 A production-grade AI-augmented democratic governance framework for the United States.
 It simulates multi-tiered decision-making (county → state → national), applies adaptive
-trust-weighted voting, collects live social data from Reddit and Google News, runs deep
-recursive policy analysis through a local LLM (llama.cpp), and produces final governance
-**thesis documents** across six major policy domains.
+trust-weighted voting, collects live social data from Reddit and Google News, performs
+real-time web search for up-to-date information, runs deep recursive policy analysis
+through a local LLM (llama.cpp), and produces final governance **thesis documents**
+across six major policy domains.
 
 ---
 
@@ -29,15 +30,17 @@ recursive policy analysis through a local LLM (llama.cpp), and produces final go
 For each of six US policy domains — **economy, healthcare, education, immigration, climate,
 infrastructure** — the system:
 
-1. **Collects real social data** — Reddit opinions and Google News narratives via free APIs
-2. **Builds a synthetic voter pool** — domain experts, state delegates, county delegates,
+1. **Collects real-time web information** — Uses DuckDuckGo API with optional Playwright
+   JavaScript rendering for up-to-date factual information (no API keys required)
+2. **Collects real social data** — Reddit opinions and Google News narratives via free APIs
+3. **Builds a synthetic voter pool** — domain experts, state delegates, county delegates,
    and the general public with trust-weighted preferences
-3. **Runs a deep recursive LLM investigation** — the LLM fans out from a national overview
+4. **Runs a deep recursive LLM investigation** — the LLM fans out from a national overview
    through all 50 states and representative counties at configurable depth, elaborating on
    each finding and synthesising evidence into a final conjecture
-4. **Makes a democratic decision** — trust-weighted voting with fairness constraints,
+5. **Makes a democratic decision** — trust-weighted voting with fairness constraints,
    anti-pattern detection, and feedback-loop adaptation
-5. **Writes a thesis document** — a structured markdown report containing the final
+6. **Writes a thesis document** — a structured markdown report containing the final
    conjecture, confidence score, top-ranked policy solutions, and all supporting evidence
 
 ---
@@ -242,9 +245,15 @@ llm:
   timeout_seconds: 900
 
 voter_pool:
-  prod_llm_max_depth: 2        # recursion depth — biggest runtime multiplier
-  prod_llm_subtopics_per_level: 3
-  prod_geo_fan_out: true       # include all 50 states + representative counties
+   prod_llm_max_depth: 2        # recursion depth — biggest runtime multiplier
+   prod_llm_subtopics_per_level: 3
+   prod_geo_fan_out: true       # include all 50 states + representative counties
+
+web_search:
+   enabled: true                # Enable web search for real-time information
+   primary_engine: "duckduckgo" # 'duckduckgo' or 'google' (no API keys)
+   use_javascript: true         # Playwright for dynamic content
+   search_on_fanout: true       # Enable searches at state/county levels
 ```
 
 **Pre-built config files:**
@@ -321,10 +330,11 @@ democratic_machine_learning/
 │   │   ├── feedback_loop.py    # Self-balancing feedback mechanism
 │   │   └── policy_cell.py
 │   ├── llm/
-│   │   └── integration.py      # LLM client — deep recursive investigation
-│   │                           # parallel via ThreadPoolExecutor + Semaphore
+│   │   ├── integration.py      # LLM client — deep recursive investigation
+│   │   │                       # parallel via ThreadPoolExecutor + Semaphore
+│   │   └── web_search.py       # Web search with DuckDuckGo API + Playwright
 │   ├── data/
-│   │   └── social_narrative_collector.py  # Reddit + Google News, thread-safe
+│   │   ├── social_narrative_collector.py  # Reddit + Google News, thread-safe
 │   ├── models/
 │   │   ├── voter.py            # Voter + VoterType
 │   │   ├── policy.py           # Policy + PolicyDomain

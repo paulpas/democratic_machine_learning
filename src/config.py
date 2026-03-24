@@ -37,7 +37,7 @@ import os
 import logging
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -229,6 +229,38 @@ class SocialConfig:
 
 
 @dataclass
+class WebSearchConfig:
+    """Web search settings for real-time information retrieval."""
+
+    enabled: bool = True
+    cache_hours: int = 6
+    search_timeout: int = 30
+    primary_engine: str = "duckduckgo"  # 'duckduckgo' or 'google'
+    max_results_per_search: int = 10
+    max_results_in_prompt: int = 5
+    max_snippet_length: int = 300
+    search_on_fanout: bool = True  # Enable searches at state/county levels
+
+    # JavaScript rendering settings for modern websites
+    use_javascript: bool = True  # Enable JavaScript rendering for dynamic content
+    browser_type: str = "chromium"  # 'chromium', 'firefox', or 'webkit'
+    viewport_width: int = 1920
+    viewport_height: int = 1080
+    wait_for_network_idle: float = 2.0  # seconds to wait for network to be idle
+    scroll_delay: float = 0.5  # delay between scroll actions for infinite scroll
+    max_scroll_attempts: int = 3  # max scroll attempts for infinite scroll
+
+    # Fallback search methods (if JavaScript fails or unavailable)
+    fallback_engines: List[str] = field(default_factory=lambda: ["duckduckgo", "google"])
+    use_cache_only: bool = False  # If True, only use cached results (no live searches)
+
+    # Search query augmentation
+    add_current_date: bool = True  # Automatically append current date to queries
+    add_location_context: bool = True  # Add US location context to queries
+    location_bias: str = "United States"  # Geographic bias for search results
+
+
+@dataclass
 class VoterPoolConfig:
     """Synthetic voter-pool generation parameters (run_all_domains.py)."""
 
@@ -305,6 +337,7 @@ class AppConfig:
     trust: TrustConfig = field(default_factory=TrustConfig)
     fairness: FairnessConfig = field(default_factory=FairnessConfig)
     social: SocialConfig = field(default_factory=SocialConfig)
+    web_search: WebSearchConfig = field(default_factory=WebSearchConfig)
     voter_pool: VoterPoolConfig = field(default_factory=VoterPoolConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
 
@@ -420,6 +453,7 @@ def _apply_raw_dict(cfg: AppConfig, raw: Dict[str, Any]) -> None:
         "trust": cfg.trust,
         "fairness": cfg.fairness,
         "social": cfg.social,
+        "web_search": cfg.web_search,
         "voter_pool": cfg.voter_pool,
         "logging": cfg.logging,
     }

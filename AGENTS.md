@@ -29,6 +29,8 @@ All generated thesis documents and analysis artifacts are written to **`output/`
 output/us_<domain>_governance_model.md   ← final thesis per domain
 output/session_summary.json              ← run metadata (tokens, calls, outcomes)
 output/social_<domain>.json              ← collected Reddit + News data
+output/logs/                             ← LLM call audit logs
+cache/web_search/                        ← cached web search results
 ```
 
 These files are **not committed** (generated artifacts). Reproduce them with:

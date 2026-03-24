@@ -1188,6 +1188,195 @@ sentiment = normalized_score × reddit_sentiment_score_weight
 
 ---
 
+## Section: `web_search`
+
+Controls the `WebSearcher` — real-time web search with DuckDuckGo API and optional Playwright
+JavaScript rendering.
+
+Source: `src/config.py::WebSearchConfig` — consumed by `src/llm/web_search.py`
+
+### Basic Settings
+
+#### `web_search.enabled`
+
+| | |
+|---|---|
+| **Default** | `true` |
+| **Type** | boolean |
+| **Env var** | `DML_WEB_SEARCH__ENABLED` |
+| **Effect** | Enable/disable web search for real-time factual information during LLM calls. When `true`, the system searches the web for up-to-date information and prepends results to prompts. |
+| **Performance impact** | Web search adds 2–8 seconds per query. Disable to use only cached social data and heuristic reasoning. |
+
+#### `web_search.primary_engine`
+
+| | |
+|---|---|
+| **Default** | `"duckduckgo"` |
+| **Type** | string (`"duckduckgo"` or `"google"`) |
+| **Env var** | `DML_WEB_SEARCH__PRIMARY_ENGINE` |
+| **Effect** | Primary search engine to use. DuckDuckGo provides JSON API without API keys. Google requires JavaScript rendering for results. |
+| **Notes** | DuckDuckGo API is faster and more reliable. Google requires Playwright for scraping. |
+
+#### `web_search.max_results_in_prompt`
+
+| | |
+|---|---|
+| **Default** | `5` |
+| **Type** | int [1, 20] |
+| **Env var** | `DML_WEB_SEARCH__MAX_RESULTS_IN_PROMPT` |
+| **Effect** | Maximum number of search results to include in LLM prompts. More results provide more context but increase token usage. |
+| **Performance impact** | Each result adds 100–300 tokens to prompts. |
+
+#### `web_search.max_snippet_length`
+
+| | |
+|---|---|
+| **Default** | `300` |
+| **Type** | int |
+| **Env var** | `DML_WEB_SEARCH__MAX_SNIPPET_LENGTH` |
+| **Effect** | Maximum characters per snippet included in prompts. Longer snippets provide more context but increase token usage. |
+| **Performance impact** | Each character adds ~4 tokens. |
+
+#### `web_search.max_results_per_search`
+
+| | |
+|---|---|
+| **Default** | `10` |
+| **Type** | int |
+| **Env var** | `DML_WEB_SEARCH__MAX_RESULTS_PER_SEARCH` |
+| **Effect** | Maximum results to fetch from a single search. Used by fallback mechanisms. |
+
+---
+
+### JavaScript Rendering
+
+#### `web_search.use_javascript`
+
+| | |
+|---|---|
+| **Default** | `false` |
+| **Type** | boolean |
+| **Env var** | `DML_WEB_SEARCH__USE_JAVASCRIPT` |
+| **Effect** | Enable Playwright for JavaScript rendering when DuckDuckGo API returns no results. |
+| **Notes** | Requires `playwright` package and `playwright install chromium`. Adds 5–15 seconds per search. |
+
+#### `web_search.browser_type`
+
+| | |
+|---|---|
+| **Default** | `"chromium"` |
+| **Type** | string (`"chromium"`, `"firefox"`, or `"webkit"`) |
+| **Env var** | `DML_WEB_SEARCH__BROWSER_TYPE` |
+| **Effect** | Browser type for Playwright rendering. Chromium is fastest and most compatible. |
+| **Notes** | Firefox and WebKit are alternatives if Chromium fails. |
+
+#### `web_search.viewport_width` / `web_search.viewport_height`
+
+| | |
+|---|---|
+| **Default** | `1920` / `1080` |
+| **Type** | int |
+| **Env var** | `DML_WEB_SEARCH__VIEWPORT_WIDTH` / `DML_WEB_SEARCH__VIEWPORT_HEIGHT` |
+| **Effect** | Browser viewport dimensions for JavaScript rendering. |
+| **Notes** | Some sites serve different content at different resolutions. |
+
+---
+
+### Network and Loading
+
+#### `web_search.wait_for_network_idle`
+
+| | |
+|---|---|
+| **Default** | `2.0` |
+| **Type** | float |
+| **Env var** | `DML_WEB_SEARCH__WAIT_FOR_NETWORK_IDLE` |
+| **Effect** | Seconds to wait for network to become idle before extracting content. |
+| **Notes** | Increase for slow-loading sites. Set to `0` to skip. |
+
+#### `web_search.max_scroll_attempts`
+
+| | |
+|---|---|
+| **Default** | `3` |
+| **Type** | int |
+| **Env var** | `DML_WEB_SEARCH__MAX_SCROLL_ATTEMPTS` |
+| **Effect** | Maximum infinite scroll attempts for dynamic content. |
+| **Notes** | Set to `0` to disable infinite scroll. |
+
+#### `web_search.scroll_delay`
+
+| | |
+|---|---|
+| **Default** | `1.0` |
+| **Type** | float |
+| **Env var** | `DML_WEB_SEARCH__SCROLL_DELAY` |
+| **Effect** | Seconds between scroll attempts for dynamic content loading. |
+
+---
+
+### Caching
+
+#### `web_search.cache_hours`
+
+| | |
+|---|---|
+| **Default** | `24` |
+| **Type** | int [0, 168] |
+| **Env var** | `DML_WEB_SEARCH__CACHE_HOURS` |
+| **Effect** | Cache search results for this many hours. Set to `0` to disable caching (always search fresh). Set to `168` (one week) for offline/development mode. |
+| **Performance impact** | Cache hits eliminate search delay entirely. |
+
+---
+
+### Geographic Fan-out
+
+#### `web_search.search_on_fanout`
+
+| | |
+|---|---|
+| **Default** | `true` |
+| **Type** | boolean |
+| **Env var** | `DML_WEB_SEARCH__SEARCH_ON_FANOUT` |
+| **Effect** | Enable web search during state/county geographic fan-out. When `true`, each geographic tier investigates with real-time web search in addition to national LLM calls. |
+| **Performance impact** | Adds `50 × depth` state searches and `10 × depth × 50` county searches. Consider disabling for demo runs. |
+
+---
+
+### Query Augmentation
+
+#### `web_search.add_current_date`
+
+| | |
+|---|---|
+| **Default** | `true` |
+| **Type** | boolean |
+| **Env var** | `DML_WEB_SEARCH__ADD_CURRENT_DATE` |
+| **Effect** | Append current date to search queries for time-sensitive results. |
+| **Notes** | Helps get current information for queries like "economy" → "economy March 24, 2026". |
+
+#### `web_search.add_location_context`
+
+| | |
+|---|---|
+| **Default** | `true` |
+| **Type** | boolean |
+| **Env var** | `DML_WEB_SEARCH__ADD_LOCATION_CONTEXT` |
+| **Effect** | Append location bias (from `location_bias`) to search queries for geographic relevance. |
+| **Notes** | Set `web_search.location_bias` to your region (e.g., `"United States"`). |
+
+#### `web_search.location_bias`
+
+| | |
+|---|---|
+| **Default** | `"United States"` |
+| **Type** | string |
+| **Env var** | `DML_WEB_SEARCH__LOCATION_BIAS` |
+| **Effect** | Geographic context appended to queries when `add_location_context` is `true`. |
+| **Notes** | Adjust for other regions (e.g., `"European Union"`, `"Worldwide"`). |
+
+---
+
 ## Section: `voter_pool`
 
 Controls the synthetic voter pool constructed by `run_all_domains.py`.

@@ -8,6 +8,7 @@ dependencies = [
     "beautifulsoup4>=4.12",
     "lxml>=5.0",
     "numpy>=1.26",
+    "playwright>=1.40",
     "pyyaml>=6.0",
     "requests>=2.32",
     "rich>=13.0",

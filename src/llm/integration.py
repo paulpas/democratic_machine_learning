@@ -41,9 +41,7 @@ def _get_log_dir() -> Path:
     cfg_dir = get_config().llm.log_dir
     if cfg_dir:
         return Path(cfg_dir)
-    return Path(
-        os.environ.get("LLM_LOG_DIR", Path(__file__).resolve().parents[2] / "logs")
-    )
+    return Path(os.environ.get("LLM_LOG_DIR", Path(__file__).resolve().parents[2] / "logs"))
 
 
 _LOG_DIR = _get_log_dir()
@@ -379,9 +377,7 @@ class LLMClient:
             model: Model name label.  Defaults to ``config.yaml`` ``llm.model``.
         """
         _cfg = get_config().llm
-        self.endpoint = (
-            endpoint or os.environ.get("LLAMA_CPP_ENDPOINT", "") or _cfg.endpoint
-        )
+        self.endpoint = endpoint or os.environ.get("LLAMA_CPP_ENDPOINT", "") or _cfg.endpoint
         self.model = model or os.environ.get("LLAMA_MODEL", "") or _cfg.model
         self.timeout = int(os.environ.get("LLAMA_TIMEOUT", "") or _cfg.timeout_seconds)
         self._cfg = _cfg  # keep reference for per-call token budgets etc.
@@ -406,9 +402,7 @@ class LLMClient:
                 f"(llama-server --parallel {self._workers})"
             )
         else:
-            _log(
-                "  Sequential mode: 1 worker (set llm.parallel_workers > 1 to enable parallel)"
-            )
+            _log("  Sequential mode: 1 worker (set llm.parallel_workers > 1 to enable parallel)")
 
     # ──────────────────────────────────────────────────────────────────────────
     # Connection test and worker-count resolution
@@ -417,9 +411,7 @@ class LLMClient:
     def _test_connection(self) -> bool:
         """Test if the llama.cpp endpoint is available."""
         try:
-            data = json.dumps(
-                {"prompt": "Hi", "max_tokens": 5, "temperature": 0.0}
-            ).encode("utf-8")
+            data = json.dumps({"prompt": "Hi", "max_tokens": 5, "temperature": 0.0}).encode("utf-8")
             req = urllib.request.Request(
                 f"{self.endpoint}/completion",
                 data=data,
@@ -446,9 +438,7 @@ class LLMClient:
                 f"{self.endpoint}/props",
                 headers={"Accept": "application/json"},
             )
-            with urllib.request.urlopen(
-                req, timeout=self._cfg.connect_test_timeout
-            ) as resp:
+            with urllib.request.urlopen(req, timeout=self._cfg.connect_test_timeout) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 # newer llama.cpp: "total_slots" field
                 if "total_slots" in data and isinstance(data["total_slots"], int):
@@ -487,6 +477,7 @@ class LLMClient:
         max_tokens: Optional[int] = None,
         temperature: Optional[float] = None,
         label: str = "",
+        search_query: Optional[str] = None,
     ) -> str:
         """
         Send a single prompt to the LLM endpoint and return the response text.
@@ -531,6 +522,45 @@ class LLMClient:
         )
         _log(f"     endpoint={self.endpoint}/completion")
 
+        if search_query and get_config().web_search.enabled:
+            from src.data.social_narrative_collector import SocialNarrativeCollector
+            from src.llm.web_search import WebSearcher, format_search_results_for_llm
+
+            # Try web search first for up-to-date factual information
+            logger.info(f"🔍 Web search query: '{search_query}'")
+            web_searcher = WebSearcher()
+            web_results = web_searcher.search(
+                search_query,
+                max_results=get_config().web_search.max_results_in_prompt,
+                use_cache=True,
+            )
+            web_searcher.close()
+
+            if web_results:
+                logger.info(f"✅ Web search returned {len(web_results)} results")
+                search_text = format_search_results_for_llm(
+                    web_results,
+                    max_snippet_length=get_config().web_search.max_snippet_length,
+                    max_results=get_config().web_search.max_results_in_prompt,
+                )
+                prompt = f"Recent information and facts:\n{search_text}\n\n{prompt}"
+            else:
+                logger.warning(f"⚠️ Web search returned no results, falling back to social data")
+                collector = SocialNarrativeCollector()
+                search_results = collector.search_public_opinion(
+                    search_query,
+                    domain=label,
+                    max_results=get_config().web_search.max_results_per_search,
+                )
+                if search_results:
+                    search_text = "\n".join(
+                        f"[{i + 1}] {r.get('text', '')[:200]}"
+                        for i, r in enumerate(
+                            search_results[: get_config().web_search.max_results_in_prompt]
+                        )
+                    )
+                    prompt = f"Public opinion context:\n{search_text}\n\n{prompt}"
+
         _audit_call(
             call_number=call_num,
             label=label,
@@ -567,9 +597,7 @@ class LLMClient:
                     result = json.loads(resp.read().decode("utf-8"))
                     content = result.get("content", "").strip()
                     tokens = result.get("tokens_predicted", len(content.split()))
-                    elapsed_ms = (
-                        datetime.datetime.now() - t_start
-                    ).total_seconds() * 1000
+                    elapsed_ms = (datetime.datetime.now() - t_start).total_seconds() * 1000
 
                     with self._lock:
                         self._total_tokens += tokens
@@ -581,10 +609,7 @@ class LLMClient:
                     )
                     _preview_len = _cfg.preview_chars
                     preview = content[:_preview_len].replace("\n", " ")
-                    _log(
-                        f"     preview: {preview}"
-                        f"{'…' if len(content) > _preview_len else ''}"
-                    )
+                    _log(f"     preview: {preview}{'…' if len(content) > _preview_len else ''}")
                     _audit_response(
                         call_number=call_num,
                         label=label,
@@ -618,9 +643,7 @@ class LLMClient:
 
             except Exception as exc:
                 # Retry on timeout / connection reset
-                is_timeout = (
-                    "timed out" in str(exc).lower() or "timeout" in str(exc).lower()
-                )
+                is_timeout = "timed out" in str(exc).lower() or "timeout" in str(exc).lower()
                 if is_timeout and attempt < max_retries:
                     wait = min(max_wait, base_wait * (2**attempt))
                     _log(
@@ -675,6 +698,7 @@ class LLMClient:
         depth: int,
         principles: List[str],
         parent_context: str = "",
+        search_query: Optional[str] = None,
     ) -> str:
         """Investigate a subtopic at a specific geographic tier."""
         context_snippet = (
@@ -693,6 +717,7 @@ class LLMClient:
             prompt,
             max_tokens=self._cfg.max_tokens_subtopic,
             label=f"domain={domain} subtopic={subtopic[:30]} tier={tier}:{tier_label[:20]} depth={depth}",
+            search_query=search_query,
         )
 
     def elaborate_subtopic(
@@ -705,11 +730,10 @@ class LLMClient:
         depth: int,
         principles: List[str],
         prior_reasoning: str,
+        search_query: Optional[str] = None,
     ) -> str:
         """Deep elaboration on a subtopic — calls after initial investigation."""
-        snippet = (
-            prior_reasoning[: self._cfg.prior_snippet_chars] if prior_reasoning else ""
-        )
+        snippet = prior_reasoning[: self._cfg.prior_snippet_chars] if prior_reasoning else ""
         prompt = (
             f"Elaborate further on '{subtopic}' in {domain} policy at the {tier} level "
             f"({tier_label}, population {tier_population:,}). "
@@ -721,6 +745,7 @@ class LLMClient:
             prompt,
             max_tokens=self._cfg.max_tokens_elaboration,
             label=f"elaborate domain={domain} subtopic={subtopic[:30]} tier={tier}:{tier_label[:20]} depth={depth}",
+            search_query=search_query,
         )
 
     def form_conjecture(
@@ -775,9 +800,7 @@ class LLMClient:
             f"Provide: key findings, consensus level 0-1, top 3 recommendations, "
             f"implementation steps, expected outcomes."
         )
-        raw = self._call_llm(
-            prompt, max_tokens=max_tokens, label=f"analyze policy={topic}"
-        )
+        raw = self._call_llm(prompt, max_tokens=max_tokens, label=f"analyze policy={topic}")
         return self._parse_analysis(raw, topic)
 
     # ──────────────────────────────────────────────────────────────────────────
@@ -792,6 +815,7 @@ class LLMClient:
         subtopics_per_level: Optional[int] = None,
         principles: Optional[List[str]] = None,
         include_state_county_rep: bool = True,
+        search_query: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Full deep-recursive LLM investigation with geographic fan-out.
@@ -799,11 +823,11 @@ class LLMClient:
         Architecture:
           Level 0 : Initial domain overview → extract top-N subtopics
           Level 1…N: For each subtopic:
-                       - national investigation
-                       - (if enabled) all 50 states
-                       - (if enabled) representative counties
-                       - elaborate on each finding
-                       - extract sub-subtopics for next level
+                        - national investigation
+                        - (if enabled) all 50 states
+                        - (if enabled) representative counties
+                        - elaborate on each finding
+                        - extract sub-subtopics for next level
           Synthesis: form_conjecture from all elaborations
           Ranking:   rank solutions by score × geographic weight
 
@@ -815,6 +839,7 @@ class LLMClient:
             max_depth = _cfg.max_depth
         if subtopics_per_level is None:
             subtopics_per_level = _cfg.subtopics_per_level
+        subtopics_per_level_int: int = subtopics_per_level
 
         if principles is None:
             principles = [
@@ -826,6 +851,7 @@ class LLMClient:
                 "Evidence-Based",
                 "Context-Aware",
             ]
+        principles_list: List[str] = principles
 
         started_at = datetime.datetime.now()
 
@@ -835,6 +861,9 @@ class LLMClient:
         _log(f"  max_depth      : {max_depth}")
         _log(f"  subtopics/level: {subtopics_per_level}")
         _log(f"  geo_rep        : {include_state_county_rep}")
+        _log(
+            f"  search_query   : {search_query[:50] + '...' if search_query and len(search_query) > 50 else search_query}"
+        )
         _log(f"  endpoint       : {self.endpoint}")
         _log(f"  audit_log      : {_LOG_FILE}")
         _log("")
@@ -842,7 +871,7 @@ class LLMClient:
         _audit("=" * 120)
         _audit(f"SESSION START  domain={domain}  started={started_at.isoformat()}")
         _audit(
-            f"  max_depth={max_depth}  subtopics_per_level={subtopics_per_level}  geo_rep={include_state_county_rep}"
+            f"  max_depth={max_depth}  subtopics_per_level={subtopics_per_level}  geo_rep={include_state_county_rep}  search_query={search_query}"
         )
         _audit(f"  endpoint={self.endpoint}  log_file={_LOG_FILE}")
         _audit("=" * 120)
@@ -897,8 +926,7 @@ class LLMClient:
                 break
 
             _log_section(
-                f"LEVEL {depth}/{max_depth} | domain={domain} | "
-                f"{len(current_subtopics)} subtopics"
+                f"LEVEL {depth}/{max_depth} | domain={domain} | {len(current_subtopics)} subtopics"
             )
 
             active_subtopics = current_subtopics[:subtopics_per_level]
@@ -907,10 +935,11 @@ class LLMClient:
                 idx_subtopic: Tuple[int, str],
                 _domain: str = domain,
                 _depth: int = depth,
-                _principles: List[str] = principles,
+                _principles: List[str] = principles_list,
                 _level0: str = level0_reasoning,
                 _include_geo: bool = include_state_county_rep,
-                _spl: int = subtopics_per_level,
+                _spl: int = subtopics_per_level_int,
+                search_query: Optional[str] = None,
             ) -> Tuple[List[Dict[str, Any]], List[str]]:
                 """Process a single subtopic (national + optional geo fan-out).
 
@@ -920,8 +949,7 @@ class LLMClient:
                 idx, subtopic = idx_subtopic
                 _log("")
                 _log_subsection(
-                    f"SUBTOPIC {idx}/{len(active_subtopics)} "
-                    f"| depth={_depth} | {subtopic}"
+                    f"SUBTOPIC {idx}/{len(active_subtopics)} | depth={_depth} | {subtopic}"
                 )
 
                 # ── national level ────────────────────────────────────────────
@@ -935,6 +963,7 @@ class LLMClient:
                     depth=_depth,
                     principles=_principles,
                     parent_context=_level0,
+                    search_query=search_query,
                 )
                 nat_elab = self.elaborate_subtopic(
                     domain=_domain,
@@ -945,6 +974,7 @@ class LLMClient:
                     depth=_depth,
                     principles=_principles,
                     prior_reasoning=nat_reasoning,
+                    search_query=search_query,
                 )
                 nat_entry: Dict[str, Any] = {
                     "domain": _domain,
@@ -967,6 +997,7 @@ class LLMClient:
                         depth=_depth,
                         principles=_principles,
                         prior_reasoning=nat_reasoning,
+                        search_query=search_query,
                     )
                     elab_list.extend(st_entries)
                     elab_list.extend(co_entries)
@@ -987,7 +1018,9 @@ class LLMClient:
             if self._workers == 1:
                 # Sequential — preserves original deterministic ordering
                 for idx, subtopic in enumerate(active_subtopics, 1):
-                    elab_list, sub_subs = _process_one_subtopic((idx, subtopic))
+                    elab_list, sub_subs = _process_one_subtopic(
+                        (idx, subtopic), search_query=search_query
+                    )
                     level_elaborations.extend(elab_list)
                     results["all_elaborations"].extend(elab_list)
                     next_subtopics.extend(sub_subs)
@@ -1004,7 +1037,9 @@ class LLMClient:
                     max_workers=n_sub_threads, thread_name_prefix="subtopic"
                 ) as ex:
                     for idx, subtopic in enumerate(active_subtopics, 1):
-                        f = ex.submit(_process_one_subtopic, (idx, subtopic))
+                        f = ex.submit(
+                            _process_one_subtopic, (idx, subtopic), search_query=search_query
+                        )
                         sub_futures.append((idx, f))
 
                 # Collect in submission order to keep output deterministic
@@ -1067,9 +1102,7 @@ class LLMClient:
         results["best_solutions"] = best_solutions
         _log(f"  solutions ranked: {len(best_solutions)}")
         for i, sol in enumerate(best_solutions[:5], 1):
-            _log(
-                f"  {i}. score={sol['score']:.3f} tier={sol['tier']} | {sol['solution'][:80]}…"
-            )
+            _log(f"  {i}. score={sol['score']:.3f} tier={sol['tier']} | {sol['solution'][:80]}…")
 
         # ── FINAL SUMMARY ─────────────────────────────────────────────────────
         elapsed = (datetime.datetime.now() - started_at).total_seconds()
@@ -1115,6 +1148,7 @@ class LLMClient:
         depth: int,
         principles: List[str],
         prior_reasoning: str,
+        search_query: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Investigate + elaborate a single state.  Called from a thread pool."""
         state_name = state_data["name"]
@@ -1129,6 +1163,7 @@ class LLMClient:
             depth=depth,
             principles=principles,
             parent_context=prior_reasoning,
+            search_query=search_query,
         )
         elab = self.elaborate_subtopic(
             domain=domain,
@@ -1139,6 +1174,7 @@ class LLMClient:
             depth=depth,
             principles=principles,
             prior_reasoning=reasoning,
+            search_query=search_query,
         )
         return {
             "domain": domain,
@@ -1161,6 +1197,7 @@ class LLMClient:
         depth: int,
         principles: List[str],
         prior_reasoning: str,
+        search_query: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Investigate + elaborate a single county.  Called from a thread pool."""
         county_name = county_data["name"]
@@ -1176,6 +1213,7 @@ class LLMClient:
             depth=depth,
             principles=principles,
             parent_context=prior_reasoning,
+            search_query=search_query,
         )
         elab = self.elaborate_subtopic(
             domain=domain,
@@ -1186,6 +1224,7 @@ class LLMClient:
             depth=depth,
             principles=principles,
             prior_reasoning=reasoning,
+            search_query=search_query,
         )
         return {
             "domain": domain,
@@ -1208,6 +1247,7 @@ class LLMClient:
         depth: int,
         principles: List[str],
         prior_reasoning: str,
+        search_query: Optional[str] = None,
     ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
         """
         Investigate a subtopic across all 50 states and representative counties.
@@ -1221,6 +1261,48 @@ class LLMClient:
             Tuple of (state_elaborations, county_elaborations) in stable order.
         """
         workers = self._workers
+
+        if search_query and get_config().web_search.search_on_fanout:
+            from src.data.social_narrative_collector import SocialNarrativeCollector
+            from src.llm.web_search import WebSearcher, format_search_results_for_llm
+
+            # Try web search first for up-to-date factual information
+            logger.info(f"🔍 Geographic fan-out web search: '{search_query}'")
+            web_searcher = WebSearcher()
+            web_results = web_searcher.search(
+                search_query,
+                max_results=get_config().web_search.max_results_in_prompt,
+                use_cache=True,
+            )
+            web_searcher.close()
+
+            if web_results:
+                logger.info(f"✅ Geographic fan-out search returned {len(web_results)} results")
+                search_text = format_search_results_for_llm(
+                    web_results,
+                    max_snippet_length=get_config().web_search.max_snippet_length,
+                    max_results=get_config().web_search.max_results_in_prompt,
+                )
+                prior_reasoning = (
+                    f"Recent information and facts:\n{search_text}\n\n{prior_reasoning}"
+                )
+            else:
+                logger.warning(f"⚠️ Geographic fan-out web search returned no results")
+                # Fall back to social narrative if web search fails
+                collector = SocialNarrativeCollector()
+                search_results = collector.search_public_opinion(
+                    search_query,
+                    domain=domain,
+                    max_results=get_config().web_search.max_results_per_search,
+                )
+                if search_results:
+                    search_text = "\n".join(
+                        f"[{i + 1}] {r.get('text', '')[:200]}"
+                        for i, r in enumerate(
+                            search_results[: get_config().web_search.max_results_in_prompt]
+                        )
+                    )
+                    prior_reasoning = f"Public opinion context:\n{search_text}\n\n{prior_reasoning}"
 
         # Build the full work list: states first, counties second.
         # Each item is (callable, args) so we can dispatch uniformly.
@@ -1241,6 +1323,7 @@ class LLMClient:
                         depth,
                         principles,
                         prior_reasoning,
+                        search_query,
                     )
                 )
             for county_data in county_items:
@@ -1252,6 +1335,7 @@ class LLMClient:
                         depth,
                         principles,
                         prior_reasoning,
+                        search_query,
                     )
                 )
             return state_entries, county_entries
@@ -1270,9 +1354,7 @@ class LLMClient:
         state_futures: List[Future] = []
         county_futures: List[Future] = []
 
-        with ThreadPoolExecutor(
-            max_workers=n_threads, thread_name_prefix="geo_fan"
-        ) as ex:
+        with ThreadPoolExecutor(max_workers=n_threads, thread_name_prefix="geo_fan") as ex:
             for abbr, state_data in state_items:
                 f = ex.submit(
                     self._investigate_one_state,
@@ -1283,6 +1365,7 @@ class LLMClient:
                     depth,
                     principles,
                     prior_reasoning,
+                    search_query,
                 )
                 state_futures.append(f)
 
@@ -1295,6 +1378,7 @@ class LLMClient:
                     depth,
                     principles,
                     prior_reasoning,
+                    search_query,
                 )
                 county_futures.append(f)
 
@@ -1470,7 +1554,9 @@ class LLMClient:
                     statement = line.strip()
                     break
         if not statement:
-            statement = f"Based on the evidence, optimal {question} requires multi-tiered governance."
+            statement = (
+                f"Based on the evidence, optimal {question} requires multi-tiered governance."
+            )
 
         return {
             "statement": statement.strip()[:600],
@@ -1582,9 +1668,7 @@ class LLMClient:
         """Fallback conjecture when LLM unavailable."""
         _cfg = get_config().llm
         confidence = (
-            _cfg.fallback_confidence_with_evidence
-            if evidence
-            else _cfg.fallback_confidence_empty
+            _cfg.fallback_confidence_with_evidence if evidence else _cfg.fallback_confidence_empty
         )
         return {
             "statement": f"Based on evidence: {question}",
