@@ -47,6 +47,16 @@ llm:
   temperature_default: 0.7            # higher = more creative, lower = more factual
   temperature_conjecture: 0.4         # slightly more deterministic for conjectures
 
+  # Sampling parameters — must be sent explicitly in every POST body.
+  # llama-server CLI flags (--top-p, --min-p, --top-k, --seed) set server
+  # defaults but are overridden by whatever the client includes in the request.
+  # If the client omits these fields llama.cpp uses its compiled-in defaults,
+  # NOT the CLI values.  Keep these in sync with your llama-server invocation.
+  top_p: 0.95                         # --top-p  on llama-server
+  min_p: 0.01                         # --min-p  on llama-server
+  top_k: 40                           # --top-k  on llama-server
+  seed: 3407                          # --seed   on llama-server  (-1 = random)
+
   # Recursion structure -----------------------------------------------------
   max_depth: 3                        # how many levels deep to investigate
   subtopics_per_level: 2              # subtopics extracted at each level

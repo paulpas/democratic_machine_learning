@@ -574,6 +574,14 @@ class LLMClient:
             "prompt": prompt,
             "max_tokens": max_tokens,
             "temperature": temperature,
+            # Sampling params must be explicit in the POST body — llama.cpp CLI
+            # flags (--top-p, --min-p, --top-k, --seed) are NOT automatically
+            # applied to API requests; they only set server-side defaults that
+            # get overridden by whatever the client sends (or doesn't send).
+            "top_p": _cfg.top_p,
+            "min_p": _cfg.min_p,
+            "top_k": _cfg.top_k,
+            "seed": _cfg.seed,
         }
 
         max_retries = _cfg.parallel_max_retries

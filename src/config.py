@@ -75,6 +75,15 @@ class LLMConfig:
     temperature_default: float = 0.7
     temperature_conjecture: float = 0.6
 
+    # Sampling parameters — must match llama-server CLI flags so the server
+    # honours them.  When these are omitted from the POST body llama.cpp falls
+    # back to its compiled-in defaults, NOT the --top-p / --top-k / --seed CLI
+    # values.  Set these to match whatever you pass to llama-server.
+    top_p: float = 0.95  # --top-p
+    min_p: float = 0.01  # --min-p
+    top_k: int = 40  # --top-k
+    seed: int = 3407  # --seed  (-1 = random)
+
     # Recursion structure
     max_depth: int = 4
     subtopics_per_level: int = 5
