@@ -112,6 +112,11 @@ collect *domains="": sync
 # Configuration inspection
 # ---------------------------------------------------------------------------
 
+[doc("Estimate total LLM calls for the active config — use --config to override")]
+[group("config")]
+estimate-calls *args="": sync
+    {{ uv }} run {{ scripts / "estimate_calls.py" }} {{ args }}
+
 [doc("Print the effective configuration (config.yaml + env overrides) and exit")]
 [group("config")]
 show-config:

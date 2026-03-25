@@ -347,6 +347,100 @@ DOMAIN_SUBTOPICS: Dict[str, List[str]] = {
 }
 
 
+def estimate_calls(
+    max_depth: Optional[int] = None,
+    subtopics_per_level: Optional[int] = None,
+    geo_fan_out: Optional[bool] = None,
+    domains: Optional[int] = None,
+) -> Dict[str, Any]:
+    """Calculate the estimated total LLM calls for a given configuration.
+
+    Call structure per domain:
+      Level 0 : 1 call  (initial domain overview)
+      Levels 1..max_depth, per subtopic:
+        national investigate  : 1
+        national elaborate    : 1
+        state investigate×50  : 50   ⎫ only when geo_fan_out=True
+        state elaborate×50    : 50   ⎬
+        county investigate×10 : 10   ⎪
+        county elaborate×10   : 10   ⎭
+      Synthesis              : 1 call  (form_conjecture)
+
+    Args:
+        max_depth:          Recursion depth  (default: config llm.max_depth)
+        subtopics_per_level: Subtopics per level (default: config llm.subtopics_per_level)
+        geo_fan_out:        Include state/county fan-out (default: config voter_pool.prod_geo_fan_out)
+        domains:            Number of domains to run (default: 6)
+
+    Returns:
+        Dict with keys: calls_per_subtopic, calls_per_depth_level,
+        calls_per_domain, total_calls, breakdown (human-readable str)
+    """
+    cfg = get_config()
+    if max_depth is None:
+        max_depth = cfg.llm.max_depth
+    if subtopics_per_level is None:
+        subtopics_per_level = cfg.llm.subtopics_per_level
+    if geo_fan_out is None:
+        geo_fan_out = cfg.voter_pool.prod_geo_fan_out
+    if domains is None:
+        domains = 6
+
+    n_states = len(US_STATES)  # 50
+    n_counties = len(REPRESENTATIVE_COUNTIES)  # 10
+
+    # calls per one subtopic at any depth level
+    if geo_fan_out:
+        calls_per_subtopic = (
+            2  # national investigate + elaborate
+            + n_states * 2  # state investigate + elaborate × 50
+            + n_counties * 2  # county investigate + elaborate × 10
+        )
+    else:
+        calls_per_subtopic = 2  # national only
+
+    calls_per_domain = (
+        1  # level 0 overview
+        + max_depth * subtopics_per_level * calls_per_subtopic  # levels 1..depth
+        + 1  # synthesis / conjecture
+    )
+    total_calls = calls_per_domain * domains
+
+    geo_note = (
+        f"  geo breakdown : 2 national + {n_states}×2 states + {n_counties}×2 counties"
+        f" = {calls_per_subtopic} calls/subtopic"
+        if geo_fan_out
+        else f"  geo breakdown : 2 national only (geo_fan_out=false)"
+    )
+
+    breakdown = "\n".join(
+        [
+            f"  max_depth           : {max_depth}",
+            f"  subtopics_per_level : {subtopics_per_level}",
+            f"  geo_fan_out         : {geo_fan_out}",
+            geo_note,
+            f"  calls_per_subtopic  : {calls_per_subtopic}",
+            f"  calls_per_domain    : 1 (overview) + {max_depth}×{subtopics_per_level}×{calls_per_subtopic} (levels) + 1 (synthesis) = {calls_per_domain}",
+            f"  domains             : {domains}",
+            f"  ─────────────────────────────────────────────",
+            f"  TOTAL ESTIMATED     : {total_calls:,} LLM calls",
+        ]
+    )
+
+    return {
+        "max_depth": max_depth,
+        "subtopics_per_level": subtopics_per_level,
+        "geo_fan_out": geo_fan_out,
+        "n_states": n_states,
+        "n_counties": n_counties,
+        "calls_per_subtopic": calls_per_subtopic,
+        "calls_per_domain": calls_per_domain,
+        "total_calls": total_calls,
+        "domains": domains,
+        "breakdown": breakdown,
+    }
+
+
 def _log(msg: str, *, flush: bool = True) -> None:
     """Write to stdout immediately with timestamp."""
     ts = datetime.datetime.now().strftime("%H:%M:%S")
@@ -386,6 +480,7 @@ class LLMClient:
         self._lock = threading.Lock()
         self._call_count: int = 0
         self._total_tokens: int = 0
+        self._total_calls_estimate: int = 0  # set by generate_reasoning_with_recursion
 
         self.available = self._test_connection()
         if self.available:
@@ -515,7 +610,12 @@ class LLMClient:
             call_num = self._call_count
 
         _log("")
-        _log(f"  🔄 LLM CALL #{call_num} | {label}")
+        if self._total_calls_estimate:
+            progress = f"{call_num}/{self._total_calls_estimate}"
+            pct = call_num / self._total_calls_estimate * 100
+            _log(f"  🔄 LLM CALL {progress} ({pct:.1f}%) | {label}")
+        else:
+            _log(f"  🔄 LLM CALL #{call_num} | {label}")
         _log(
             f"     prompt_chars={len(prompt)}  max_tokens={max_tokens}  "
             f"temp={temperature}  workers={self._workers}"
@@ -863,6 +963,15 @@ class LLMClient:
 
         started_at = datetime.datetime.now()
 
+        # Pre-compute call estimate so every _call_llm can show X/total progress
+        est = estimate_calls(
+            max_depth=max_depth,
+            subtopics_per_level=subtopics_per_level,
+            geo_fan_out=include_state_county_rep,
+            domains=1,
+        )
+        self._total_calls_estimate = est["calls_per_domain"]
+
         _log("")
         _log_section(f"DEEP RECURSIVE LLM INVESTIGATION  |  domain={domain}")
         _log(f"  started        : {started_at.strftime('%Y-%m-%d %H:%M:%S')}")
@@ -874,6 +983,7 @@ class LLMClient:
         )
         _log(f"  endpoint       : {self.endpoint}")
         _log(f"  audit_log      : {_LOG_FILE}")
+        _log(f"  est. LLM calls : ~{self._total_calls_estimate:,} for this domain")
         _log("")
 
         _audit("=" * 120)
