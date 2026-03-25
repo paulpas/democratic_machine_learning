@@ -1005,6 +1005,12 @@ class LLMClient:
 
         started_at = datetime.datetime.now()
 
+        # Reset per-domain counters so progress/ETA are relative to this domain,
+        # not accumulated across all domains in a multi-domain run.
+        with self._lock:
+            self._call_count = 0
+            self._call_durations.clear()
+
         # Pre-compute call estimate so every _call_llm can show X/total progress
         est = estimate_calls(
             max_depth=max_depth,
