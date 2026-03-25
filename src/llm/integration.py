@@ -12,6 +12,7 @@ Production-grade implementation with:
   - Set PYTHONLOGGING=DEBUG to also mirror full content to stdout
 """
 
+import collections
 import json
 import logging
 import logging.handlers
@@ -23,7 +24,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed, Future
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Deque, Dict, List, Optional, Tuple
 import urllib.request
 import urllib.error
 
@@ -481,6 +482,9 @@ class LLMClient:
         self._call_count: int = 0
         self._total_tokens: int = 0
         self._total_calls_estimate: int = 0  # set by generate_reasoning_with_recursion
+        # Rolling window of recent call durations (seconds) for ETA estimation.
+        # Capped at 20 so ETA adapts to current model speed without ancient history skewing it.
+        self._call_durations: Deque[float] = collections.deque(maxlen=20)
 
         self.available = self._test_connection()
         if self.available:
@@ -562,6 +566,39 @@ class LLMClient:
             return detected
         return max(1, configured)
 
+    def _eta_str(self, completed: int) -> str:
+        """Return a human-readable ETA string based on recent call durations.
+
+        Uses the rolling average of the last N call durations (self._call_durations)
+        divided by the number of parallel workers to estimate wall-clock time
+        remaining for the calls not yet completed.
+
+        Args:
+            completed: Number of calls completed so far (including this one).
+
+        Returns:
+            ETA string like 'ETA ~1h 23m' or 'ETA ~45m' or 'ETA ~30s',
+            or '' if not enough data yet.
+        """
+        total = self._total_calls_estimate
+        if not total or not self._call_durations:
+            return ""
+        remaining = max(0, total - completed)
+        if remaining == 0:
+            return "ETA done"
+        avg_secs = sum(self._call_durations) / len(self._call_durations)
+        # With N parallel workers each slot is busy avg_secs seconds, so wall
+        # clock time per 'batch' is avg_secs / workers.
+        eta_secs = avg_secs * remaining / max(1, self._workers)
+        if eta_secs < 60:
+            return f"ETA ~{eta_secs:.0f}s"
+        elif eta_secs < 3600:
+            return f"ETA ~{eta_secs / 60:.0f}m"
+        else:
+            h = int(eta_secs // 3600)
+            m = int((eta_secs % 3600) // 60)
+            return f"ETA ~{h}h {m:02d}m"
+
     # ──────────────────────────────────────────────────────────────────────────
     # Core LLM call — single responsibility, full logging
     # ──────────────────────────────────────────────────────────────────────────
@@ -613,7 +650,9 @@ class LLMClient:
         if self._total_calls_estimate:
             progress = f"{call_num}/{self._total_calls_estimate}"
             pct = call_num / self._total_calls_estimate * 100
-            _log(f"  🔄 LLM CALL {progress} ({pct:.1f}%) | {label}")
+            eta = self._eta_str(call_num - 1)  # ETA before this call completes
+            eta_part = f"  {eta}" if eta else ""
+            _log(f"  🔄 LLM CALL {progress} ({pct:.1f}%){eta_part} | {label}")
         else:
             _log(f"  🔄 LLM CALL #{call_num} | {label}")
         _log(
@@ -710,10 +749,13 @@ class LLMClient:
                     with self._lock:
                         self._total_tokens += tokens
                         total_tok = self._total_tokens
+                        self._call_durations.append(elapsed_ms / 1000)
+                        eta_after = self._eta_str(call_num)
 
                     _log(
                         f"  ✅ RESPONSE #{call_num}  tokens={tokens}  "
-                        f"cumulative={total_tok}  elapsed={elapsed_ms / 1000:.1f}s"
+                        f"elapsed={elapsed_ms / 1000:.1f}s  cumulative={total_tok}"
+                        + (f"  {eta_after}" if eta_after else "")
                     )
                     _preview_len = _cfg.preview_chars
                     preview = content[:_preview_len].replace("\n", " ")
