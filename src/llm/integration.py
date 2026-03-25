@@ -479,9 +479,11 @@ class LLMClient:
 
         # Thread-safe counters (multiple threads share one LLMClient instance)
         self._lock = threading.Lock()
-        self._call_count: int = 0
+        self._call_count: int = 0  # resets each domain (for per-domain progress)
+        self._lifetime_calls: int = 0  # never resets — true total across all domains
         self._total_tokens: int = 0
-        self._total_calls_estimate: int = 0  # set by generate_reasoning_with_recursion
+        self._total_calls_estimate: int = 0  # per-domain estimate (1 domain)
+        self._lifetime_calls_estimate: int = 0  # total estimate across all domains
         # Rolling window of recent call durations (seconds) for ETA estimation.
         # Capped at 20 so ETA adapts to current model speed without ancient history skewing it.
         self._call_durations: Deque[float] = collections.deque(maxlen=20)
@@ -644,7 +646,9 @@ class LLMClient:
         # Thread-safe call number allocation
         with self._lock:
             self._call_count += 1
+            self._lifetime_calls += 1
             call_num = self._call_count
+            lifetime_num = self._lifetime_calls
 
         _log("")
         if self._total_calls_estimate:
@@ -652,7 +656,15 @@ class LLMClient:
             pct = call_num / self._total_calls_estimate * 100
             eta = self._eta_str(call_num - 1)  # ETA before this call completes
             eta_part = f"  {eta}" if eta else ""
-            _log(f"  🔄 LLM CALL {progress} ({pct:.1f}%){eta_part} | {label}")
+            # Show lifetime total when running multiple domains
+            if (
+                self._lifetime_calls_estimate
+                and self._lifetime_calls_estimate != self._total_calls_estimate
+            ):
+                lifetime_part = f"  [total {lifetime_num}/{self._lifetime_calls_estimate}]"
+            else:
+                lifetime_part = ""
+            _log(f"  🔄 LLM CALL {progress} ({pct:.1f}%){eta_part}{lifetime_part} | {label}")
         else:
             _log(f"  🔄 LLM CALL #{call_num} | {label}")
         _log(
