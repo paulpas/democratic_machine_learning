@@ -17,32 +17,30 @@ Exit codes:
     1  — one or more domains failed
 """
 
-import sys
-import os
-import json
-import datetime
 import argparse
-import traceback
+import datetime
+import json
 import random
+import sys
 import threading
+import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 # ── path setup ────────────────────────────────────────────────────────────────
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
-from src.config import load_config, get_config  # must come before other src imports
+from src.config import get_config, load_config  # must come before other src imports
+from src.core.decision_engine import DecisionEngine
+from src.data.social_narrative_collector import SocialNarrativeCollector
 from src.llm.integration import (
-    LLMClient,
-    US_STATES,
     US_NATIONAL_POPULATION,
-    DOMAIN_SUBTOPICS,
+    US_STATES,
+    LLMClient,
     estimate_calls,
 )
-from src.data.social_narrative_collector import SocialNarrativeCollector
-from src.core.decision_engine import DecisionEngine
 from src.models.policy import Policy, PolicyDomain
 from src.models.region import Region
 from src.models.voter import Voter, VoterType
@@ -325,8 +323,8 @@ def _build_national_voter_pool(engine: DecisionEngine, domain: str, policy_id: s
     log(f"  │  Population repr. : {US_TOTAL_POPULATION:,}  total US residents")
     log(f"  │  Registered voters: {US_REGISTERED_VOTERS:,}  (EAC 2024 estimate)")
     log(f"  │  2024 turnout     : {US_TURNOUT_2024:,}  (~66% of registered)")
-    log(f"  │")
-    log(f"  │  Tier breakdown:")
+    log("  │")
+    log("  │  Tier breakdown:")
     log(f"  │    National experts  : {n_experts:>5,}  delegates")
     log(f"  │    State delegates   : {50:>5,}  delegates  → {state_pop_total:,} residents")
     log(
@@ -580,6 +578,33 @@ def write_report(result: Dict[str, Any]) -> Path:
                 lines.append(f"- {st}")
             lines.append("")
 
+    # Progressive synthesis tree
+    level_conjectures = llm_res.get("level_conjectures", [])
+    if level_conjectures:
+        lines += [
+            "---",
+            "",
+            "## Progressive Synthesis Tree",
+            "",
+            "Each depth level was synthesised from all national, state, and county findings "
+            "before feeding into the final conjecture.",
+            "",
+        ]
+        for lc in level_conjectures:
+            d = lc.get("depth", "?")
+            n = lc.get("subtopic_count", "?")
+            conf = lc.get("confidence", 0)
+            lines += [
+                f"### Depth-{d} Synthesis ({n} subtopics, confidence {conf:.2f})",
+                "",
+                lc.get("statement", "")[:500],
+                "",
+            ]
+            needs = lc.get("cross_subtopic_needs", "")
+            if needs:
+                lines += [f"**Cross-cutting state/county needs:** {needs}", ""]
+        lines.append("")
+
     lines += [
         "---",
         "",
@@ -588,7 +613,7 @@ def write_report(result: Dict[str, Any]) -> Path:
         "The decision was reached through trust-weighted voting across a panel representing:",
         "",
         f"- **10 Domain experts** (expertise: {domain})",
-        f"- **50 State delegates** (one per US state, population-weighted)",
+        "- **50 State delegates** (one per US state, population-weighted)",
         f"- **{len(REPRESENTATIVE_COUNTIES_INFO)} County delegates** (urban/suburban/rural sample)",
         "- **50 General public representatives** (synthetic population-proportional sample)",
         "",
@@ -663,7 +688,7 @@ def main() -> int:
     args = parser.parse_args()
 
     # ── load configuration (before any src imports that call get_config()) ────
-    from src.config import load_config, dump_config
+    from src.config import dump_config
 
     cfg = load_config(args.config)
 
@@ -701,14 +726,19 @@ def main() -> int:
 
     # Set the lifetime estimate so the progress meter shows [total N/M] across domains
     _cfg = get_config()
+    _vp_cfg = _cfg.voter_pool
     _est = estimate_calls(
-        max_depth=_cfg.llm.max_depth,
-        subtopics_per_level=_cfg.llm.subtopics_per_level,
-        geo_fan_out=_cfg.voter_pool.prod_geo_fan_out,
+        max_depth=_vp_cfg.prod_llm_max_depth,
+        subtopics_per_level=_vp_cfg.prod_llm_subtopics_per_level,
+        geo_fan_out=_vp_cfg.prod_geo_fan_out,
         domains=len(domains),
     )
     llm_client._lifetime_calls_estimate = _est["total_calls"]
     log(f"  est. total LLM calls : ~{_est['total_calls']:,} across {len(domains)} domain(s)")
+    log(
+        f"  (progressive_synthesis={_cfg.llm.progressive_synthesis}, "
+        f"combine_geo={_cfg.llm.combine_geo_investigate_elaborate})"
+    )
 
     log("  Initialising social narrative collector ...")
     social_collector = SocialNarrativeCollector()
@@ -737,7 +767,7 @@ def main() -> int:
         )
         try:
             result = run_domain(domain, llm_client, social_collector)
-            report_path = write_report(result)
+            write_report(result)
             log(
                 f"  ✅ {domain} complete — "
                 f"outcome={result['decision']['outcome']}  "
@@ -754,7 +784,7 @@ def main() -> int:
                 failed.append(domain)
 
     if n_domain_workers == 1:
-        log(f"  Domain processing: sequential (parallel_workers=1)")
+        log("  Domain processing: sequential (parallel_workers=1)")
         for i, domain in enumerate(domains, 1):
             _run_domain_safe(domain, i)
     else:
@@ -773,6 +803,9 @@ def main() -> int:
                     fut.result()
                 except Exception as exc:
                     log(f"  ❌ Unhandled error in domain thread [{domain}]: {exc}")
+
+    # Release LLM client resources (singleton WebSearcher browser, etc.)
+    llm_client.close()
 
     # ── session summary ───────────────────────────────────────────────────────
     elapsed = (datetime.datetime.now() - session_start).total_seconds()

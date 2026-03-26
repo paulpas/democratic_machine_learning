@@ -422,6 +422,80 @@ prompts. They trade prompt cost (token count) for context richness.
 
 ---
 
+### Progressive Synthesis
+
+#### `llm.progressive_synthesis`
+
+| | |
+|---|---|
+| **Default** | `true` |
+| **Type** | boolean |
+| **Effect** | When `true`, a per-subtopic intermediate conjecture is formed after each geographic fan-out (synthesising national + all 50 states + 10 counties findings into one compact result). A per-level conjecture then unifies all subtopics at that depth. The final `form_conjecture()` receives only the level conjectures — not raw elaborations — so every state and county finding influences the final result. |
+| **Notes** | Only meaningful when `voter_pool.prod_geo_fan_out=true`. With `false`, falls back to the original flat synthesis using `synthesis_evidence_limit` elaborations. |
+
+#### `llm.max_tokens_intermediate_subtopic`
+
+| | |
+|---|---|
+| **Default** | `4096` |
+| **Type** | int |
+| **Effect** | Token budget for per-subtopic intermediate conjecture calls (one per subtopic per depth level). These prompts include all 50 state and 10 county findings. |
+
+#### `llm.max_tokens_intermediate_level`
+
+| | |
+|---|---|
+| **Default** | `2048` |
+| **Type** | int |
+| **Effect** | Token budget for per-level intermediate conjecture calls (one per depth level). These unify all subtopic conjectures at that depth. |
+
+#### `llm.intermediate_state_chars`
+
+| | |
+|---|---|
+| **Default** | `200` |
+| **Type** | int (characters) |
+| **Effect** | Characters per state finding included in the per-subtopic intermediate conjecture prompt. Increase for richer state context; reduce to shrink prompt size. |
+
+#### `llm.intermediate_county_chars`
+
+| | |
+|---|---|
+| **Default** | `200` |
+| **Type** | int (characters) |
+| **Effect** | Characters per county finding included in the per-subtopic intermediate conjecture prompt. |
+
+#### `llm.temperature_intermediate`
+
+| | |
+|---|---|
+| **Default** | `0.5` |
+| **Type** | float [0.0, 2.0] |
+| **Effect** | Sampling temperature for intermediate synthesis calls. Slightly more deterministic than `temperature_default` to produce stable, structured summaries. |
+
+---
+
+### Combined Geo Investigate+Elaborate
+
+#### `llm.combine_geo_investigate_elaborate`
+
+| | |
+|---|---|
+| **Default** | `true` |
+| **Type** | boolean |
+| **Effect** | When `true`, state and county geographic tiers use a single LLM call that covers both investigation and elaboration (structured as `## Part 1` and `## Part 2`). Reduces geo fan-out calls by ~49% (60 calls/subtopic instead of 120) while retaining all content. |
+| **Notes** | Set `false` to revert to the original two-call behaviour (investigate then elaborate separately). |
+
+#### `llm.max_tokens_geo_combined`
+
+| | |
+|---|---|
+| **Default** | `16384` |
+| **Type** | int |
+| **Effect** | Token budget for combined state/county investigate+elaborate calls. Needs to be roughly `max_tokens_subtopic + max_tokens_elaboration` to accommodate both parts in one response. Safe up to the server's context window (~272k tokens). |
+
+---
+
 ### Solution Ranking
 
 #### `llm.tier_weight_national`

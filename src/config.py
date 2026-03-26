@@ -33,9 +33,9 @@ Usage:
 
 from __future__ import annotations
 
-import os
 import logging
-from dataclasses import dataclass, field, asdict
+import os
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -63,13 +63,13 @@ class LLMConfig:
 
     # Token budgets per call type
     max_tokens_default: int = 8192
-    max_tokens_domain_initial: int = 4096
-    max_tokens_subtopic: int = 4096
-    max_tokens_elaboration: int = 4096
-    max_tokens_conjecture: int = 4096
-    max_tokens_policy_analysis: int = 4096
-    max_tokens_synthesis: int = 700
-    max_tokens_legacy: int = 4096
+    max_tokens_domain_initial: int = 8192
+    max_tokens_subtopic: int = 16384  # national investigate (272k ctx headroom)
+    max_tokens_elaboration: int = 16384  # national elaborate
+    max_tokens_conjecture: int = 8192
+    max_tokens_policy_analysis: int = 8192
+    max_tokens_synthesis: int = 8192
+    max_tokens_legacy: int = 8192
 
     # Sampling temperatures
     temperature_default: float = 0.7
@@ -95,6 +95,26 @@ class LLMConfig:
     conjecture_evidence_limit: int = 15  # max evidence items for conjecture
     analysis_context_limit: int = 5  # max context items in policy analysis prompt
     synthesis_evidence_limit: int = 20  # max evidence items for final synthesis
+
+    # ── Progressive synthesis ──────────────────────────────────────────────────
+    # When enabled, a per-subtopic intermediate conjecture is formed after each
+    # geo fan-out (synthesising national + all 50 states + 10 counties), then a
+    # per-level conjecture unifies all subtopics at that depth.  The final
+    # form_conjecture() receives only the compact level conjectures — not raw
+    # elaborations — ensuring every state and county finding influences the result.
+    progressive_synthesis: bool = True
+    max_tokens_intermediate_subtopic: int = 4096  # per-subtopic synthesis call
+    max_tokens_intermediate_level: int = 2048  # per-level synthesis call
+    intermediate_state_chars: int = 200  # chars per state finding in prompt
+    intermediate_county_chars: int = 200  # chars per county finding in prompt
+    temperature_intermediate: float = 0.5  # slightly deterministic
+
+    # ── Combined geo investigate+elaborate ────────────────────────────────────
+    # When enabled, state and county tiers make a single combined LLM call that
+    # covers both investigation and elaboration in one larger response instead of
+    # two serial calls.  Halves the geo fan-out call count (~49% overall reduction).
+    combine_geo_investigate_elaborate: bool = True
+    max_tokens_geo_combined: int = 16384  # budget for the combined call
 
     # Ranking / scoring
     tier_weight_national: float = 1.0

@@ -13,22 +13,24 @@ Production-grade implementation with:
 """
 
 import collections
+import datetime
 import json
 import logging
 import logging.handlers
 import os
 import re
 import sys
-import datetime
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed, Future
-from pathlib import Path
-from typing import Any, Callable, Deque, Dict, List, Optional, Tuple
-import urllib.request
 import urllib.error
+import urllib.request
+from concurrent.futures import Future, ThreadPoolExecutor
+from pathlib import Path
+from typing import Any, Deque, Dict, List, Optional, Tuple
 
 from src.config import get_config
+
+logger = logging.getLogger(__name__)
 
 # ──────────────────────────────────────────────────────────────────────────────
 # LLM AUDIT LOGGER
@@ -353,6 +355,8 @@ def estimate_calls(
     subtopics_per_level: Optional[int] = None,
     geo_fan_out: Optional[bool] = None,
     domains: Optional[int] = None,
+    combine_geo: Optional[bool] = None,
+    progressive_synthesis: Optional[bool] = None,
 ) -> Dict[str, Any]:
     """Calculate the estimated total LLM calls for a given configuration.
 
@@ -361,21 +365,22 @@ def estimate_calls(
       Levels 1..max_depth, per subtopic:
         national investigate  : 1
         national elaborate    : 1
-        state investigate×50  : 50   ⎫ only when geo_fan_out=True
-        state elaborate×50    : 50   ⎬
-        county investigate×10 : 10   ⎪
-        county elaborate×10   : 10   ⎭
-      Synthesis              : 1 call  (form_conjecture)
+        state (combined)×50   : 50   ⎫ combine_geo=True  (was 100)
+        county (combined)×10  : 10   ⎬
+        intermediate subtopic : 1    ⎭ progressive_synthesis=True
+      Per-level intermediate  : 1/level   progressive_synthesis=True
+      Synthesis               : 1 call  (form_conjecture)
 
     Args:
-        max_depth:          Recursion depth  (default: config llm.max_depth)
-        subtopics_per_level: Subtopics per level (default: config llm.subtopics_per_level)
-        geo_fan_out:        Include state/county fan-out (default: config voter_pool.prod_geo_fan_out)
-        domains:            Number of domains to run (default: 6)
+        max_depth:             Recursion depth
+        subtopics_per_level:   Subtopics per level
+        geo_fan_out:           Include state/county fan-out
+        domains:               Number of domains to run (default: 6)
+        combine_geo:           Use combined investigate+elaborate for geo tiers
+        progressive_synthesis: Use per-subtopic + per-level intermediate conjectures
 
     Returns:
-        Dict with keys: calls_per_subtopic, calls_per_depth_level,
-        calls_per_domain, total_calls, breakdown (human-readable str)
+        Dict with breakdown, calls_per_domain, total_calls, etc.
     """
     cfg = get_config()
     if max_depth is None:
@@ -386,32 +391,52 @@ def estimate_calls(
         geo_fan_out = cfg.voter_pool.prod_geo_fan_out
     if domains is None:
         domains = 6
+    if combine_geo is None:
+        combine_geo = cfg.llm.combine_geo_investigate_elaborate
+    if progressive_synthesis is None:
+        progressive_synthesis = cfg.llm.progressive_synthesis
 
     n_states = len(US_STATES)  # 50
     n_counties = len(REPRESENTATIVE_COUNTIES)  # 10
 
     # calls per one subtopic at any depth level
     if geo_fan_out:
-        calls_per_subtopic = (
-            2  # national investigate + elaborate
-            + n_states * 2  # state investigate + elaborate × 50
-            + n_counties * 2  # county investigate + elaborate × 10
-        )
+        geo_calls = (n_states + n_counties) if combine_geo else (n_states + n_counties) * 2
+        calls_per_subtopic = 2 + geo_calls  # 2 national + geo
     else:
         calls_per_subtopic = 2  # national only
 
+    # intermediate conjecture calls per subtopic (progressive synthesis)
+    intermediate_per_subtopic = 1 if (progressive_synthesis and geo_fan_out) else 0
+    # intermediate conjecture calls per depth level
+    intermediate_per_level = 1 if (progressive_synthesis and geo_fan_out) else 0
+
     calls_per_domain = (
-        1  # level 0 overview
-        + max_depth * subtopics_per_level * calls_per_subtopic  # levels 1..depth
-        + 1  # synthesis / conjecture
+        1  # level 0
+        + max_depth * subtopics_per_level * (calls_per_subtopic + intermediate_per_subtopic)
+        + max_depth * intermediate_per_level  # per-level
+        + 1  # final synthesis
     )
     total_calls = calls_per_domain * domains
 
-    geo_note = (
-        f"  geo breakdown : 2 national + {n_states}×2 states + {n_counties}×2 counties"
-        f" = {calls_per_subtopic} calls/subtopic"
-        if geo_fan_out
-        else f"  geo breakdown : 2 national only (geo_fan_out=false)"
+    geo_mode = "combined (1 call/tier)" if combine_geo else "separate (2 calls/tier)"
+    if geo_fan_out:
+        geo_note = (
+            f"  geo breakdown : 2 national + {n_states} states + {n_counties} counties"
+            f" ({geo_mode}) = {calls_per_subtopic} calls/subtopic"
+        )
+    else:
+        geo_note = "  geo breakdown : 2 national only (geo_fan_out=false)"
+
+    ps_note = (
+        f"  progressive   : +{intermediate_per_subtopic}/subtopic + {intermediate_per_level}/level"
+        if progressive_synthesis
+        else "  progressive   : disabled"
+    )
+
+    calls_formula = (
+        f"1 + {max_depth}×{subtopics_per_level}×({calls_per_subtopic}+{intermediate_per_subtopic})"
+        f" + {max_depth}×{intermediate_per_level} + 1"
     )
 
     breakdown = "\n".join(
@@ -419,11 +444,14 @@ def estimate_calls(
             f"  max_depth           : {max_depth}",
             f"  subtopics_per_level : {subtopics_per_level}",
             f"  geo_fan_out         : {geo_fan_out}",
+            f"  combine_geo         : {combine_geo}",
+            f"  progressive_synth   : {progressive_synthesis}",
             geo_note,
-            f"  calls_per_subtopic  : {calls_per_subtopic}",
-            f"  calls_per_domain    : 1 (overview) + {max_depth}×{subtopics_per_level}×{calls_per_subtopic} (levels) + 1 (synthesis) = {calls_per_domain}",
+            ps_note,
+            f"  calls_per_subtopic  : {calls_per_subtopic} (+{intermediate_per_subtopic} intermediate)",
+            f"  calls_per_domain    : {calls_formula} = {calls_per_domain}",
             f"  domains             : {domains}",
-            f"  ─────────────────────────────────────────────",
+            "  ─────────────────────────────────────────────",
             f"  TOTAL ESTIMATED     : {total_calls:,} LLM calls",
         ]
     )
@@ -432,9 +460,13 @@ def estimate_calls(
         "max_depth": max_depth,
         "subtopics_per_level": subtopics_per_level,
         "geo_fan_out": geo_fan_out,
+        "combine_geo": combine_geo,
+        "progressive_synthesis": progressive_synthesis,
         "n_states": n_states,
         "n_counties": n_counties,
         "calls_per_subtopic": calls_per_subtopic,
+        "intermediate_per_subtopic": intermediate_per_subtopic,
+        "intermediate_per_level": intermediate_per_level,
         "calls_per_domain": calls_per_domain,
         "total_calls": total_calls,
         "domains": domains,
@@ -487,6 +519,18 @@ class LLMClient:
         # Rolling window of recent call durations (seconds) for ETA estimation.
         # Capped at 20 so ETA adapts to current model speed without ancient history skewing it.
         self._call_durations: Deque[float] = collections.deque(maxlen=20)
+
+        # Singleton WebSearcher — created once, reused across all calls.
+        # Creating a new WebSearcher per call would reinitialise Playwright 700+
+        # times per domain run.  Closed via self.close().
+        self._web_searcher: Optional[Any] = None
+        if get_config().web_search.enabled:
+            try:
+                from src.llm.web_search import WebSearcher
+
+                self._web_searcher = WebSearcher()
+            except Exception as _ws_err:
+                logger.warning(f"WebSearcher init failed: {_ws_err}")
 
         self.available = self._test_connection()
         if self.available:
@@ -568,6 +612,15 @@ class LLMClient:
             return detected
         return max(1, configured)
 
+    def close(self) -> None:
+        """Release resources held by this client (WebSearcher browser, etc.)."""
+        if self._web_searcher is not None:
+            try:
+                self._web_searcher.close()
+            except Exception:
+                pass
+            self._web_searcher = None
+
     def _eta_str(self, completed: int) -> str:
         """Return a human-readable ETA string based on recent call durations.
 
@@ -600,6 +653,87 @@ class LLMClient:
             h = int(eta_secs // 3600)
             m = int((eta_secs % 3600) // 60)
             return f"ETA ~{h}h {m:02d}m"
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Web search helpers
+    # ──────────────────────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _derive_search_query_from_label(label: str) -> str:
+        """Build a targeted web search query from a structured call label.
+
+        Label examples:
+          "domain=economy subtopic=Wage Growth tier=state:California depth=2"
+          "conjecture domain=economy"
+          "intermediate subtopic=Wage Growth depth=1 domain=economy"
+          "domain=healthcare tier=national depth=0"
+
+        Returns a short query string like:
+          "economy Wage Growth California policy current"
+          "economy governance United States optimal policy current"
+        """
+        year = datetime.datetime.now().year
+        domain = ""
+        subtopic = ""
+        tier_label = ""
+        call_type = "policy"
+
+        # Extract domain
+        m = re.search(r"domain=([a-zA-Z_]+)", label)
+        if m:
+            domain = m.group(1).replace("_", " ")
+
+        # Extract subtopic
+        m = re.search(r"subtopic=([^|]+?)(?:\s+tier=|\s+depth=|$)", label)
+        if m:
+            subtopic = m.group(1).strip()
+
+        # Extract tier label (state/county name)
+        m = re.search(r"tier=(?:state|county):([^|\s]+(?:\s+[^|\s]+)*?)(?:\s+depth=|$)", label)
+        if m:
+            tier_label = m.group(1).strip()
+
+        # Determine call type for better query tailoring
+        if "conjecture" in label:
+            call_type = "governance optimal policy"
+        elif "intermediate" in label and "subtopic" in label:
+            call_type = "state variations policy implications"
+        elif "intermediate" in label:
+            call_type = "policy framework cross-cutting themes"
+        elif "elaborate" in label:
+            call_type = "policy evidence equity implementation"
+
+        parts = [p for p in [domain, subtopic, tier_label, call_type, str(year)] if p]
+        return " ".join(parts)
+
+    def _fetch_web_context(self, query: str) -> str:
+        """Run a web search and return formatted context string for prompt injection.
+
+        Uses the singleton WebSearcher.  Returns empty string on any failure so
+        callers can unconditionally prepend the result without error handling.
+        """
+        if not self._web_searcher or not query:
+            return ""
+        try:
+            from src.llm.web_search import format_search_results_for_llm
+
+            ws_cfg = get_config().web_search
+            results = self._web_searcher.search(
+                query,
+                max_results=ws_cfg.max_results_in_prompt,
+                use_cache=True,
+            )
+            if results:
+                logger.info(f"✅ Web search: {len(results)} results for '{query[:60]}'")
+                return format_search_results_for_llm(
+                    results,
+                    max_snippet_length=ws_cfg.max_snippet_length,
+                    max_results=ws_cfg.max_results_in_prompt,
+                )
+            logger.debug(f"Web search returned no results for '{query[:60]}'")
+        except Exception as exc:
+            logger.warning(f"Web search failed for '{query[:60]}': {exc}")
+        return ""
 
     # ──────────────────────────────────────────────────────────────────────────
     # Core LLM call — single responsibility, full logging
@@ -673,44 +807,16 @@ class LLMClient:
         )
         _log(f"     endpoint={self.endpoint}/completion")
 
-        if search_query and get_config().web_search.enabled:
-            from src.data.social_narrative_collector import SocialNarrativeCollector
-            from src.llm.web_search import WebSearcher, format_search_results_for_llm
-
-            # Try web search first for up-to-date factual information
-            logger.info(f"🔍 Web search query: '{search_query}'")
-            web_searcher = WebSearcher()
-            web_results = web_searcher.search(
-                search_query,
-                max_results=get_config().web_search.max_results_in_prompt,
-                use_cache=True,
-            )
-            web_searcher.close()
-
-            if web_results:
-                logger.info(f"✅ Web search returned {len(web_results)} results")
-                search_text = format_search_results_for_llm(
-                    web_results,
-                    max_snippet_length=get_config().web_search.max_snippet_length,
-                    max_results=get_config().web_search.max_results_in_prompt,
-                )
-                prompt = f"Recent information and facts:\n{search_text}\n\n{prompt}"
-            else:
-                logger.warning(f"⚠️ Web search returned no results, falling back to social data")
-                collector = SocialNarrativeCollector()
-                search_results = collector.search_public_opinion(
-                    search_query,
-                    domain=label,
-                    max_results=get_config().web_search.max_results_per_search,
-                )
-                if search_results:
-                    search_text = "\n".join(
-                        f"[{i + 1}] {r.get('text', '')[:200]}"
-                        for i, r in enumerate(
-                            search_results[: get_config().web_search.max_results_in_prompt]
-                        )
-                    )
-                    prompt = f"Public opinion context:\n{search_text}\n\n{prompt}"
+        # ── Web search: inject real-time internet context into every call ──────
+        # Auto-derive query from label when caller didn't supply one.
+        # Uses the singleton WebSearcher so no browser is re-initialised per call.
+        if get_config().web_search.enabled:
+            _sq = search_query or self._derive_search_query_from_label(label)
+            if _sq:
+                logger.info(f"🔍 Web search: '{_sq[:80]}'")
+                web_ctx = self._fetch_web_context(_sq)
+                if web_ctx:
+                    prompt = f"[Recent web information — {datetime.datetime.now().strftime('%Y-%m-%d')}]\n{web_ctx}\n\n{prompt}"
 
         _audit_call(
             call_number=call_num,
@@ -910,6 +1016,205 @@ class LLMClient:
             search_query=search_query,
         )
 
+    # ──────────────────────────────────────────────────────────────────────────
+    # Combined investigate+elaborate for geo tiers (state / county)
+    # ──────────────────────────────────────────────────────────────────────────
+
+    def _investigate_and_elaborate_combined(
+        self,
+        domain: str,
+        subtopic: str,
+        tier: str,
+        tier_label: str,
+        tier_population: int,
+        depth: int,
+        principles: List[str],
+        parent_context: str = "",
+        search_query: Optional[str] = None,
+    ) -> Tuple[str, str]:
+        """Single LLM call covering both investigation AND elaboration for a geo tier.
+
+        Replaces two serial calls (investigate_subtopic + elaborate_subtopic) for
+        state/county tiers, cutting geo fan-out calls by ~50%.
+
+        Returns:
+            Tuple of (reasoning, elaboration) strings.  If the model doesn't use
+            the ## Part 2 delimiter the full response goes into reasoning.
+        """
+        context_snippet = (
+            parent_context[: self._cfg.context_snippet_chars] if parent_context else ""
+        )
+        prompt = (
+            f"You are a US {tier}-level policy expert analyzing '{subtopic}' "
+            f"as part of {domain} policy for {tier_label} (population {tier_population:,}).\n\n"
+            f"## Part 1 — Investigation\n"
+            f"Provide: (1) current state, (2) key challenges, (3) best policy approaches, "
+            f"(4) implementation steps, (5) expected outcomes.\n"
+            f"Principles: {', '.join(principles[:5])}.\n"
+            + (f"Context: {context_snippet}\n\n" if context_snippet else "\n")
+            + f"## Part 2 — Elaboration\n"
+            f"Provide: evidence for each approach, equity implications, "
+            f"stakeholder concerns, and measurable success metrics specific to {tier_label}."
+        )
+        raw = self._call_llm(
+            prompt,
+            max_tokens=self._cfg.max_tokens_geo_combined,
+            label=f"domain={domain} subtopic={subtopic[:30]} tier={tier}:{tier_label[:20]} depth={depth}",
+            search_query=search_query,
+        )
+        # Split on the Part 2 delimiter; fall back gracefully
+        split_markers = ["## Part 2", "## part 2", "**Part 2", "Part 2 —", "Part 2:"]
+        reasoning, elaboration = raw, ""
+        for marker in split_markers:
+            if marker in raw:
+                parts = raw.split(marker, 1)
+                reasoning = parts[0].strip()
+                elaboration = parts[1].strip() if len(parts) > 1 else ""
+                break
+        return reasoning, elaboration
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Progressive synthesis — intermediate conjectures
+    # ──────────────────────────────────────────────────────────────────────────
+
+    def _intermediate_conjecture_subtopic(
+        self,
+        domain: str,
+        subtopic: str,
+        depth: int,
+        nat_entry: Dict[str, Any],
+        state_entries: List[Dict[str, Any]],
+        county_entries: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """Synthesise ALL geo findings for one subtopic into a compact conjecture.
+
+        The prompt includes the full national finding (reasoning + elaboration) plus
+        truncated per-state and per-county findings so every geographic tier influences
+        the result.  This replaces the old behaviour of passing only the first 20
+        elaborations (in insertion order) to the final conjecture call.
+        """
+        _cfg = self._cfg
+        sc = _cfg.intermediate_state_chars
+        cc = _cfg.intermediate_county_chars
+
+        nat_text = (nat_entry.get("reasoning", "") + " " + nat_entry.get("elaboration", "")).strip()
+
+        state_lines = "\n".join(
+            f"- {e.get('tier_label', '?')} (pop {e.get('tier_population', 0):,}): "
+            f"{(e.get('reasoning', '') + ' ' + e.get('elaboration', '')).strip()[:sc]}"
+            for e in state_entries
+        )
+
+        county_lines = "\n".join(
+            f"- {e.get('tier_label', '?')} ({e.get('county_type', 'mixed')}, "
+            f"pop {e.get('tier_population', 0):,}): "
+            f"{(e.get('reasoning', '') + ' ' + e.get('elaboration', '')).strip()[:cc]}"
+            for e in county_entries
+        )
+
+        year = datetime.datetime.now().year
+        prompt = (
+            f"You are synthesising all geographic evidence for '{subtopic}' "
+            f"within {domain} policy (analysis year: {year}).\n\n"
+            f"NATIONAL FINDINGS:\n{nat_text[:1000]}\n\n"
+            f"STATE FINDINGS — unique needs per state that must be accommodated:\n"
+            f"{state_lines}\n\n"
+            f"COUNTY FINDINGS — unique needs per county type:\n"
+            f"{county_lines}\n\n"
+            f"Provide:\n"
+            f"1. Conjecture: A policy framework for '{subtopic}' that explicitly "
+            f"accommodates every state and county's unique context\n"
+            f"2. Confidence: 0.0–1.0\n"
+            f"3. State variations: Top 5 states with needs diverging most from the "
+            f"national picture\n"
+            f"4. County variations: Key urban/suburban/rural distinctions requiring "
+            f"tailored implementation\n"
+            f"5. Supporting evidence: 3 strongest cross-tier consensus points\n"
+            f"6. Contradictions: 3 tensions between geographic tiers to resolve"
+        )
+        raw = self._call_llm(
+            prompt,
+            max_tokens=_cfg.max_tokens_intermediate_subtopic,
+            temperature=_cfg.temperature_intermediate,
+            label=f"intermediate subtopic={subtopic[:40]} depth={depth} domain={domain}",
+        )
+        result = self._parse_conjecture(raw, subtopic, state_entries + county_entries)
+        result["subtopic"] = subtopic
+        result["depth"] = depth
+        result["tier_count"] = 1 + len(state_entries) + len(county_entries)
+        # Extract state/county variation bullets from raw response
+        result["state_variations"] = self._extract_section(raw, "State variations")
+        result["county_variations"] = self._extract_section(raw, "County variations")
+        return result
+
+    def _intermediate_conjecture_level(
+        self,
+        domain: str,
+        depth: int,
+        subtopic_conjectures: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """Unify all per-subtopic conjectures for one depth level.
+
+        Receives the list of subtopic_conjecture dicts produced by
+        _intermediate_conjecture_subtopic() at this depth.
+        """
+        _cfg = self._cfg
+        year = datetime.datetime.now().year
+
+        summaries = []
+        for i, sc in enumerate(subtopic_conjectures, 1):
+            summaries.append(
+                f"{i}. '{sc.get('subtopic', '?')}':\n"
+                f"   Conjecture: {sc.get('statement', '')[:300]}\n"
+                f"   State variations: {sc.get('state_variations', '')[:200]}\n"
+                f"   County variations: {sc.get('county_variations', '')[:200]}\n"
+                f"   Confidence: {sc.get('confidence', 0):.2f}"
+            )
+
+        prompt = (
+            f"You are synthesising {len(subtopic_conjectures)} subtopic analyses "
+            f"for depth-{depth} of {domain} policy (year: {year}).\n\n"
+            f"SUBTOPIC SUMMARIES:\n" + "\n\n".join(summaries) + "\n\n"
+            "Provide:\n"
+            "1. Unified policy framework addressing all subtopics at this depth level\n"
+            "2. Cross-subtopic tensions and how to resolve them\n"
+            "3. Confidence: 0.0–1.0\n"
+            "4. Key state/county needs appearing across multiple subtopics\n"
+            "5. Supporting evidence: 3 strongest cross-subtopic consensus points\n"
+            "6. Contradictions: 3 unresolved cross-subtopic tensions"
+        )
+        raw = self._call_llm(
+            prompt,
+            max_tokens=_cfg.max_tokens_intermediate_level,
+            temperature=_cfg.temperature_intermediate,
+            label=f"intermediate level={depth} domain={domain}",
+        )
+        result = self._parse_conjecture(raw, f"depth-{depth} synthesis", subtopic_conjectures)
+        result["depth"] = depth
+        result["subtopic_count"] = len(subtopic_conjectures)
+        result["cross_subtopic_needs"] = self._extract_section(raw, "state/county needs")
+        return result
+
+    @staticmethod
+    def _extract_section(text: str, heading_keyword: str, max_chars: int = 300) -> str:
+        """Extract a bullet-list section from LLM response by keyword match."""
+        lines = text.splitlines()
+        collecting = False
+        collected: List[str] = []
+        for line in lines:
+            if heading_keyword.lower() in line.lower() and ":" in line:
+                collecting = True
+                continue
+            if collecting:
+                if line.strip().startswith(("-", "*", "•", "1", "2", "3", "4", "5")):
+                    collected.append(line.strip().lstrip("-*• 0123456789.)").strip())
+                elif line.strip() == "":
+                    if collected:
+                        break
+                else:
+                    break
+        return "; ".join(collected)[:max_chars]
+
     def form_conjecture(
         self,
         question: str,
@@ -917,24 +1222,57 @@ class LLMClient:
         evidence: List[Dict[str, Any]],
         max_tokens: Optional[int] = None,
         domain: str = "general",
+        use_level_conjectures: bool = False,
     ) -> Dict[str, Any]:
-        """Form a final conjecture synthesizing all evidence."""
+        """Form a final conjecture synthesizing all evidence.
+
+        When ``use_level_conjectures=True`` the evidence list is treated as a
+        list of level-conjecture dicts (from progressive synthesis) and a richer
+        prompt is built that explicitly asks the model to accommodate all 50
+        states and county-level diversity.
+        """
         _cfg = self._cfg
         if max_tokens is None:
             max_tokens = _cfg.max_tokens_conjecture
-        evidence_limit = _cfg.conjecture_evidence_limit
-        evidence_text = "\n".join(
-            f"- [{e.get('tier', '?')} depth={e.get('depth', 0)}] "
-            f"{e.get('finding', e.get('reasoning', ''))[:200]}"
-            for e in evidence[:evidence_limit]
-        )
-        prompt = (
-            f"Based on the following evidence about {domain} policy, "
-            f"answer: {question}\n\n"
-            f"Evidence:\n{evidence_text}\n\n"
-            f"Provide: (1) Conjecture statement, (2) Confidence 0-1, "
-            f"(3) Top 3 supporting points, (4) Key contradictions."
-        )
+        year = datetime.datetime.now().year
+
+        if use_level_conjectures and evidence:
+            # Build a rich prompt from per-level intermediate conjectures
+            level_summaries = "\n\n".join(
+                f"Depth-{e.get('depth', i + 1)} findings "
+                f"({e.get('subtopic_count', '?')} subtopics):\n"
+                f"  {e.get('statement', '')[:400]}\n"
+                f"  State/county needs: {e.get('cross_subtopic_needs', '')[:200]}"
+                for i, e in enumerate(evidence)
+            )
+            prompt = (
+                f"Based on {len(evidence)} depth-level investigations of {domain} policy "
+                f"(year: {year}), synthesise a final governance conjecture.\n\n"
+                f"DEPTH-LEVEL SUMMARIES:\n{level_summaries}\n\n"
+                f"Answer: {question}\n\n"
+                f"Provide:\n"
+                f"1. Conjecture statement: A final governance framework for {domain} policy "
+                f"in the United States that explicitly accommodates all 50 states and "
+                f"county-level diversity\n"
+                f"2. Confidence: 0.0–1.0\n"
+                f"3. Supporting evidence: Top 5 cross-tier consensus points\n"
+                f"4. Contradictions: Key unresolved tensions between geographic tiers"
+            )
+        else:
+            # Fallback: plain evidence list (used when progressive_synthesis=False)
+            evidence_limit = _cfg.conjecture_evidence_limit
+            evidence_text = "\n".join(
+                f"- [{e.get('tier', '?')} depth={e.get('depth', 0)}] "
+                f"{e.get('finding', e.get('reasoning', ''))[:200]}"
+                for e in evidence[:evidence_limit]
+            )
+            prompt = (
+                f"Based on the following evidence about {domain} policy (year: {year}), "
+                f"answer: {question}\n\n"
+                f"Evidence:\n{evidence_text}\n\n"
+                f"Provide: (1) Conjecture statement, (2) Confidence 0-1, "
+                f"(3) Top 3 supporting points, (4) Key contradictions."
+            )
         raw = self._call_llm(
             prompt,
             max_tokens=max_tokens,
@@ -1063,6 +1401,8 @@ class LLMClient:
             "started_at": started_at.isoformat(),
             "recursive_analysis": {},
             "subtopics_by_level": {},
+            "subtopic_conjectures": {},  # {level_N: [subtopic_conjecture, ...]}
+            "level_conjectures": [],  # [level_conjecture, ...] — fed to final synthesis
             "all_elaborations": [],
             "final_conjecture": {},
             "best_solutions": [],
@@ -1118,10 +1458,11 @@ class LLMClient:
                 _include_geo: bool = include_state_county_rep,
                 _spl: int = subtopics_per_level_int,
                 search_query: Optional[str] = None,
-            ) -> Tuple[List[Dict[str, Any]], List[str]]:
+            ) -> Tuple[List[Dict[str, Any]], List[str], Optional[Dict[str, Any]]]:
                 """Process a single subtopic (national + optional geo fan-out).
 
-                Returns (elaborations_list, sub_subtopics_list).
+                Returns (elaborations_list, sub_subtopics_list, subtopic_conjecture).
+                subtopic_conjecture is None when progressive_synthesis=False.
                 Designed to run in a thread.
                 """
                 idx, subtopic = idx_subtopic
@@ -1166,6 +1507,8 @@ class LLMClient:
                     "finding": (nat_reasoning + " " + nat_elab)[:600],
                 }
                 elab_list: List[Dict[str, Any]] = [nat_entry]
+                st_entries: List[Dict[str, Any]] = []
+                co_entries: List[Dict[str, Any]] = []
 
                 # ── geographic fan-out ────────────────────────────────────────
                 if _include_geo:
@@ -1184,24 +1527,43 @@ class LLMClient:
                         f"{len(co_entries)} counties"
                     )
 
+                # ── progressive synthesis: per-subtopic intermediate conjecture ─
+                subtopic_conj: Optional[Dict[str, Any]] = None
+                if self._cfg.progressive_synthesis:
+                    _log(f"  🔬 Intermediate synthesis: subtopic='{subtopic}' depth={_depth}")
+                    subtopic_conj = self._intermediate_conjecture_subtopic(
+                        domain=_domain,
+                        subtopic=subtopic,
+                        depth=_depth,
+                        nat_entry=nat_entry,
+                        state_entries=st_entries,
+                        county_entries=co_entries,
+                    )
+                    _log(
+                        f"  ✅ Subtopic conjecture confidence={subtopic_conj.get('confidence', 0):.2f}"
+                    )
+
                 sub_subs = self._extract_subtopics_from_text(
                     nat_reasoning, subtopic, max(2, _spl // (_depth + 1))
                 )
-                return elab_list, sub_subs
+                return elab_list, sub_subs, subtopic_conj
 
             # ── dispatch subtopics (parallel if workers > 1) ──────────────────
             level_elaborations: List[Dict[str, Any]] = []
             next_subtopics: List[str] = []
+            level_subtopic_conjectures: List[Dict[str, Any]] = []
 
             if self._workers == 1:
                 # Sequential — preserves original deterministic ordering
                 for idx, subtopic in enumerate(active_subtopics, 1):
-                    elab_list, sub_subs = _process_one_subtopic(
+                    elab_list, sub_subs, sub_conj = _process_one_subtopic(
                         (idx, subtopic), search_query=search_query
                     )
                     level_elaborations.extend(elab_list)
                     results["all_elaborations"].extend(elab_list)
                     next_subtopics.extend(sub_subs)
+                    if sub_conj is not None:
+                        level_subtopic_conjectures.append(sub_conj)
             else:
                 # Parallel subtopics — each subtopic tree runs concurrently.
                 # The semaphore inside _call_llm caps actual HTTP concurrency.
@@ -1223,15 +1585,32 @@ class LLMClient:
                 # Collect in submission order to keep output deterministic
                 for idx, f in sub_futures:
                     try:
-                        elab_list, sub_subs = f.result()
+                        elab_list, sub_subs, sub_conj = f.result()
                         level_elaborations.extend(elab_list)
                         results["all_elaborations"].extend(elab_list)
                         next_subtopics.extend(sub_subs)
+                        if sub_conj is not None:
+                            level_subtopic_conjectures.append(sub_conj)
                     except Exception as exc:
                         _log(f"  ❌ Subtopic #{idx} error: {exc}")
 
             results["recursive_analysis"][f"level_{depth}"] = level_elaborations
             results["subtopics_by_level"][f"level_{depth}"] = next_subtopics
+            results["subtopic_conjectures"][f"level_{depth}"] = level_subtopic_conjectures
+
+            # ── progressive synthesis: per-level intermediate conjecture ──────
+            if _cfg.progressive_synthesis and level_subtopic_conjectures:
+                _log(
+                    f"  🔬 Intermediate level synthesis: depth={depth} "
+                    f"subtopics={len(level_subtopic_conjectures)}"
+                )
+                level_conj = self._intermediate_conjecture_level(
+                    domain=domain,
+                    depth=depth,
+                    subtopic_conjectures=level_subtopic_conjectures,
+                )
+                results["level_conjectures"].append(level_conj)
+                _log(f"  ✅ Level conjecture confidence={level_conj.get('confidence', 0):.2f}")
 
             # Deduplicate and cap for next level
             seen: set = set()
@@ -1250,20 +1629,34 @@ class LLMClient:
 
         # ── SYNTHESIS ─────────────────────────────────────────────────────────
         total_elab = len(results["all_elaborations"])
+        level_conjs = results["level_conjectures"]
         _log("")
-        _log_section(f"SYNTHESIS | domain={domain} | total_elaborations={total_elab}")
+        _log_section(
+            f"SYNTHESIS | domain={domain} | elaborations={total_elab} "
+            f"| level_conjectures={len(level_conjs)}"
+        )
 
         final_question = (
             f"Based on all evidence, what are the optimal governance mechanisms "
             f"for {domain} policy in the United States, considering national, state, "
             f"and county perspectives?"
         )
+
+        use_progressive = _cfg.progressive_synthesis and bool(level_conjs)
+        if use_progressive:
+            _log(f"  Using progressive synthesis ({len(level_conjs)} level conjectures)")
+            evidence_for_final: List[Dict[str, Any]] = level_conjs
+        else:
+            _log(f"  Using flat synthesis (first {_cfg.synthesis_evidence_limit} elaborations)")
+            evidence_for_final = results["all_elaborations"][: _cfg.synthesis_evidence_limit]
+
         final_conjecture = self.form_conjecture(
             question=final_question,
             context=context,
-            evidence=results["all_elaborations"][: _cfg.synthesis_evidence_limit],
+            evidence=evidence_for_final,
             domain=domain,
             max_tokens=_cfg.max_tokens_synthesis,
+            use_level_conjectures=use_progressive,
         )
         results["final_conjecture"] = final_conjecture
 
@@ -1332,28 +1725,41 @@ class LLMClient:
         state_name = state_data["name"]
         state_pop = state_data["population"]
         _log(f"    🏛️  STATE {abbr} | {state_name} | pop={state_pop:,}")
-        reasoning = self.investigate_subtopic(
-            domain=domain,
-            subtopic=subtopic,
-            tier="state",
-            tier_label=state_name,
-            tier_population=state_pop,
-            depth=depth,
-            principles=principles,
-            parent_context=prior_reasoning,
-            search_query=search_query,
-        )
-        elab = self.elaborate_subtopic(
-            domain=domain,
-            subtopic=subtopic,
-            tier="state",
-            tier_label=state_name,
-            tier_population=state_pop,
-            depth=depth,
-            principles=principles,
-            prior_reasoning=reasoning,
-            search_query=search_query,
-        )
+        if self._cfg.combine_geo_investigate_elaborate:
+            reasoning, elab = self._investigate_and_elaborate_combined(
+                domain=domain,
+                subtopic=subtopic,
+                tier="state",
+                tier_label=state_name,
+                tier_population=state_pop,
+                depth=depth,
+                principles=principles,
+                parent_context=prior_reasoning,
+                search_query=search_query,
+            )
+        else:
+            reasoning = self.investigate_subtopic(
+                domain=domain,
+                subtopic=subtopic,
+                tier="state",
+                tier_label=state_name,
+                tier_population=state_pop,
+                depth=depth,
+                principles=principles,
+                parent_context=prior_reasoning,
+                search_query=search_query,
+            )
+            elab = self.elaborate_subtopic(
+                domain=domain,
+                subtopic=subtopic,
+                tier="state",
+                tier_label=state_name,
+                tier_population=state_pop,
+                depth=depth,
+                principles=principles,
+                prior_reasoning=reasoning,
+                search_query=search_query,
+            )
         return {
             "domain": domain,
             "subtopic": subtopic,
@@ -1382,28 +1788,41 @@ class LLMClient:
         county_pop = county_data["population"]
         county_type = county_data.get("type", "mixed")
         _log(f"    🏘️  COUNTY {county_name} ({county_type}) | pop={county_pop:,}")
-        reasoning = self.investigate_subtopic(
-            domain=domain,
-            subtopic=subtopic,
-            tier="county",
-            tier_label=county_name,
-            tier_population=county_pop,
-            depth=depth,
-            principles=principles,
-            parent_context=prior_reasoning,
-            search_query=search_query,
-        )
-        elab = self.elaborate_subtopic(
-            domain=domain,
-            subtopic=subtopic,
-            tier="county",
-            tier_label=county_name,
-            tier_population=county_pop,
-            depth=depth,
-            principles=principles,
-            prior_reasoning=reasoning,
-            search_query=search_query,
-        )
+        if self._cfg.combine_geo_investigate_elaborate:
+            reasoning, elab = self._investigate_and_elaborate_combined(
+                domain=domain,
+                subtopic=subtopic,
+                tier="county",
+                tier_label=county_name,
+                tier_population=county_pop,
+                depth=depth,
+                principles=principles,
+                parent_context=prior_reasoning,
+                search_query=search_query,
+            )
+        else:
+            reasoning = self.investigate_subtopic(
+                domain=domain,
+                subtopic=subtopic,
+                tier="county",
+                tier_label=county_name,
+                tier_population=county_pop,
+                depth=depth,
+                principles=principles,
+                parent_context=prior_reasoning,
+                search_query=search_query,
+            )
+            elab = self.elaborate_subtopic(
+                domain=domain,
+                subtopic=subtopic,
+                tier="county",
+                tier_label=county_name,
+                tier_population=county_pop,
+                depth=depth,
+                principles=principles,
+                prior_reasoning=reasoning,
+                search_query=search_query,
+            )
         return {
             "domain": domain,
             "subtopic": subtopic,
@@ -1465,7 +1884,7 @@ class LLMClient:
                     f"Recent information and facts:\n{search_text}\n\n{prior_reasoning}"
                 )
             else:
-                logger.warning(f"⚠️ Geographic fan-out web search returned no results")
+                logger.warning("⚠️ Geographic fan-out web search returned no results")
                 # Fall back to social narrative if web search fails
                 collector = SocialNarrativeCollector()
                 search_results = collector.search_public_opinion(

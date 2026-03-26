@@ -33,11 +33,11 @@ llm:
   connect_test_timeout: 30            # timeout for the startup ping
 
   # Token budgets (per call type) -------------------------------------------
-  # Reduce these to speed up runs at the cost of response depth.
+  # Server context window is ~272k tokens — use the headroom for richer responses.
   max_tokens_default: 8192
   max_tokens_domain_initial: 8192     # Level-0 domain overview
-  max_tokens_subtopic: 8192           # Per-subtopic investigation
-  max_tokens_elaboration: 8192        # Elaboration step
+  max_tokens_subtopic: 16384          # National investigate (increased for 272k ctx)
+  max_tokens_elaboration: 16384       # National elaborate
   max_tokens_conjecture: 8192         # Conjecture formation
   max_tokens_policy_analysis: 8192    # Policy analysis
   max_tokens_synthesis: 8192          # Final synthesis conjecture
@@ -68,6 +68,22 @@ llm:
   conjecture_evidence_limit: 15       # max evidence items fed to conjecture prompt
   analysis_context_limit: 5           # max context items in policy-analysis prompt
   synthesis_evidence_limit: 20        # max evidence items in final synthesis
+
+  # Progressive synthesis ---------------------------------------------------
+  # Intermediate conjectures synthesise ALL geo findings (50 states + 10 counties)
+  # per subtopic, then per depth-level, so every tier influences the final result.
+  progressive_synthesis: true
+  max_tokens_intermediate_subtopic: 4096   # per-subtopic synthesis call
+  max_tokens_intermediate_level: 2048      # per-level synthesis call
+  intermediate_state_chars: 200            # chars per state finding included in prompt
+  intermediate_county_chars: 200           # chars per county finding included in prompt
+  temperature_intermediate: 0.5            # slightly more deterministic for synthesis
+
+  # Combined geo investigate+elaborate --------------------------------------
+  # Single LLM call covers both investigation and elaboration for state/county
+  # tiers, reducing geo fan-out calls by ~49% while retaining all content.
+  combine_geo_investigate_elaborate: true
+  max_tokens_geo_combined: 16384           # budget for combined state/county call
 
   # Solution ranking --------------------------------------------------------
   tier_weight_national: 1.0
