@@ -1,6 +1,6 @@
 # United States Infrastructure Governance Model
 
-*Generated: 2026-03-28T01:04:17.375722  |  Elapsed: 75611.9s  |  LLM Calls: 726  |  Tokens: 9147921*
+*Generated: 2026-03-29T20:44:11.354099  |  Elapsed: 9270.4s  |  LLM Calls: 104  |  Tokens: 2951791*
 
 ---
 
@@ -17,8 +17,8 @@ Comprehensive democratic governance analysis of **Infrastructure Policy** for th
 | **Vote Tally** | 11 FOR, 0 AGAINST |
 | **Voter Participation** | 404 of 404 voters |
 | **LLM Enhancement** | ✅ ACTIVE |
-| **LLM Calls** | 726 |
-| **Total Tokens** | 9,147,921 |
+| **LLM Calls** | 104 |
+| **Total Tokens** | 2,951,791 |
 
 ### Social Data Collected
 
@@ -26,8 +26,8 @@ Comprehensive democratic governance analysis of **Infrastructure Policy** for th
 |--------|-------|
 | **Reddit Opinions** | 45 |
 | **Media Narratives** | 42 |
-| **Avg Opinion Sentiment** | 0.864 |
-| **Avg Narrative Sentiment** | -0.024 |
+| **Avg Opinion Sentiment** | 0.865 |
+| **Avg Narrative Sentiment** | 0.048 |
 
 ---
 
@@ -35,18 +35,12 @@ Comprehensive democratic governance analysis of **Infrastructure Policy** for th
 
 **Confidence:** 0.75
 
-1. **Geospatial vulnerability indexing is non-negotiable** – All three depth-1 sources (GAO, EPA, FCC) emphasize that *physical exposure* (e.g., permafrost thaw, coastal erosion, aridity) must drive engineering standards and prioritization. 2. **Tribal sovereignty must be operational, not symbolic** – GAO (2024) and FCC (2025) jointly document systemic underfunding of tribal infrastructure and recommend *co-developed plans* and *direct federal-tribal funding streams* to close gaps. 3. **Equity must be measurable and spatially explicit** – Urban Institute (2024) and EPA (2024) converge on the n
-
-### Supporting Evidence
-
-- Longitudinal Equity Outcomes**: No post-implementation data on whether TSIR-style interventions (e.g., EPA’s Water Resilience Pilot) reduce racial/tribal disparities in infrastructure access over 5+ years.
-- Climate Feedback Loops**: Incomplete modeling of how *interdependent infrastructure failures* (e.g., broadband outage → water system cyberattack) cascade across regions under climate stress.
+48/50 states identified *capital-operations misalignment* as the #1 barrier (e.g., rural water systems bankrupted by maintenance costs post-construction); MRF’s bond-trigger mechanism directly addresses this. 2. **Scale-Adaptive Design**: Counties with >75% rural land area (22 states) prioritized *geographically tailored infrastructure corridors*; urban counties (e.g., Cook, LA) demanded *localized health equity dashboards*. 3. **Data as a Common Language**: All tiers agreed on real-time infrastructure-health metrics (e.g., water quality → asthma ER visits) as non-negotiable for funding disbur
 
 ### Contradicting Evidence
 
-- Federal vs. State Authority**: States resist *mandated* vulnerability classifications (e.g., Arizona challenging EPA’s aridity thresholds), while tribes demand *veto power* over infrastructure projects on ancestral lands—clashing with federal preemption norms.
-- County Autonomy vs. Uniform Standards**: Urban counties (e.g., Cook, LA) advocate for localized equity metrics, whereas rural counties (e.g., Oglala Lakota, TX counties) demand flexibility to prioritize broadband over water—highlighting tension between *context sensitivity* and *national comparability*.
-- Funding Allocation Logic**: States favor *population-weighted formulas*; tribes and EPA prioritize *vulnerability-adjusted formulas*; counties seek *block grants*—no consensus on weighting physical vs. socio-spatial risk.
+- County Capacity Disparities**: Urban counties (e.g., NYC) can deploy AI-driven infrastructure monitoring, but 147 rural counties lack broadband for data reporting—creating a *compliance gap* that undermines equity goals.
+- Health-Policy Fragmentation**: While states control Medicaid (enabling waiver flexibility), CMS remains hesitant to approve *infrastructure-triggered coverage* without Congressional mandate—stalling the bond pool’s viability.
 
 ---
 
@@ -54,16 +48,16 @@ Comprehensive democratic governance analysis of **Infrastructure Policy** for th
 
 | # | Score | Tier | Location | Subtopic | Excerpt |
 |---|-------|------|----------|----------|---------|
-| 1 | 1.150 | national | United States | Water Infrastructure Resilienc | ave improved access to reliable and affordable transportatio… |
-| 2 | 1.150 | national | United States | Broadband and Digital Infrastr | ... 1. **Broadband and Digital Infrastructure Expansion**   … |
-| 3 | 1.080 | state | Idaho | Broadband and Digital Infrastr | - **Evidence & Equity**: Cite federal funds (e.g., BEAD, FCC… |
-| 4 | 1.080 | state | Nevada | Broadband and Digital Infrastr | - **Evidence**: Use data from national sources (e.g., NTIA, … |
-| 5 | 1.050 | national | United States | Resilient and Sustainable Wate | ave better access to transportation options, while transpare… |
-| 6 | 1.000 | state | Michigan | Transportation Infrastructure  | Guiding Questions: What evidence supports each approach? Wha… |
-| 7 | 1.000 | state | New Jersey | Transportation Infrastructure  | Concise, evidence-based, actionable recommendations, and a c… |
-| 8 | 1.000 | state | Colorado | Broadband and Digital Infrastr | Evidence: [4] Colorado Office of Economic Development and In… |
-| 9 | 1.000 | state | New Mexico | Broadband and Digital Infrastr | Evidence: [4] New Mexico Public Regulation Authority. (2022)… |
-| 10 | 1.000 | state | Pennsylvania | Broadband and Digital Infrastr | Use only the provided references.  ## Output Format - **Curr… |
+| 1 | 1.080 | state | Florida | Water Infrastructure Policy An | Deliverable: A concise, actionable analysis, using data and … |
+| 2 | 1.050 | national | United States | Water Infrastructure | **Water Infrastructure Policy Analysis for the United States… |
+| 3 | 1.000 | state | Oregon | Water Infrastructure Policy An | Please ensure the analysis is grounded in current Oregon con… |
+| 4 | 1.000 | state | Rhode Island | Water Infrastructure Policy An | Deliverable: A 2-page memo. Use clear, actionable language. … |
+| 5 | 0.920 | state | Maine | Water Infrastructure Policy An | Evidence sources: peer-reviewed research, government reports… |
+| 6 | 0.920 | state | Minnesota | Water Infrastructure Policy An | Format: Use bullet points and tables for clarity and brevity… |
+| 7 | 0.920 | state | South Dakota | Water Infrastructure Policy An | Include one example of a successful implementation in a U.S.… |
+| 8 | 0.920 | state | Wisconsin | Water Infrastructure Policy An | Deliverables: A structured, evidence-based, stakeholder-info… |
+| 9 | 0.850 | national | United States | Transportation Infrastructure | **Transportation Infrastructure Policy Analysis: U.S. Contex… |
+| 10 | 0.850 | national | United States | Water Infrastructure Policy An | We are analyzing "Water Infrastructure Policy Analysis for t… |
 
 ---
 
@@ -71,27 +65,27 @@ Comprehensive democratic governance analysis of **Infrastructure Policy** for th
 
 ### Level 0
 
-- Transportation Infrastructure Modernization
-- Water Infrastructure Resilience
-- Broadband and Digital Infrastructure Expansion
+- Transportation Infrastructure
+- Water Infrastructure
+- Energy Infrastructure and Grid Modernization
 
 ### Level 1
 
-- Water Infrastructure Development
-- Broadband and Digital Infrastructure Expansion
-- Resilient and Sustainable Water Infrastructure
-- Water Infrastructure Resilience: Policy Analysis for the United States
-- Broadband and Digital Infrastructure Expansion
-- Clean Water and Wastewater System Upgrades
+- Transportation Infrastructure Policy Analysis: U.S. Context
+- Bridges
+- Water Infrastructure Policy Analysis for the United States
+- Drinking Water
+- Health Insurance Coverage
+- Cost Control
 
 ### Level 2
 
-- Water Infrastructure Development
-- Broadband and Digital Infrastructure Expansion
-- Broadband and Digital Infrastructure Expansion
-- Clean Energy and Climate Resilience
-- Clean Water and Wastewater Systems
-- Resilient and Sustainable Water Infrastructure
+- Health Insurance Coverage
+- Cost Control
+- Health Insurance Coverage
+- Cost Control
+- Current State of U.S. Water Infrastructure
+- Key Challenges
 
 ---
 
@@ -101,11 +95,11 @@ Each depth level was synthesised from all national, state, and county findings b
 
 ### Depth-1 Synthesis (3 subtopics, confidence 0.75)
 
-2. **Tribal sovereignty must be operationalized**: 3. **Geospatial vulnerability indices improve targeting**:1. GAO. (2024). *Tribal Infrastructure Needs and Federal responses*. GAO-24-106123. 2. FCC. (2025). *Broadband Deployment Report*. FCC-25-12. 3. EPA. (2024). *Water Infrastructure Resilience in Remote Areas*. EPA-840-R-24-001. 4. Urban Institute. (2024). *Equity Index Methodology*. https://www.urban.org/research/publication/equity-index-2024 5. Brookings Institution. (2025). *Data Gaps in
+Transport/Water infrastructure face high capital costs vs. Quality (health)’s operational focus. → *Resolution*: Create a *Resilience-Linked Bond Pool* where transport/water investments unlock health/prevention funding (e.g., port upgrades → Medicaid waivers for climate-health monitoring). 2. *Scale mismatch*: Urban health equity (Quality) demands localized services; rural transport/water needs require regional coordination. → *Resolution*: Adopt *Hybrid Governance Units* (e.g., regional infrast
 
-### Depth-2 Synthesis (3 subtopics, confidence 0.75)
+### Depth-2 Synthesis (2 subtopics, confidence 0.75)
 
-Require state/tribal plans to classify infrastructure zones by *physical vulnerability* (e.g., permafrost, coastal erosion, aridity) and *socio-spatial risk* (EJ Screen + tribal sovereignty metrics), triggering context-specific engineering standards and funding formulas. 2. **Integrated Resilience Bundles**: Mandate co-investment in water, broadband, and energy systems where physical overlap exists (e.g., co-locating fiber-optic cables with water mains in remote areas), with 30% of federal funds
+1. Health Insurance Coverage 2. Cost Control 3. Quality 4. Prevention 5. Equity
 
 
 ---
@@ -133,4 +127,4 @@ The decision was reached through trust-weighted voting across a panel representi
 
 ---
 
-*Report generated by Democratic Machine Learning System | 2026-03-28T01:04:17.375722*
+*Report generated by Democratic Machine Learning System | 2026-03-29T20:44:11.354099*

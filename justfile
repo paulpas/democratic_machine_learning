@@ -183,12 +183,36 @@ clean:
     -rm -rf {{ root / "coverage.xml" }}
     -rm -rf {{ root / "htmlcov" }}
 
-[doc("Remove generated output reports and social data files (keeps .gitkeep)")]
+[doc("Remove generated output reports and social data files (keeps .gitkeep and checkpoints/)")]
 [confirm("Delete all generated output files in output/?")]
 [group("maintenance")]
 clean-output:
-    -find {{ output }} -name "*.md" -not -name ".gitkeep" -delete
-    -find {{ output }} -name "*.json" -not -name ".gitkeep" -delete
+    -find {{ output }} -maxdepth 1 -name "*.md" -not -name ".gitkeep" -delete
+    -find {{ output }} -maxdepth 1 -name "*.json" -not -name ".gitkeep" -delete
+
+[doc("Delete domain checkpoints to force fresh LLM run: `just clean-checkpoints` (all) or `just clean-checkpoints economy healthcare`")]
+[group("maintenance")]
+clean-checkpoints *domains="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ckpt_dir="{{ output }}/checkpoints"
+    if [ ! -d "$ckpt_dir" ]; then
+        echo "No checkpoints directory found at $ckpt_dir"
+        exit 0
+    fi
+    if [ -z "{{ domains }}" ]; then
+        rm -rf "$ckpt_dir"
+        echo "All checkpoints deleted ($ckpt_dir)"
+    else
+        for d in {{ domains }}; do
+            if [ -d "$ckpt_dir/$d" ]; then
+                rm -rf "$ckpt_dir/$d"
+                echo "Checkpoints deleted for domain: $d"
+            else
+                echo "No checkpoints found for domain: $d"
+            fi
+        done
+    fi
 
 [doc("Upgrade all dependencies and regenerate uv.lock")]
 [group("maintenance")]

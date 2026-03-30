@@ -180,6 +180,232 @@ def _audit_error(call_number: int, label: str, error: Exception) -> None:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# CHECKPOINT SYSTEM
+# Provides fine-grained (per state/county) resume capability so a crashed or
+# interrupted run can continue exactly where it left off.
+#
+# Directory layout  output/checkpoints/<domain>/
+#   meta.json                              ← config hash + creation time
+#   level_0.json                           ← level-0 reasoning + subtopics
+#   level_{D}_subtopic_{I}_nat.json        ← national entry for subtopic I at depth D
+#   level_{D}_subtopic_{I}_state_{ABBR}.json   ← one state entry
+#   level_{D}_subtopic_{I}_county_{SLUG}.json  ← one county entry
+#   level_{D}_subtopic_{I}_conj.json       ← intermediate subtopic conjecture
+#   level_{D}_subtopic_{I}_done.json       ← sentinel: subtopic fully assembled
+#   level_{D}_conjecture.json              ← per-level intermediate conjecture
+#   synthesis.json                         ← final conjecture + best_solutions
+#                                            (existence == domain complete)
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+import hashlib as _hashlib
+
+
+def _make_config_hash(
+    max_depth: int,
+    subtopics_per_level: int,
+    geo_fan_out: bool,
+    progressive_synthesis: bool,
+    combine_geo: bool,
+) -> str:
+    """Return a 16-char hex hash of the five parameters that define run structure.
+
+    Any change to these values invalidates all existing checkpoints for a domain,
+    forcing a fresh run for that domain.
+    """
+    payload = json.dumps(
+        [max_depth, subtopics_per_level, geo_fan_out, progressive_synthesis, combine_geo],
+        sort_keys=True,
+    )
+    return _hashlib.sha256(payload.encode()).hexdigest()[:16]
+
+
+class CheckpointManager:
+    """Atomic, thread-safe per-domain checkpoint store.
+
+    Each domain gets its own instance.  Writes are atomic (tmp-file + os.replace)
+    so a mid-write crash never leaves a corrupt checkpoint.
+
+    Thread safety:
+      - Different domains → different instances → no sharing.
+      - Within a domain, each state/county file is written by exactly one thread
+        (the geo fan-out executor assigns one thread per geo unit), so no locking
+        is needed for those files.
+      - The ``save_subtopic_done`` sentinel is written after the executor joins,
+        from a single thread.
+    """
+
+    def __init__(self, domain: str, config_hash: str, base_dir: Path) -> None:
+        self._domain = domain
+        self._hash = config_hash
+        self._dir = base_dir / domain
+        self._dir.mkdir(parents=True, exist_ok=True)
+        self._write_meta()
+
+    # ── internal helpers ──────────────────────────────────────────────────────
+
+    def _path(self, name: str) -> Path:
+        return self._dir / name
+
+    def _write(self, path: Path, data: Dict[str, Any]) -> None:
+        """Atomic write: serialise to .tmp then os.replace (POSIX-atomic)."""
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+        os.replace(tmp, path)
+
+    def _read(self, path: Path) -> Optional[Dict[str, Any]]:
+        """Return parsed JSON, or None if missing, corrupt, or config-stale."""
+        try:
+            data: Dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+            if data.get("config_hash") != self._hash:
+                _log(f"  ⚠️  Checkpoint stale (config changed): {path.name} — ignoring")
+                return None
+            return data
+        except Exception:
+            return None
+
+    def _write_meta(self) -> None:
+        p = self._path("meta.json")
+        if not p.exists():
+            self._write(
+                p,
+                {
+                    "domain": self._domain,
+                    "config_hash": self._hash,
+                    "created_at": datetime.datetime.now().isoformat(),
+                },
+            )
+
+    # ── level 0 ───────────────────────────────────────────────────────────────
+
+    def save_level0(self, reasoning: str, subtopics: List[str]) -> None:
+        self._write(
+            self._path("level_0.json"),
+            {"config_hash": self._hash, "reasoning": reasoning, "subtopics": subtopics},
+        )
+
+    def load_level0(self) -> Optional[Tuple[str, List[str]]]:
+        d = self._read(self._path("level_0.json"))
+        if d:
+            return d["reasoning"], d["subtopics"]
+        return None
+
+    # ── national part of a subtopic ───────────────────────────────────────────
+
+    def save_nat(self, depth: int, idx: int, nat_entry: Dict[str, Any]) -> None:
+        self._write(
+            self._path(f"level_{depth}_subtopic_{idx}_nat.json"),
+            {"config_hash": self._hash, "nat_entry": nat_entry},
+        )
+
+    def load_nat(self, depth: int, idx: int) -> Optional[Dict[str, Any]]:
+        d = self._read(self._path(f"level_{depth}_subtopic_{idx}_nat.json"))
+        return d["nat_entry"] if d else None
+
+    # ── individual state ──────────────────────────────────────────────────────
+
+    def save_state(self, depth: int, idx: int, abbr: str, entry: Dict[str, Any]) -> None:
+        self._write(
+            self._path(f"level_{depth}_subtopic_{idx}_state_{abbr}.json"),
+            {"config_hash": self._hash, "entry": entry},
+        )
+
+    def load_state(self, depth: int, idx: int, abbr: str) -> Optional[Dict[str, Any]]:
+        d = self._read(self._path(f"level_{depth}_subtopic_{idx}_state_{abbr}.json"))
+        return d["entry"] if d else None
+
+    # ── individual county ─────────────────────────────────────────────────────
+
+    def save_county(self, depth: int, idx: int, name: str, entry: Dict[str, Any]) -> None:
+        slug = name.replace(" ", "_").replace("/", "_")
+        self._write(
+            self._path(f"level_{depth}_subtopic_{idx}_county_{slug}.json"),
+            {"config_hash": self._hash, "entry": entry},
+        )
+
+    def load_county(self, depth: int, idx: int, name: str) -> Optional[Dict[str, Any]]:
+        slug = name.replace(" ", "_").replace("/", "_")
+        d = self._read(self._path(f"level_{depth}_subtopic_{idx}_county_{slug}.json"))
+        return d["entry"] if d else None
+
+    # ── subtopic conjecture + done sentinel ───────────────────────────────────
+
+    def save_subtopic_conj(self, depth: int, idx: int, conj: Dict[str, Any]) -> None:
+        self._write(
+            self._path(f"level_{depth}_subtopic_{idx}_conj.json"),
+            {"config_hash": self._hash, "conj": conj},
+        )
+
+    def load_subtopic_conj(self, depth: int, idx: int) -> Optional[Dict[str, Any]]:
+        d = self._read(self._path(f"level_{depth}_subtopic_{idx}_conj.json"))
+        return d["conj"] if d else None
+
+    def save_subtopic_done(
+        self,
+        depth: int,
+        idx: int,
+        elab_list: List[Dict[str, Any]],
+        sub_subs: List[str],
+        subtopic_conj: Optional[Dict[str, Any]],
+    ) -> None:
+        self._write(
+            self._path(f"level_{depth}_subtopic_{idx}_done.json"),
+            {
+                "config_hash": self._hash,
+                "elab_list": elab_list,
+                "sub_subs": sub_subs,
+                "subtopic_conj": subtopic_conj,
+            },
+        )
+
+    def load_subtopic_done(
+        self, depth: int, idx: int
+    ) -> Optional[Tuple[List[Dict[str, Any]], List[str], Optional[Dict[str, Any]]]]:
+        d = self._read(self._path(f"level_{depth}_subtopic_{idx}_done.json"))
+        if d:
+            return d["elab_list"], d["sub_subs"], d.get("subtopic_conj")
+        return None
+
+    # ── level conjecture ──────────────────────────────────────────────────────
+
+    def save_level_conj(self, depth: int, conj: Dict[str, Any]) -> None:
+        self._write(
+            self._path(f"level_{depth}_conjecture.json"),
+            {"config_hash": self._hash, "conj": conj},
+        )
+
+    def load_level_conj(self, depth: int) -> Optional[Dict[str, Any]]:
+        d = self._read(self._path(f"level_{depth}_conjecture.json"))
+        return d["conj"] if d else None
+
+    # ── synthesis (domain-complete marker) ────────────────────────────────────
+
+    def save_synthesis(
+        self, final_conjecture: Dict[str, Any], best_solutions: List[Dict[str, Any]]
+    ) -> None:
+        self._write(
+            self._path("synthesis.json"),
+            {
+                "config_hash": self._hash,
+                "final_conjecture": final_conjecture,
+                "best_solutions": best_solutions,
+            },
+        )
+
+    def load_synthesis(
+        self,
+    ) -> Optional[Tuple[Dict[str, Any], List[Dict[str, Any]]]]:
+        d = self._read(self._path("synthesis.json"))
+        if d:
+            return d["final_conjecture"], d["best_solutions"]
+        return None
+
+    def synthesis_complete(self) -> bool:
+        """Return True if synthesis.json exists and matches the current config hash."""
+        return self._read(self._path("synthesis.json")) is not None
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # US GEOGRAPHY DATA - All 50 states + representative counties
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -629,13 +855,14 @@ class LLMClient:
         remaining for the calls not yet completed.
 
         Args:
-            completed: Number of calls completed so far (including this one).
+            completed: Lifetime calls completed so far.
 
         Returns:
             ETA string like 'ETA ~1h 23m' or 'ETA ~45m' or 'ETA ~30s',
             or '' if not enough data yet.
         """
-        total = self._total_calls_estimate
+        # Use lifetime estimate so ETA never resets at domain boundaries
+        total = self._lifetime_calls_estimate or self._total_calls_estimate
         if not total or not self._call_durations:
             return ""
         remaining = max(0, total - completed)
@@ -785,22 +1012,18 @@ class LLMClient:
             lifetime_num = self._lifetime_calls
 
         _log("")
-        if self._total_calls_estimate:
-            progress = f"{call_num}/{self._total_calls_estimate}"
-            pct = call_num / self._total_calls_estimate * 100
-            eta = self._eta_str(call_num - 1)  # ETA before this call completes
+        # Always display the lifetime counter so progress is unambiguous across
+        # domain boundaries (per-domain counter resets are no longer shown).
+        if self._lifetime_calls_estimate:
+            pct = lifetime_num / self._lifetime_calls_estimate * 100
+            eta = self._eta_str(lifetime_num - 1)
             eta_part = f"  {eta}" if eta else ""
-            # Show lifetime total when running multiple domains
-            if (
-                self._lifetime_calls_estimate
-                and self._lifetime_calls_estimate != self._total_calls_estimate
-            ):
-                lifetime_part = f"  [total {lifetime_num}/{self._lifetime_calls_estimate}]"
-            else:
-                lifetime_part = ""
-            _log(f"  🔄 LLM CALL {progress} ({pct:.1f}%){eta_part}{lifetime_part} | {label}")
+            _log(
+                f"  🔄 LLM CALL [{lifetime_num}/{self._lifetime_calls_estimate} | {pct:.1f}%]"
+                f"{eta_part} | {label}"
+            )
         else:
-            _log(f"  🔄 LLM CALL #{call_num} | {label}")
+            _log(f"  🔄 LLM CALL #{lifetime_num} | {label}")
         _log(
             f"     prompt_chars={len(prompt)}  max_tokens={max_tokens}  "
             f"temp={temperature}  workers={self._workers}"
@@ -1355,17 +1578,34 @@ class LLMClient:
 
         started_at = datetime.datetime.now()
 
-        # Reset per-domain counters so progress/ETA are relative to this domain,
-        # not accumulated across all domains in a multi-domain run.
+        # Reset per-domain call counter (for the per-domain llm_calls result field).
+        # Do NOT reset _call_durations — the rolling ETA window should span domains
+        # so the estimate stays accurate throughout a multi-domain run.
         with self._lock:
             self._call_count = 0
-            self._call_durations.clear()
 
-        # Pre-compute call estimate so every _call_llm can show X/total progress
+        # ── Checkpoint manager for this domain ────────────────────────────────
+        _cfg_hash = _make_config_hash(
+            max_depth,
+            subtopics_per_level,
+            include_state_county_rep,
+            _cfg.progressive_synthesis,
+            _cfg.combine_geo_investigate_elaborate,
+        )
+        _ckpt = CheckpointManager(
+            domain,
+            _cfg_hash,
+            Path(get_config().checkpoint_dir),
+        )
+
+        # Pre-compute call estimate (using the ACTUAL resolved params, not cfg
+        # defaults, to avoid the estimate/actual mismatch that caused X/Y > 1).
         est = estimate_calls(
             max_depth=max_depth,
             subtopics_per_level=subtopics_per_level,
             geo_fan_out=include_state_county_rep,
+            combine_geo=_cfg.combine_geo_investigate_elaborate,
+            progressive_synthesis=_cfg.progressive_synthesis,
             domains=1,
         )
         self._total_calls_estimate = est["calls_per_domain"]
@@ -1381,6 +1621,7 @@ class LLMClient:
         )
         _log(f"  endpoint       : {self.endpoint}")
         _log(f"  audit_log      : {_LOG_FILE}")
+        _log(f"  checkpoint_dir : {_ckpt._dir}")
         _log(f"  est. LLM calls : ~{self._total_calls_estimate:,} for this domain")
         _log("")
 
@@ -1417,9 +1658,18 @@ class LLMClient:
         # ── LEVEL 0: initial domain overview ──────────────────────────────────
         _log_section(f"LEVEL 0 | domain={domain} | tier=national | depth=0")
 
-        level0_reasoning = self.investigate_domain_initial(domain, context, principles)
-        if not level0_reasoning:
-            level0_reasoning = f"Overview of {domain} policy for the United States."
+        _l0_cached = _ckpt.load_level0()
+        if _l0_cached:
+            level0_reasoning, current_subtopics = _l0_cached
+            _log("  ⏩ LEVEL 0 loaded from checkpoint")
+        else:
+            level0_reasoning = self.investigate_domain_initial(domain, context, principles)
+            if not level0_reasoning:
+                level0_reasoning = f"Overview of {domain} policy for the United States."
+            current_subtopics = self._extract_subtopics_from_text(
+                level0_reasoning, domain, subtopics_per_level
+            )
+            _ckpt.save_level0(level0_reasoning, current_subtopics)
 
         results["recursive_analysis"]["level_0"] = {
             "tier": "national",
@@ -1427,11 +1677,6 @@ class LLMClient:
             "domain": domain,
             "reasoning": level0_reasoning,
         }
-
-        # Extract initial subtopics from the LLM response, fall back to seeds
-        current_subtopics = self._extract_subtopics_from_text(
-            level0_reasoning, domain, subtopics_per_level
-        )
         results["subtopics_by_level"]["level_0"] = current_subtopics
         _log(f"  subtopics extracted: {len(current_subtopics)}")
         for i, s in enumerate(current_subtopics, 1):
@@ -1457,6 +1702,7 @@ class LLMClient:
                 _level0: str = level0_reasoning,
                 _include_geo: bool = include_state_county_rep,
                 _spl: int = subtopics_per_level_int,
+                _ckpt_ref: CheckpointManager = _ckpt,
                 search_query: Optional[str] = None,
             ) -> Tuple[List[Dict[str, Any]], List[str], Optional[Dict[str, Any]]]:
                 """Process a single subtopic (national + optional geo fan-out).
@@ -1466,46 +1712,62 @@ class LLMClient:
                 Designed to run in a thread.
                 """
                 idx, subtopic = idx_subtopic
+
+                # ── fast path: full subtopic already checkpointed ─────────────
+                _done = _ckpt_ref.load_subtopic_done(_depth, idx)
+                if _done:
+                    _done_elab, _done_subs, _done_conj = _done
+                    _log(f"  ⏩ SUBTOPIC fully cached (depth={_depth} idx={idx}): {subtopic}")
+                    return _done_elab, _done_subs, _done_conj
+
                 _log("")
                 _log_subsection(
                     f"SUBTOPIC {idx}/{len(active_subtopics)} | depth={_depth} | {subtopic}"
                 )
 
                 # ── national level ────────────────────────────────────────────
-                _log(f"  🌐 NATIONAL  population={US_NATIONAL_POPULATION:,}")
-                nat_reasoning = self.investigate_subtopic(
-                    domain=_domain,
-                    subtopic=subtopic,
-                    tier="national",
-                    tier_label="United States",
-                    tier_population=US_NATIONAL_POPULATION,
-                    depth=_depth,
-                    principles=_principles,
-                    parent_context=_level0,
-                    search_query=search_query,
-                )
-                nat_elab = self.elaborate_subtopic(
-                    domain=_domain,
-                    subtopic=subtopic,
-                    tier="national",
-                    tier_label="United States",
-                    tier_population=US_NATIONAL_POPULATION,
-                    depth=_depth,
-                    principles=_principles,
-                    prior_reasoning=nat_reasoning,
-                    search_query=search_query,
-                )
-                nat_entry: Dict[str, Any] = {
-                    "domain": _domain,
-                    "subtopic": subtopic,
-                    "tier": "national",
-                    "tier_label": "United States",
-                    "tier_population": US_NATIONAL_POPULATION,
-                    "depth": _depth,
-                    "reasoning": nat_reasoning,
-                    "elaboration": nat_elab,
-                    "finding": (nat_reasoning + " " + nat_elab)[:600],
-                }
+                _nat_cached = _ckpt_ref.load_nat(_depth, idx)
+                if _nat_cached:
+                    nat_entry = _nat_cached
+                    nat_reasoning: str = nat_entry["reasoning"]
+                    _log(f"  ⏩ national cached")
+                else:
+                    _log(f"  🌐 NATIONAL  population={US_NATIONAL_POPULATION:,}")
+                    nat_reasoning = self.investigate_subtopic(
+                        domain=_domain,
+                        subtopic=subtopic,
+                        tier="national",
+                        tier_label="United States",
+                        tier_population=US_NATIONAL_POPULATION,
+                        depth=_depth,
+                        principles=_principles,
+                        parent_context=_level0,
+                        search_query=search_query,
+                    )
+                    nat_elab = self.elaborate_subtopic(
+                        domain=_domain,
+                        subtopic=subtopic,
+                        tier="national",
+                        tier_label="United States",
+                        tier_population=US_NATIONAL_POPULATION,
+                        depth=_depth,
+                        principles=_principles,
+                        prior_reasoning=nat_reasoning,
+                        search_query=search_query,
+                    )
+                    nat_entry = {
+                        "domain": _domain,
+                        "subtopic": subtopic,
+                        "tier": "national",
+                        "tier_label": "United States",
+                        "tier_population": US_NATIONAL_POPULATION,
+                        "depth": _depth,
+                        "reasoning": nat_reasoning,
+                        "elaboration": nat_elab,
+                        "finding": (nat_reasoning + " " + nat_elab)[:600],
+                    }
+                    _ckpt_ref.save_nat(_depth, idx, nat_entry)
+
                 elab_list: List[Dict[str, Any]] = [nat_entry]
                 st_entries: List[Dict[str, Any]] = []
                 co_entries: List[Dict[str, Any]] = []
@@ -1519,6 +1781,8 @@ class LLMClient:
                         principles=_principles,
                         prior_reasoning=nat_reasoning,
                         search_query=search_query,
+                        ckpt=_ckpt_ref,
+                        subtopic_idx=idx,
                     )
                     elab_list.extend(st_entries)
                     elab_list.extend(co_entries)
@@ -1530,15 +1794,21 @@ class LLMClient:
                 # ── progressive synthesis: per-subtopic intermediate conjecture ─
                 subtopic_conj: Optional[Dict[str, Any]] = None
                 if self._cfg.progressive_synthesis:
-                    _log(f"  🔬 Intermediate synthesis: subtopic='{subtopic}' depth={_depth}")
-                    subtopic_conj = self._intermediate_conjecture_subtopic(
-                        domain=_domain,
-                        subtopic=subtopic,
-                        depth=_depth,
-                        nat_entry=nat_entry,
-                        state_entries=st_entries,
-                        county_entries=co_entries,
-                    )
+                    _conj_cached = _ckpt_ref.load_subtopic_conj(_depth, idx)
+                    if _conj_cached:
+                        subtopic_conj = _conj_cached
+                        _log(f"  ⏩ subtopic conjecture cached")
+                    else:
+                        _log(f"  🔬 Intermediate synthesis: subtopic='{subtopic}' depth={_depth}")
+                        subtopic_conj = self._intermediate_conjecture_subtopic(
+                            domain=_domain,
+                            subtopic=subtopic,
+                            depth=_depth,
+                            nat_entry=nat_entry,
+                            state_entries=st_entries,
+                            county_entries=co_entries,
+                        )
+                        _ckpt_ref.save_subtopic_conj(_depth, idx, subtopic_conj)
                     _log(
                         f"  ✅ Subtopic conjecture confidence={subtopic_conj.get('confidence', 0):.2f}"
                     )
@@ -1546,6 +1816,9 @@ class LLMClient:
                 sub_subs = self._extract_subtopics_from_text(
                     nat_reasoning, subtopic, max(2, _spl // (_depth + 1))
                 )
+
+                # Write done sentinel — marks subtopic fully assembled
+                _ckpt_ref.save_subtopic_done(_depth, idx, elab_list, sub_subs, subtopic_conj)
                 return elab_list, sub_subs, subtopic_conj
 
             # ── dispatch subtopics (parallel if workers > 1) ──────────────────
@@ -1600,15 +1873,21 @@ class LLMClient:
 
             # ── progressive synthesis: per-level intermediate conjecture ──────
             if _cfg.progressive_synthesis and level_subtopic_conjectures:
-                _log(
-                    f"  🔬 Intermediate level synthesis: depth={depth} "
-                    f"subtopics={len(level_subtopic_conjectures)}"
-                )
-                level_conj = self._intermediate_conjecture_level(
-                    domain=domain,
-                    depth=depth,
-                    subtopic_conjectures=level_subtopic_conjectures,
-                )
+                _lc_cached = _ckpt.load_level_conj(depth)
+                if _lc_cached:
+                    level_conj = _lc_cached
+                    _log(f"  ⏩ Level {depth} conjecture loaded from checkpoint")
+                else:
+                    _log(
+                        f"  🔬 Intermediate level synthesis: depth={depth} "
+                        f"subtopics={len(level_subtopic_conjectures)}"
+                    )
+                    level_conj = self._intermediate_conjecture_level(
+                        domain=domain,
+                        depth=depth,
+                        subtopic_conjectures=level_subtopic_conjectures,
+                    )
+                    _ckpt.save_level_conj(depth, level_conj)
                 results["level_conjectures"].append(level_conj)
                 _log(f"  ✅ Level conjecture confidence={level_conj.get('confidence', 0):.2f}")
 
@@ -1643,34 +1922,41 @@ class LLMClient:
         )
 
         use_progressive = _cfg.progressive_synthesis and bool(level_conjs)
-        if use_progressive:
-            _log(f"  Using progressive synthesis ({len(level_conjs)} level conjectures)")
-            evidence_for_final: List[Dict[str, Any]] = level_conjs
-        else:
-            _log(f"  Using flat synthesis (first {_cfg.synthesis_evidence_limit} elaborations)")
-            evidence_for_final = results["all_elaborations"][: _cfg.synthesis_evidence_limit]
 
-        final_conjecture = self.form_conjecture(
-            question=final_question,
-            context=context,
-            evidence=evidence_for_final,
-            domain=domain,
-            max_tokens=_cfg.max_tokens_synthesis,
-            use_level_conjectures=use_progressive,
-        )
+        _syn_cached = _ckpt.load_synthesis()
+        if _syn_cached:
+            final_conjecture, best_solutions = _syn_cached
+            _log("  ⏩ Synthesis loaded from checkpoint")
+        else:
+            if use_progressive:
+                _log(f"  Using progressive synthesis ({len(level_conjs)} level conjectures)")
+                evidence_for_final: List[Dict[str, Any]] = level_conjs
+            else:
+                _log(f"  Using flat synthesis (first {_cfg.synthesis_evidence_limit} elaborations)")
+                evidence_for_final = results["all_elaborations"][: _cfg.synthesis_evidence_limit]
+
+            final_conjecture = self.form_conjecture(
+                question=final_question,
+                context=context,
+                evidence=evidence_for_final,
+                domain=domain,
+                max_tokens=_cfg.max_tokens_synthesis,
+                use_level_conjectures=use_progressive,
+            )
+
+            _log("")
+            _log_section(f"RANKING SOLUTIONS | domain={domain}")
+            best_solutions = self._rank_solutions_with_geographic_weighting(
+                all_elaborations=results["all_elaborations"],
+                domain=domain,
+            )
+            _ckpt.save_synthesis(final_conjecture, best_solutions)
+
         results["final_conjecture"] = final_conjecture
+        results["best_solutions"] = best_solutions
 
         _log(f"  conjecture confidence: {final_conjecture.get('confidence', 0):.2f}")
         _log(f"  statement: {final_conjecture.get('statement', '')[:100]}…")
-
-        # ── RANKING ───────────────────────────────────────────────────────────
-        _log("")
-        _log_section(f"RANKING SOLUTIONS | domain={domain}")
-        best_solutions = self._rank_solutions_with_geographic_weighting(
-            all_elaborations=results["all_elaborations"],
-            domain=domain,
-        )
-        results["best_solutions"] = best_solutions
         _log(f"  solutions ranked: {len(best_solutions)}")
         for i, sol in enumerate(best_solutions[:5], 1):
             _log(f"  {i}. score={sol['score']:.3f} tier={sol['tier']} | {sol['solution'][:80]}…")
@@ -1845,6 +2131,8 @@ class LLMClient:
         principles: List[str],
         prior_reasoning: str,
         search_query: Optional[str] = None,
+        ckpt: Optional[CheckpointManager] = None,
+        subtopic_idx: int = 0,
     ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
         """
         Investigate a subtopic across all 50 states and representative counties.
@@ -1853,6 +2141,13 @@ class LLMClient:
         to a ``ThreadPoolExecutor`` so that up to ``_workers`` HTTP calls run
         concurrently.  The semaphore inside ``_call_llm`` ensures we never exceed
         the server's parallel-slot capacity.
+
+        Args:
+            ckpt:         Optional CheckpointManager — when provided, each
+                          state/county result is loaded from / saved to disk so
+                          a resumed run skips already-completed geo units.
+            subtopic_idx: 1-based subtopic index within the current depth level,
+                          used to construct unique checkpoint filenames.
 
         Returns:
             Tuple of (state_elaborations, county_elaborations) in stable order.
@@ -1902,39 +2197,59 @@ class LLMClient:
                     prior_reasoning = f"Public opinion context:\n{search_text}\n\n{prior_reasoning}"
 
         # Build the full work list: states first, counties second.
-        # Each item is (callable, args) so we can dispatch uniformly.
         state_items = list(US_STATES.items())  # [(abbr, state_data), ...]
         county_items = list(REPRESENTATIVE_COUNTIES)  # [county_data, ...]
 
+        # ── Per-state helper (checkpoint-aware) ───────────────────────────────
+        def _maybe_state(abbr: str, state_data: Dict[str, Any]) -> Dict[str, Any]:
+            if ckpt is not None:
+                cached = ckpt.load_state(depth, subtopic_idx, abbr)
+                if cached is not None:
+                    _log(f"    ⏩ state {abbr} cached")
+                    return cached
+            entry = self._investigate_one_state(
+                abbr,
+                state_data,
+                domain,
+                subtopic,
+                depth,
+                principles,
+                prior_reasoning,
+                search_query,
+            )
+            if ckpt is not None:
+                ckpt.save_state(depth, subtopic_idx, abbr, entry)
+            return entry
+
+        # ── Per-county helper (checkpoint-aware) ──────────────────────────────
+        def _maybe_county(county_data: Dict[str, Any]) -> Dict[str, Any]:
+            county_name = county_data["name"]
+            if ckpt is not None:
+                cached = ckpt.load_county(depth, subtopic_idx, county_name)
+                if cached is not None:
+                    _log(f"    ⏩ county {county_name} cached")
+                    return cached
+            entry = self._investigate_one_county(
+                county_data,
+                domain,
+                subtopic,
+                depth,
+                principles,
+                prior_reasoning,
+                search_query,
+            )
+            if ckpt is not None:
+                ckpt.save_county(depth, subtopic_idx, county_name, entry)
+            return entry
+
         if workers == 1:
-            # ── Sequential path (original behaviour) ─────────────────────────
+            # ── Sequential path ───────────────────────────────────────────────
             state_entries: List[Dict[str, Any]] = []
             county_entries: List[Dict[str, Any]] = []
             for abbr, state_data in state_items:
-                state_entries.append(
-                    self._investigate_one_state(
-                        abbr,
-                        state_data,
-                        domain,
-                        subtopic,
-                        depth,
-                        principles,
-                        prior_reasoning,
-                        search_query,
-                    )
-                )
+                state_entries.append(_maybe_state(abbr, state_data))
             for county_data in county_items:
-                county_entries.append(
-                    self._investigate_one_county(
-                        county_data,
-                        domain,
-                        subtopic,
-                        depth,
-                        principles,
-                        prior_reasoning,
-                        search_query,
-                    )
-                )
+                county_entries.append(_maybe_county(county_data))
             return state_entries, county_entries
 
         # ── Parallel path ─────────────────────────────────────────────────────
@@ -1953,30 +2268,11 @@ class LLMClient:
 
         with ThreadPoolExecutor(max_workers=n_threads, thread_name_prefix="geo_fan") as ex:
             for abbr, state_data in state_items:
-                f = ex.submit(
-                    self._investigate_one_state,
-                    abbr,
-                    state_data,
-                    domain,
-                    subtopic,
-                    depth,
-                    principles,
-                    prior_reasoning,
-                    search_query,
-                )
+                f = ex.submit(_maybe_state, abbr, state_data)
                 state_futures.append(f)
 
             for county_data in county_items:
-                f = ex.submit(
-                    self._investigate_one_county,
-                    county_data,
-                    domain,
-                    subtopic,
-                    depth,
-                    principles,
-                    prior_reasoning,
-                    search_query,
-                )
+                f = ex.submit(_maybe_county, county_data)
                 county_futures.append(f)
 
         # Collect results in original submission order (futures preserve order)

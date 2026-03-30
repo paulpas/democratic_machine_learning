@@ -1,5 +1,5 @@
 # AGENTS.md
-
+When you need to look up library docs or API references, use context7 tools.
 ## Build/Lint/Test Commands
 
 ```bash

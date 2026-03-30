@@ -1,6 +1,6 @@
 # United States Economy Governance Model
 
-*Generated: 2026-03-26T05:59:23.618000  |  Elapsed: 70586.3s  |  LLM Calls: 40  |  Tokens: 2879606*
+*Generated: 2026-03-29T03:07:27.866349  |  Elapsed: 15021.5s  |  LLM Calls: 158  |  Tokens: 622330*
 
 ---
 
@@ -17,8 +17,8 @@ Comprehensive democratic governance analysis of **Economy Policy** for the Unite
 | **Vote Tally** | 12 FOR, 0 AGAINST |
 | **Voter Participation** | 405 of 405 voters |
 | **LLM Enhancement** | ✅ ACTIVE |
-| **LLM Calls** | 40 |
-| **Total Tokens** | 2,879,606 |
+| **LLM Calls** | 158 |
+| **Total Tokens** | 622,330 |
 
 ### Social Data Collected
 
@@ -27,7 +27,7 @@ Comprehensive democratic governance analysis of **Economy Policy** for the Unite
 | **Reddit Opinions** | 45 |
 | **Media Narratives** | 42 |
 | **Avg Opinion Sentiment** | 0.912 |
-| **Avg Narrative Sentiment** | -0.024 |
+| **Avg Narrative Sentiment** | 0.056 |
 
 ---
 
@@ -35,13 +35,13 @@ Comprehensive democratic governance analysis of **Economy Policy** for the Unite
 
 **Confidence:** 0.75
 
-All tiers agree on the urgency of interoperable state-county data systems for policy detection/validation (Depth-1: *State/county needs*; Depth-2: *Digital Inclusion & Trust Infrastructure*). 2. **Mandatory PIAs as Equity Safeguards**: Consensus on embedding PIAs across tiers to prevent regressive outcomes (Depth-1: *Implications*; Depth-2: *Adaptive Governance & Accountability*). 3. **Physical Connectivity as Economic Multiplier**: Air/sea access gaps identified as critical bottlenecks requiring coordinated federal-state investment (Depth-1: *State/county needs*; Depth-2: *Place-Based Capacit
+All tiers agree that national policy must be informed by subnational data (e.g., ZIP-code inflation, race-stratified health outcomes, gig sector employment by county) to avoid “aggregate bias” (Depth-1 & Depth-2). 2. **Local Capacity Is Foundational**: Federal grants must fund *trained personnel* (e.g., labor auditors, health equity officers) at county levels—otherwise, even well-designed policies fail in implementation (Depth-1, Depth-2). 3. **Equity Must Be Measured, Not Assumed**: Mandatory Equity Impact Assessments (EIAs) for all policies are universally endorsed across tiers, with standar
 
 ### Contradicting Evidence
 
-- State vs. County Autonomy**: States prioritize standardized implementation (to avoid fragmentation), while counties demand flexibility for hyperlocal needs (e.g., rural vs. coastal economies). *Depth-1* notes “governance capacity” gaps in counties, but *Depth-2*’s *County Adaptive Hubs* assume readiness—risking capacity asymmetry.
-- Federal Standardization vs. Local Innovation**: National Anchors require baseline equity metrics, but states (e.g., CA, TX) resist federal “one-size” definitions of “equity,” fearing erosion of regional priorities.
-- Funding vs. Accountability**: Federal grants for data infrastructure (Depth-1) lack teeth to enforce PIA compliance at county levels, creating “paper compliance” risks without monitoring capacity.
+- Funding Mechanisms**: Federal grants often come with prescriptive reporting requirements, but counties report “capacity overload”—spending >40% of grant time on compliance rather than delivery (Depth-1). States lack authority to waive federal reporting without losing funds.
+- Data Sovereignty vs. Interoperability**: Counties collect granular data, but states and the federal government struggle to harmonize definitions (e.g., “gig work” varies by state law), undermining cross-jurisdictional analysis (Depth-1 & Depth-2).
+- Federal Standardization vs. State Sovereignty**: While all tiers agree on the *need* for common metrics, states like AK and MS resist federal definition of “equity” (e.g., whether to prioritize income, race, or geography), fearing loss of cultural/political autonomy.
 
 ---
 
@@ -49,16 +49,16 @@ All tiers agree on the urgency of interoperable state-county data systems for po
 
 | # | Score | Tier | Location | Subtopic | Excerpt |
 |---|-------|------|----------|----------|---------|
-| 1 | 1.150 | national | United States | Mandatory Principle Impact Ass | and analyze Mandatory Principle Impact Assessments (PIAs) wi… |
-| 2 | 1.080 | state | Alaska | Mandatory Principle Impact Ass | Your response should be precise, data-driven, and directly a… |
-| 3 | 1.080 | state | Colorado | Mandatory Principle Impact Ass | Use in-text citations and a references list.  Okay, the user… |
-| 4 | 1.080 | state | Florida | Mandatory Principle Impact Ass | Include citations and references to credible sources includi… |
-| 5 | 1.080 | state | Iowa | Mandatory Principle Impact Ass | Conclude with a concise executive summary (≤ 300 words) for … |
-| 6 | 1.050 | national | United States | Give 1-2 concrete mechanisms | and analyze two concrete mechanisms for economic policy. The… |
-| 7 | 1.050 | national | United States | Clarification | and analyze 'Clarification' as a subtopic of economic policy… |
-| 8 | 1.050 | national | United States | Strengths | and analyze the "Strengths" subtopic within economic policy.… |
-| 9 | 1.000 | state | New Mexico | Name the challenge | Use at least 3 credible sources.  ## Part 3 — Recommendation… |
-| 10 | 1.000 | state | Illinois | Link to principles explicitly | This ensures alignment with the principles.  ## Part 3 — Syn… |
+| 1 | 1.080 | state | California | Executive Action (0-12 months) | Use: - California-specific data from 2022-2025 - Peer-state … |
+| 2 | 1.000 | state | Georgia | Executive Action (0-12 months) | For each metric, specify: baseline (as of 2024), target (by … |
+| 3 | 1.000 | state | New Hampshire | Executive Action (0-12 months) | Use **bold** for key terms.  For evidence, I’ll reference **… |
+| 4 | 0.920 | state | Arizona | Executive Action (0-12 months) | Use sources like U.S. Bureau of Economic Analysis, U.S. Bure… |
+| 5 | 0.920 | state | Illinois | Executive Action (0-12 months) | Use peer-reviewed sources, government reports, and local exa… |
+| 6 | 0.920 | state | Massachusetts | Executive Action (0-12 months) | Use: - 2023–2025 US and MA-specific data - 2024–2025 policy … |
+| 7 | 0.850 | national | United States | Monetary Policy and Inflation  | ivity, Transparency, Accountability, Adaptability, and Equit… |
+| 8 | 0.850 | national | United States | Executive Action (0-12 months) | ivity, Transparency, Accountability, and Equity.  First, I s… |
+| 9 | 0.840 | state | Minnesota | Executive Action (0-12 months) | Evidence: cite recent data, studies, and comparable state ex… |
+| 10 | 0.840 | state | Montana | Executive Action (0-12 months) | Use federal data sources (e.g., U.S. Census Bureau, BLS, Fed… |
 
 ---
 
@@ -66,27 +66,27 @@ All tiers agree on the urgency of interoperable state-county data systems for po
 
 ### Level 0
 
-- Name the challenge
-- Link to principles explicitly
-- Give 1-2 concrete mechanisms
+- Monetary Policy and Inflation Management
+- Labor Market Modernization and Worker Protections
+- Targeted Infrastructure Investment
 
 ### Level 1
 
-- Clarification
-- Strengths
-- Mandatory Principle Impact Assessments (PIAs)
-- Dynamic Data Ecosystem
-- Challenges (highlighting how current design fails marginalized groups)
-- Best approaches (grounded in OECD/Urban Institute research)
+- Inclusivity, Transparency, Accountability, Adaptability, and Equity
+- Inflation Trajectory
+- Executive Action (0-12 months)
+- Legislative Action (12-36 months)
+- Health Insurance Coverage
+- Cost Control
 
 ### Level 2
 
-- Technical Complexity Dominates
-- Inconsistent Messaging
-- Innovation Engine
-- Resilient Institutions
-- Critical Contextual Note
-- No Central Mandate
+- Health Insurance Coverage
+- Cost Control
+- Health Insurance Coverage
+- Cost Control
+- Month 1-2: Design & Coordination
+- Month 3-6: Rapid Action & Pilot Launches
 
 ---
 
@@ -96,13 +96,11 @@ Each depth level was synthesised from all national, state, and county findings b
 
 ### Depth-1 Synthesis (3 subtopics, confidence 0.75)
 
-7. Implications: 3 critical implications for policymakers (2026)
+All subtopics require county-level metrics (e.g., inflation by ZIP code, gig work by industry, health outcomes by race). 2. **Local capacity building is critical**: Federal grants must fund state/county staff training (e.g., Fed economists, labor auditors, health equity officers). 3. **Equity must be measured, not assumed**: Mandate impact assessments for every policy (e.g., how a rate hike affects rural gig workers or suburban Medicaid enrollees).
 
-**Cross-cutting state/county needs:** Data infrastructure (for detection/validation); Governance capacity (for co-governance); Physical connectivity (air/sea access issues)
+### Depth-2 Synthesis (2 subtopics, confidence 0.75)
 
-### Depth-2 Synthesis (3 subtopics, confidence 0.75)
-
-1. **Digital Inclusion & Trust Infrastructure** (integrates *Clarification*, *Strengths*, *Mandatory PIAs*) 2. **Place-Based Capacity Building** (leverages *Strengths*’ hubs + *Clarification*’s non-digital outreach) 3. **Adaptive Governance & Accountability** (embeds *Mandatory PIAs* + *Clarification*’s community boards)
+1. Health Insurance Coverage 2. Cost Control 3. Quality 4. Prevention 5. Equity
 
 
 ---
@@ -130,4 +128,4 @@ The decision was reached through trust-weighted voting across a panel representi
 
 ---
 
-*Report generated by Democratic Machine Learning System | 2026-03-26T05:59:23.618000*
+*Report generated by Democratic Machine Learning System | 2026-03-29T03:07:27.866349*

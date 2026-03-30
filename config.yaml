@@ -320,3 +320,12 @@ web_search:
   add_current_date: true              # Append current date to queries
   add_location_context: true          # Add US location context
   location_bias: "United States"      # Geographic bias for results
+
+
+# ----------------------------------------------------------------------------
+# Resume / checkpointing
+# Override with: DML_CHECKPOINT_DIR=/path/to/dir
+# Use `just clean-checkpoints` to discard checkpoints (forces fresh run).
+# Use `just run --no-resume` to ignore checkpoints for a single run.
+# ----------------------------------------------------------------------------
+checkpoint_dir: "output/checkpoints"

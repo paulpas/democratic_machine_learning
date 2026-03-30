@@ -1,6 +1,6 @@
 # United States Climate Governance Model
 
-*Generated: 2026-03-27T23:42:08.906982  |  Elapsed: 79785.6s  |  LLM Calls: 723  |  Tokens: 9116599*
+*Generated: 2026-03-29T15:18:31.055841  |  Elapsed: 19540.3s  |  LLM Calls: 216  |  Tokens: 2581553*
 
 ---
 
@@ -17,8 +17,8 @@ Comprehensive democratic governance analysis of **Climate Policy** for the Unite
 | **Vote Tally** | 9 FOR, 0 AGAINST |
 | **Voter Participation** | 402 of 402 voters |
 | **LLM Enhancement** | ✅ ACTIVE |
-| **LLM Calls** | 723 |
-| **Total Tokens** | 9,116,599 |
+| **LLM Calls** | 216 |
+| **Total Tokens** | 2,581,553 |
 
 ### Social Data Collected
 
@@ -27,7 +27,7 @@ Comprehensive democratic governance analysis of **Climate Policy** for the Unite
 | **Reddit Opinions** | 45 |
 | **Media Narratives** | 42 |
 | **Avg Opinion Sentiment** | 0.852 |
-| **Avg Narrative Sentiment** | 0.048 |
+| **Avg Narrative Sentiment** | 0.000 |
 
 ---
 
@@ -35,7 +35,11 @@ Comprehensive democratic governance analysis of **Climate Policy** for the Unite
 
 **Confidence:** 0.75
 
-1. **Place-based specificity is non-negotiable** — Alaska’s permafrost melt, Louisiana’s subsidence, and Hawaii’s isolation each require distinct technical and institutional responses (Depth-1, all states). 2. **Local agency drives outcomes** — County/tribal co-design correlates with higher buy-in, faster permitting (−40%), and improved EJ metrics (Depth-2, CA SB 100, IL Clean Jobs Bill). 3. **Co-benefits are catalysts** — Dual-use solar on agricultural land (LA, CA) simultaneously advances resilience, climate mitigation, and environmental justice (Depth-1, Subtopics 1 & 3). 4. **Grid moderniz
+5. Policy implications: 3 actionable recommendations
+
+### Contradicting Evidence
+
+- Policy Implications:** 1) Establish *Equity Impact Assessment* as mandatory for all climate funding applications; 2) Create *County Climate Resilience Directors* with direct federal grant access pathways; 3) Enact *Preemption Safeguards* preventing states from overriding county-level adaptation orders for imminent climate threats.
 
 ---
 
@@ -43,16 +47,16 @@ Comprehensive democratic governance analysis of **Climate Policy** for the Unite
 
 | # | Score | Tier | Location | Subtopic | Excerpt |
 |---|-------|------|----------|----------|---------|
-| 1 | 1.080 | state | West Virginia | Environmental Justice Integrat | Include federal funding opportunities and how to leverage th… |
-| 2 | 1.050 | national | United States | Transportation Electrification | icism.  First, I need to recall the key areas in US climate … |
-| 3 | 1.000 | state | Illinois | Clean Energy Deployment and Gr | Include links to relevant Illinois statutes, federal grants … |
-| 4 | 1.000 | state | Nebraska | Climate Resilience and Adaptat | Include considerations for rural, urban, tribal, and frontli… |
-| 5 | 1.000 | state | Nevada | Climate Resilience and Adaptat | Include specific examples of successful implementation in ot… |
-| 6 | 1.000 | state | Missouri | Environmental Justice Integrat | Use verified data sources.  Okay, the user is asking me to a… |
-| 7 | 1.000 | state | Arkansas | Clean Energy Deployment & Grid | Focus: 3 high-impact, feasible priorities aligned with Arkan… |
-| 8 | 1.000 | state | Louisiana | Clean Energy Deployment & Grid | - **Evidence**: Use peer-reviewed studies, cost-benefit anal… |
-| 9 | 1.000 | state | Nebraska | Clean Energy Deployment & Grid | Include: (1) economic impact, (2) social justice, (3) enviro… |
-| 10 | 1.000 | state | West Virginia | Clean Energy Deployment & Grid | The user wants me to provide a comprehensive response follow… |
+| 1 | 1.150 | national | United States | Climate-Resilient Infrastructu | ites benefit from clean energy investments, and equity by pr… |
+| 2 | 1.000 | state | Maryland | Climate-Resilient Infrastructu | - Use credible sources: peer-reviewed studies, federal (NOAA… |
+| 3 | 0.950 | national | United States | Climate-Resilient Infrastructu | ites benefit from clean energy investments, and equity throu… |
+| 4 | 0.920 | state | California | Climate-Resilient Infrastructu | *Note: Include citations from credible, accessible sources (… |
+| 5 | 0.920 | state | Idaho | Climate-Resilient Infrastructu | Include the following stakeholders: State agencies, utility … |
+| 6 | 0.920 | state | Indiana | Climate-Resilient Infrastructu | Use academic, government, and reputable NGO sources.  Okay, … |
+| 7 | 0.920 | state | Massachusetts | Climate-Resilient Infrastructu | Sources: peer-reviewed studies, government reports, academic… |
+| 8 | 0.920 | state | Nevada | Climate-Resilient Infrastructu | Evidence: Use peer-reviewed research, government reports (e.… |
+| 9 | 0.920 | state | New Jersey | Climate-Resilient Infrastructu | Include three specific examples of how climate-resilient inf… |
+| 10 | 0.920 | state | North Carolina | Climate-Resilient Infrastructu | Include state-specific data and citations.  ## Part 3 — Solu… |
 
 ---
 
@@ -60,27 +64,27 @@ Comprehensive democratic governance analysis of **Climate Policy** for the Unite
 
 ### Level 0
 
-- Clean Energy Deployment and Grid Modernization
-- Climate Resilience and Adaptation Infrastructure
-- Environmental Justice Integration
+- Clean Energy Transition
+- Climate-Resilient Infrastructure
+- Just Transition for Workers and Communities
 
 ### Level 1
 
-- Clean Energy Deployment & Grid Modernization
-- Transportation Electrification & Sustainable Mobility
-- Bipartisan Infrastructure Law (BIL)
-- FEMA’s Building Resilient Infrastructure and Communities (BRIC) program
-- Environmental Justice Integration
-- Climate Resilience and Adaptation Equity
+- Current State
+- Key Challenges
+- Climate-Resilient Infrastructure
+- Land Use and Urban Planning
+- Health Insurance Coverage
+- Cost Control
 
 ### Level 2
 
-- Scale EPA’s Clean School Bus Program to 100% electric by 2035
-- Mandate 30% of state EV infrastructure plans to serve disadvantaged communities
-- Infrastructure Inequity
-- Affordability & Access
-- Bipartisan Infrastructure Law (BIL)
-- Permitting & Siting Delays
+- Health Insurance Coverage
+- Cost Control
+- Health Insurance Coverage
+- Cost Control
+- Climate-Resilient Infrastructure
+- Adaptation & Resilience Building
 
 ---
 
@@ -90,11 +94,11 @@ Each depth level was synthesised from all national, state, and county findings b
 
 ### Depth-1 Synthesis (3 subtopics, confidence 0.75)
 
-Alaska’s permafrost, Hawaii’s island isolation, and Louisiana’s subsidence *all* require bespoke solutions (Subtopics 1, 2, 3). 2. **Local agency drives success**: County/tribal input improves buy-in for grids (Subtopic 1), resilience (Subtopic 2), and EJ (Subtopic 3). 3. **Co-benefits are essential**: Solar farms on agricultural land (Subtopic 1) align with EJ (Subtopic 3) and resilience (Subtopic 2, e.g., drought-resistant crops in CA).Federal interconnection waivers (Subtopic 1) may override 
+The output must be a single paragraph. Limit to 120 words.
 
-### Depth-2 Synthesis (3 subtopics, confidence 0.75)
+### Depth-2 Synthesis (2 subtopics, confidence 0.75)
 
-1. [Point 1] 2. [Point 2] 3. [Point 3]1. [Tension 1] 2. [Tension 2] 3. [Tension 3]78% of states with advanced grid modernization (e.g., CA, NY, HI) report faster EV adoption and lower curtailment of renewables (NREL, 2025). 2. **Equity impact**: Projects with mandatory CBAs (e.g., CA SB 100, IL Clean Jobs Bill) show 2.3× higher frontline-community job placement and 40% faster permitting (White House CEQ, 2025). 3. **Rural viability**: Microgrid pilots in Alaska (Dillingham) and Hawaii (Lanai) cu
+1. Health Insurance Coverage 2. Cost Control 3. Quality 4. Prevention 5. Equity
 
 
 ---
@@ -122,4 +126,4 @@ The decision was reached through trust-weighted voting across a panel representi
 
 ---
 
-*Report generated by Democratic Machine Learning System | 2026-03-27T23:42:08.906982*
+*Report generated by Democratic Machine Learning System | 2026-03-29T15:18:31.055841*

@@ -38,7 +38,9 @@ from src.data.social_narrative_collector import SocialNarrativeCollector
 from src.llm.integration import (
     US_NATIONAL_POPULATION,
     US_STATES,
+    CheckpointManager,
     LLMClient,
+    _make_config_hash,
     estimate_calls,
 )
 from src.models.policy import Policy, PolicyDomain
@@ -343,11 +345,13 @@ def run_domain(
     domain: str,
     llm_client: LLMClient,
     social_collector: SocialNarrativeCollector,
+    no_resume: bool = False,
 ) -> Dict[str, Any]:
     """
     Full production analysis for a single policy domain.
 
     Steps:
+      0. Check for a complete checkpoint (skip LLM if found and no_resume=False)
       1. Collect real-time social data (Reddit + Google News)
       2. Build national/state/county voter pool
       3. Run deep-recursive LLM investigation (all 50 states + counties)
@@ -355,8 +359,100 @@ def run_domain(
       5. Assemble final report dict
     """
     started = datetime.datetime.now()
+
+    # ── 0. Checkpoint check ───────────────────────────────────────────────────
+    _vp = get_config().voter_pool
+    _llm_cfg = get_config().llm
+    _cfg_hash = _make_config_hash(
+        _vp.prod_llm_max_depth,
+        _vp.prod_llm_subtopics_per_level,
+        _vp.prod_geo_fan_out,
+        _llm_cfg.progressive_synthesis,
+        _llm_cfg.combine_geo_investigate_elaborate,
+    )
+    _ckpt_base = Path(get_config().checkpoint_dir)
+    _ckpt_mgr = CheckpointManager(domain, _cfg_hash, _ckpt_base)
+
+    if no_resume:
+        import shutil
+
+        _domain_ckpt_dir = _ckpt_base / domain
+        if _domain_ckpt_dir.exists():
+            shutil.rmtree(_domain_ckpt_dir)
+            log(f"  🗑️  Cleared checkpoints for domain={domain} (--no-resume)")
+        # Re-create manager after clearing
+        _ckpt_mgr = CheckpointManager(domain, _cfg_hash, _ckpt_base)
     log("")
     log_banner(f"DOMAIN: {domain.upper()}  |  started={started.strftime('%H:%M:%S')}")
+
+    # ── Fast path: entire domain already checkpointed ─────────────────────────
+    if _ckpt_mgr.synthesis_complete():
+        log(f"  ⏩ DOMAIN {domain} fully complete — synthesis checkpoint found.")
+        log(f"     Skipping all LLM calls.  Loading results from checkpoint.")
+        _syn = _ckpt_mgr.load_synthesis()
+        assert _syn is not None  # guaranteed by synthesis_complete()
+        _final_conjecture, _best_solutions = _syn
+
+        # We still need the voter-pool decision (fast, deterministic, no LLM)
+        log(f"  Initialising DecisionEngine and voter pool for domain={domain} ...")
+        _engine_fast = DecisionEngine()
+        _policy_id_fast = f"us_{domain}_2026"
+        from src.models.policy import Policy as _Policy
+        from src.models.region import Region as _Region
+
+        _engine_fast.register_policy(
+            _Policy(
+                policy_id=_policy_id_fast,
+                name=f"United States {domain.capitalize()} Policy 2026",
+                description=(f"Comprehensive {domain} policy reform for the United States."),
+                domain=DOMAIN_ENUM_MAP[domain],
+            )
+        )
+        _engine_fast.register_region(
+            _Region(
+                region_id="US",
+                name="United States",
+                region_type="national",
+                population=US_NATIONAL_POPULATION,
+            )
+        )
+        _build_national_voter_pool(_engine_fast, domain, _policy_id_fast)
+        _decision_fast = _engine_fast.make_decision(policy_id=_policy_id_fast, region_id="US")
+        elapsed = (datetime.datetime.now() - started).total_seconds()
+        log(f"  ✅ Domain {domain} loaded from checkpoint in {elapsed:.1f}s")
+        return {
+            "domain": domain,
+            "policy_id": _policy_id_fast,
+            "timestamp": started.isoformat(),
+            "elapsed_seconds": elapsed,
+            "decision": {
+                "outcome": _decision_fast.outcome,
+                "confidence": round(_decision_fast.confidence, 4),
+                "votes_for": _decision_fast.votes_for,
+                "votes_against": _decision_fast.votes_against,
+                "voters_participated": len(_decision_fast.voters_participated),
+                "total_voters": len(_engine_fast.voters),
+            },
+            "social_data": {
+                "total_opinions": 0,
+                "total_narratives": 0,
+                "average_opinion_sentiment": 0.0,
+                "average_narrative_sentiment": 0.0,
+                "total_engagement": 0,
+                "data_sources": ["checkpoint"],
+            },
+            "llm_results": {
+                "domain": domain,
+                "final_conjecture": _final_conjecture,
+                "best_solutions": _best_solutions,
+                "llm_calls": 0,
+                "total_tokens": 0,
+            },
+            "final_conjecture": _final_conjecture,
+            "best_solutions": _best_solutions[:10],
+            "total_llm_calls": 0,
+            "total_tokens": 0,
+        }
 
     # ── 1. Social data ────────────────────────────────────────────────────────
     log(f"  Collecting social narratives for domain={domain} ...")
@@ -685,6 +781,11 @@ def main() -> int:
         action="store_true",
         help="Print the active configuration and exit",
     )
+    parser.add_argument(
+        "--no-resume",
+        action="store_true",
+        help="Ignore existing checkpoints and start every domain from scratch",
+    )
     args = parser.parse_args()
 
     # ── load configuration (before any src imports that call get_config()) ────
@@ -731,6 +832,8 @@ def main() -> int:
         max_depth=_vp_cfg.prod_llm_max_depth,
         subtopics_per_level=_vp_cfg.prod_llm_subtopics_per_level,
         geo_fan_out=_vp_cfg.prod_geo_fan_out,
+        combine_geo=_cfg.llm.combine_geo_investigate_elaborate,
+        progressive_synthesis=_cfg.llm.progressive_synthesis,
         domains=len(domains),
     )
     llm_client._lifetime_calls_estimate = _est["total_calls"]
@@ -766,7 +869,7 @@ def main() -> int:
             char="*",
         )
         try:
-            result = run_domain(domain, llm_client, social_collector)
+            result = run_domain(domain, llm_client, social_collector, no_resume=args.no_resume)
             write_report(result)
             log(
                 f"  ✅ {domain} complete — "

@@ -370,6 +370,10 @@ class AppConfig:
     voter_pool: VoterPoolConfig = field(default_factory=VoterPoolConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
 
+    # Resume / checkpoint directory (top-level — not tied to any sub-section)
+    # Env override: DML_CHECKPOINT_DIR=path
+    checkpoint_dir: str = "output/checkpoints"
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # YAML loader (optional dependency — falls back gracefully if PyYAML missing)
@@ -487,14 +491,19 @@ def _apply_raw_dict(cfg: AppConfig, raw: Dict[str, Any]) -> None:
         "logging": cfg.logging,
     }
     for section_name, section_data in raw.items():
-        section_name = section_name.lower()
-        if section_name not in section_map:
+        section_name_lower = section_name.lower()
+        # Top-level scalar fields (not sub-sections)
+        if section_name_lower == "checkpoint_dir":
+            if isinstance(section_data, str):
+                cfg.checkpoint_dir = section_data
+            continue
+        if section_name_lower not in section_map:
             logger.debug("Config: unknown section '%s' — skipped.", section_name)
             continue
         if not isinstance(section_data, dict):
             logger.debug("Config: section '%s' is not a mapping — skipped.", section_name)
             continue
-        _apply_section_dict(section_map[section_name], section_data)
+        _apply_section_dict(section_map[section_name_lower], section_data)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -566,6 +575,11 @@ def _apply_legacy_env(cfg: AppConfig) -> None:
             section_obj = getattr(cfg, section)
             current = getattr(section_obj, key)
             setattr(section_obj, key, _coerce(val, type(current)))
+
+    # Top-level env override for checkpoint directory
+    ckpt_env = os.environ.get("DML_CHECKPOINT_DIR")
+    if ckpt_env:
+        cfg.checkpoint_dir = ckpt_env
 
 
 def get_config() -> AppConfig:
