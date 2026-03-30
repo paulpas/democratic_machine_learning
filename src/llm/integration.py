@@ -2452,7 +2452,7 @@ class LLMClient:
             )
 
         return {
-            "statement": statement.strip()[:600],
+            "statement": statement.strip(),  # no truncation — full text used in report
             "confidence": max(0.0, min(1.0, confidence)),
             "supporting_evidence": supporting[:10],
             "contradicting_evidence": contradicting[:10],
