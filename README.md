@@ -271,8 +271,8 @@ just collect economy        # one domain
 
 # ── Configuration ────────────────────────────────────────────────────────────
 just show-config            # print active config.yaml + env overrides
-just show-config-demo       # print configs/demo.yaml effective values
-just show-config-prod       # print configs/production.yaml effective values
+just show-config-demo       # print config/demo.yaml effective values
+just show-config-prod       # print config/production.yaml effective values
 
 # ── Development ──────────────────────────────────────────────────────────────
 just test                   # pytest with ≥95% coverage
@@ -339,8 +339,8 @@ web_search:
 | File | Use |
 |------|-----|
 | `config.yaml` | Default production config (edit this) |
-| `configs/production.yaml` | Explicit full-depth reference |
-| `configs/demo.yaml` | Minimal config for `just demo-run` (~30 s) |
+| `config/production.yaml` | Explicit full-depth reference |
+| `config/demo.yaml` | Minimal config for `just demo-run` (~30 s) |
 
 See **[CONFIG.md](CONFIG.md)** for the complete reference — every parameter with its
 default value, valid range, runtime effect, and performance impact.
@@ -356,7 +356,7 @@ uv run src/ui/profile_menu.py
 # Full run — built-in domains (CLI shorthand)
 uv run run_all_domains.py
 uv run run_all_domains.py economy healthcare
-uv run run_all_domains.py --config configs/demo.yaml economy
+uv run run_all_domains.py --config config/demo.yaml economy
 
 # Full run — named profile (writes to output/<profile-name>/)
 uv run run_all_domains.py --profile default
@@ -387,11 +387,9 @@ democratic_machine_learning/
 ├── .python-version             # Pins Python 3.12 for uv
 ├── config.yaml                 # Default production configuration (edit this)
 │
-├── configs/
+├── config/                     ← ALL CONFIGURATION LIVES HERE
 │   ├── demo.yaml               # Minimal config for just demo-run (~30 s)
-│   └── production.yaml         # Explicit full-depth production reference
-│
-├── config/
+│   ├── production.yaml         # Explicit full-depth production reference
 │   └── profiles/               ← PROFILE DEFINITIONS LIVE HERE
 │       ├── default.yaml        # Built-in 6-domain production profile
 │       └── README.md           # Profile authoring guide

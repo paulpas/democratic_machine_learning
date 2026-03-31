@@ -9,7 +9,7 @@
 #
 # Usage:
 #   just run                                    # uses root config.yaml
-#   python3 run_all_domains.py --config configs/production.yaml
+#   python3 run_all_domains.py --config config/production.yaml
 #
 # Expected: ~700 LLM calls per domain, 2–4 h on CPU, 20–40 min on GPU.
 # ============================================================================

@@ -3,7 +3,7 @@
 
 Usage:
     uv run scripts/estimate_calls.py
-    uv run scripts/estimate_calls.py --config configs/demo.yaml
+    uv run scripts/estimate_calls.py --config config/demo.yaml
     uv run scripts/estimate_calls.py --domains 3
 """
 

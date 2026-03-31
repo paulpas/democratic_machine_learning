@@ -35,7 +35,7 @@ root    := justfile_directory()
 src     := root / "src"
 tests   := root / "tests"
 scripts := root / "scripts"
-configs := root / "configs"
+config  := root / "config"
 output  := root / "output"
 
 # require() aborts with a clear message if the binary is not in PATH
@@ -43,8 +43,8 @@ uv     := require("uv")
 python := require("python3")
 
 # Config file paths — / operator, no shell needed
-cfg_demo    := configs / "demo.yaml"
-cfg_prod    := configs / "production.yaml"
+cfg_demo    := config / "demo.yaml"
+cfg_prod    := config / "production.yaml"
 
 # Informational: detect whether a local .env override file exists
 has_dotenv  := if path_exists(root / ".env") == "true" { "yes (loaded)" } else { "no" }
@@ -99,7 +99,7 @@ run *domains="": sync
     {{ uv }} run run_all_domains.py {{ domains }}
 
 # Quick demo run that exercises every code path in ~30 seconds.
-# Uses configs/demo.yaml: depth=1, 1 subtopic, no geo fan-out, 256-token budgets.
+# Uses config/demo.yaml: depth=1, 1 subtopic, no geo fan-out, 256-token budgets.
 # Default domain is economy; override with: `just demo-run healthcare`
 [doc("Demo run — shallow depth, no geo fan-out, ~30 s per domain (default: economy)")]
 [group("run")]

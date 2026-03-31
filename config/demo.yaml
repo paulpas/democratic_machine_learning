@@ -9,7 +9,7 @@
 # Usage:
 #   just demo-run                  # runs economy domain by default
 #   just demo-run healthcare       # specific domain
-#   python3 run_all_domains.py --config configs/demo.yaml economy
+#   python3 run_all_domains.py --config config/demo.yaml economy
 #
 # Expected: ~6 LLM calls per domain, < 60 s on any GPU, < 5 min on CPU.
 # ============================================================================

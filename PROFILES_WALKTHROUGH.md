@@ -433,7 +433,7 @@ uv run run_all_domains.py --profile opioid-ai-study
 
 # Combine with other flags
 uv run run_all_domains.py --profile default --no-resume
-uv run run_all_domains.py --profile default --config configs/demo.yaml
+uv run run_all_domains.py --profile default --config config/demo.yaml
 
 # Show effective config for a profile run (does not start analysis)
 uv run run_all_domains.py --profile default --show-config
@@ -597,7 +597,7 @@ ERROR: Profile not found: my-profile (expected at: config/profiles/my-profile.ya
 ```
 
 The profile YAML file does not exist. Check:
-1. The file is in `config/profiles/`, not `configs/` (note: no `s` on `config`)
+1. The file is in `config/profiles/` — there is only one `config/` directory
 2. The filename matches the `--profile` argument exactly (case-sensitive on Linux)
 3. The YAML is valid — run `python3 -c "import yaml; yaml.safe_load(open('config/profiles/my-profile.yaml'))"` to check
 
