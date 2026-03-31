@@ -239,67 +239,78 @@ and hyphens are both permitted.
   > US opioid crisis and AI governance — comparative analysis
 ```
 
-### Step 4 — Select topics (Step 3/4, Part 1)
+### Step 4 — Enter topics (free-text, primary path)
 
-A checkbox list of the six built-in domains appears. They are all pre-checked:
-
-```
- Select Topics / Domains  (Step 1)
-
-  Space = toggle  ·  Enter = confirm  ·  Esc = cancel
-
-  [x] Economy
-  [x] Healthcare
-  [x] Education
-  [x] Immigration
-  [ ] Climate
-  [ ] Infrastructure
-```
-
-Uncheck the domains you don't want (Space to toggle), then press `Enter`. For this
-example, deselect all six (we'll use only custom topics).
-
-### Step 5 — Add custom topics (Step 3/4, Part 2)
+The first screen is a free-text input. **Any subject is valid** — policy, science,
+history, world events, grandmother's recipe. The six built-in policy domains are not
+pre-filled or required.
 
 ```
- Add Custom Topics?  (Step 2)
+ Enter Topics to Analyse
 
-  Would you like to add custom free-text topics?
+  Type one or more topics separated by commas.
+  Any subject is valid — policy, science, history, recipes, world events.
 
   Examples:
-    opioid crisis, AI governance,
-    housing affordability, water scarcity
+    opioid crisis
+    AI governance, data privacy
+    grandmother's apple pie recipe
+    US immigration, housing affordability, climate
 
-  [Yes — add topics]    [No — continue]
+  Leave blank to skip to the built-in domain shortcut list.
+
+  > opioid crisis, AI governance_
 ```
 
-Press `Enter` on **Yes**.
+Type `opioid crisis, AI governance` and press `Enter`.
+
+### Step 5 — Optional built-in domain shortcuts
 
 ```
- Enter Custom Topics
+ Add Built-in Domain Shortcuts?
 
-  Type topic names separated by commas:
-  > opioid crisis, AI governance
+  Would you like to also pick from the 6 standard policy domains?
+  (economy, healthcare, education, immigration, climate, infrastructure)
+
+  None are selected by default — this is purely a convenience shortcut.
+
+  [Show shortcut list]    [No — use my topics only]
 ```
 
-Type `opioid crisis, AI governance` and press `Enter`. These strings become your domains
-verbatim.
+Press `Enter` on **No — use my topics only** (or choose **Show shortcut list** if you
+also want standard domains). If you open the shortcut list, **nothing is pre-checked** —
+you choose only what you explicitly want.
 
-### Step 6 — Recursion depth (Step 4/4)
+### Step 6 — Name the profile
+
+A name is suggested from your first topic. Accept or change it:
 
 ```
- Create Profile — Step 4/4: Recursion Depth
+ Create Profile — Name
 
-  Recursion depth (higher = more thorough, more LLM calls):
-    2 = quick exploration
-    4 = full production (default)
-    6 = exhaustive
+  Give this profile a short name (letters, numbers, hyphens, underscores).
+  It becomes the output sub-directory: output/<name>/
+
+  > opioid-crisis_
+```
+
+### Step 7 — Recursion depth
+
+```
+ Create Profile — Recursion Depth
+
+  How deep should the LLM investigate each topic?
+
+    2 = quick exploration   (~6 LLM calls, < 1 min)
+    4 = full production     (~700 calls per topic, hours)
+    6 = exhaustive          (very long — research-grade)
+
   > 4_
 ```
 
 Accept the default `4` by pressing `Enter`.
 
-### Step 7 — Profile created
+### Step 8 — Profile created
 
 ```
 Profile 'opioid-ai-study' created successfully.

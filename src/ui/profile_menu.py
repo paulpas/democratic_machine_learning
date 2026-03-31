@@ -151,63 +151,87 @@ def display_profile_summary(profile: ProfileConfig) -> None:
 
 
 def _select_domains_interactive() -> Optional[List[str]]:
-    """Checkbox list of built-in domains + free-text custom topic entry.
+    """Collect topics for a profile.
+
+    Flow (free-text first, built-in checkboxes as an optional shortcut):
+      1. Free-text entry — type *any* topic(s), comma-separated.
+         This is the primary path; no restriction on subject matter.
+      2. Optional built-in shortcut — checkbox list of the 6 default
+         policy domains, all **unchecked** by default.  Useful when the
+         user wants standard domains without typing them out.
 
     Returns:
-        Combined list of selected built-in domains + any custom topics,
-        or ``None`` if the user cancelled.
+        Combined, deduplicated list of topics, or ``None`` if cancelled.
     """
-    builtin = get_default_domains()
-
-    selected = checkboxlist_dialog(
-        title=HTML("<b>Select Topics / Domains  (Step 1)</b>"),
-        text=HTML(
-            "Space = toggle  ·  Enter = confirm  ·  Esc = cancel\n"
-            "Built-in domains are shown below.\n"
-            "You can also add free-text topics on the next screen."
-        ),
-        values=[(d, d.capitalize().replace("_", " ")) for d in builtin],
-        default_values=builtin,
-        style=STYLE,
-    ).run()
-
-    if selected is None:
-        return None  # user cancelled
-
-    # Offer free-text custom topics on top of the checkbox selection
-    add_custom = yes_no_dialog(
-        title=HTML("<b>Add Custom Topics?  (Step 2)</b>"),
+    # ── Step 1: free-text entry (primary path) ────────────────────────────
+    custom_raw = input_dialog(
+        title=HTML("<b>Enter Topics to Analyse</b>"),
         text=(
-            "Would you like to add custom free-text topics?\n\n"
+            "Type one or more topics separated by commas.\n"
+            "Any subject is valid — policy, science, history, recipes, world events.\n\n"
             "Examples:\n"
-            "  opioid crisis, AI governance,\n"
-            "  housing affordability, water scarcity"
+            "  opioid crisis\n"
+            "  AI governance, data privacy\n"
+            "  grandmother's apple pie recipe\n"
+            "  US immigration, housing affordability, climate\n\n"
+            "Leave blank to skip to the built-in domain shortcut list."
         ),
-        yes_text="Yes — add topics",
-        no_text="No — continue",
         style=STYLE,
     ).run()
 
-    if add_custom:
-        custom_raw = input_dialog(
-            title=HTML("<b>Enter Custom Topics</b>"),
-            text="Type topic names separated by commas:",
-            style=STYLE,
-        ).run()
+    if custom_raw is None:
+        return None  # user pressed Escape
 
-        if custom_raw:
-            custom_topics = [t.strip() for t in custom_raw.split(",") if t.strip()]
-            selected = list(selected) + custom_topics
+    custom_topics = [t.strip() for t in custom_raw.split(",") if t.strip()]
 
-    if not selected:
+    # ── Step 2: optional built-in domain shortcuts (all unchecked) ────────
+    add_builtin = yes_no_dialog(
+        title=HTML("<b>Add Built-in Domain Shortcuts?</b>"),
+        text=(
+            "Would you like to also pick from the 6 standard policy domains?\n"
+            "(economy, healthcare, education, immigration, climate, infrastructure)\n\n"
+            "None are selected by default — this is purely a convenience shortcut."
+        ),
+        yes_text="Show shortcut list",
+        no_text="No — use my topics only",
+        style=STYLE,
+    ).run()
+
+    builtin_selected: list = []
+    if add_builtin:
+        builtin = get_default_domains()
+        builtin_selected = (
+            checkboxlist_dialog(
+                title=HTML("<b>Built-in Domain Shortcuts  (all optional)</b>"),
+                text=HTML(
+                    "Space = toggle  ·  Enter = confirm  ·  Esc = skip\n"
+                    "None are pre-selected. Pick any you want added to your topic list."
+                ),
+                values=[(d, d.capitalize().replace("_", " ")) for d in builtin],
+                default_values=[],  # ← nothing pre-checked
+                style=STYLE,
+            ).run()
+            or []
+        )
+
+    # ── Merge, deduplicate, preserve order ────────────────────────────────
+    seen: set = set()
+    topics: list = []
+    for t in custom_topics + builtin_selected:
+        key = t.lower().strip()
+        if key and key not in seen:
+            seen.add(key)
+            topics.append(t)
+
+    if not topics:
         message_dialog(
-            title="No Topics Selected",
-            text="At least one topic is required.",
+            title="No Topics Entered",
+            text="At least one topic is required.\nPlease enter a topic or select a built-in domain.",
             style=STYLE,
         ).run()
         return None
 
-    return selected
+    return topics
 
 
 # ── main menu actions ─────────────────────────────────────────────────────────
@@ -261,10 +285,27 @@ def _action_select_and_run() -> None:
 
 
 def _action_create() -> None:
-    """Multi-step wizard to create a new profile."""
+    """Multi-step wizard to create a new profile.
+
+    Step order is intentional: topics come FIRST so the user thinks in terms
+    of *what to analyse* before naming the profile.  Any subject is valid —
+    the LLM has no topic restrictions.
+    """
+    # ── Step 1: what do you want to analyse? ─────────────────────────────
+    domains = _select_domains_interactive()
+    if not domains:
+        return
+
+    # ── Step 2: name the profile ──────────────────────────────────────────
+    # Suggest a slug derived from the first topic for convenience
+    topic_slug = domains[0].lower().strip().replace(" ", "-")[:24]
     name_raw = input_dialog(
-        title=HTML("<b>Create Profile — Step 1/4: Name</b>"),
-        text="Enter a profile name (letters, numbers, hyphens only):",
+        title=HTML("<b>Create Profile — Name</b>"),
+        text=(
+            "Give this profile a short name (letters, numbers, hyphens, underscores).\n"
+            "It becomes the output sub-directory: output/<name>/"
+        ),
+        default=topic_slug,
         style=STYLE,
     ).run()
 
@@ -281,25 +322,23 @@ def _action_create() -> None:
         ).run()
         return
 
+    # ── Step 3: optional description ─────────────────────────────────────
     description = input_dialog(
-        title=HTML("<b>Create Profile — Step 2/4: Description</b>"),
-        text="Brief description (press Enter to use default):",
-        default=f"Custom analysis for {name}",
+        title=HTML("<b>Create Profile — Description  (optional)</b>"),
+        text="One-line description — press Enter to use the default:",
+        default=", ".join(domains[:3]) + (" …" if len(domains) > 3 else ""),
         style=STYLE,
     ).run()
 
-    # Step 3 — topic/domain selection (built-in + custom free-text)
-    domains = _select_domains_interactive()
-    if not domains:
-        return
-
+    # ── Step 4: recursion depth ───────────────────────────────────────────
     depth_raw = input_dialog(
-        title=HTML("<b>Create Profile — Step 4/4: Recursion Depth</b>"),
+        title=HTML("<b>Create Profile — Recursion Depth</b>"),
         text=(
-            "Recursion depth (higher = more thorough, more LLM calls):\n"
-            "  2 = quick exploration\n"
-            "  4 = full production (default)\n"
-            "  6 = exhaustive"
+            "How deep should the LLM investigate each topic?\n\n"
+            "  2 = quick exploration   (~6 LLM calls, < 1 min)\n"
+            "  4 = full production     (~700 calls per topic, hours)\n"
+            "  6 = exhaustive          (very long — research-grade)\n\n"
+            "Press Enter to accept the default."
         ),
         default="4",
         style=STYLE,
