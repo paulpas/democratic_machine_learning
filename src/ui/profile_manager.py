@@ -6,10 +6,16 @@ Provides functions to create, edit, delete, and manage profile configurations.
 from __future__ import annotations
 
 import logging
+import sys
 from pathlib import Path
 from typing import Any, Dict, List
 
 import yaml
+
+# Ensure repo root is on sys.path when this module is imported directly.
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
 from src.ui.profile_loader import (
     ProfileConfig,

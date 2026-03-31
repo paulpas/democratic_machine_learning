@@ -20,6 +20,13 @@ import sys
 from pathlib import Path
 from typing import List, Optional
 
+# Ensure the repo root is on sys.path so `src.*` imports work when this
+# script is invoked directly (e.g. `uv run src/ui/profile_menu.py`).
+# __file__ = src/ui/profile_menu.py  →  .parents[2] = repo root
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
 from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.shortcuts import (
     checkboxlist_dialog,
