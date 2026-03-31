@@ -83,32 +83,86 @@ def _save_cache(cache_dir: Path, key: str, data: Dict[str, Any]) -> None:
 
 
 class WebSearcher:
-    """Web search with JavaScript rendering using Playwright."""
+    """Web search with JavaScript rendering using Playwright.
+
+    Playwright's sync_api uses greenlets which are thread-local.  A browser
+    created in thread A **cannot** be used from thread B.  To allow safe use
+    inside a ThreadPoolExecutor, all Playwright state is stored in a
+    ``threading.local()`` object so each worker thread gets its own browser
+    instance, initialised lazily on first use within that thread.
+    """
 
     def __init__(self):
         """Initialize web searcher."""
+        import threading
+
         self._cfg = get_config().web_search
         self._cache_dir = _get_cache_dir()
-        self._browser = None
-        self._context = None
-        self._initialized = False
+        # Thread-local storage: each thread maintains its own browser/context.
+        # _cfg and _cache_dir are read-only and safe to share.
+        self._local = threading.local()
+
+    # ── thread-local property helpers ─────────────────────────────────────
+
+    @property
+    def _initialized(self) -> bool:
+        return getattr(self._local, "initialized", False)
+
+    @_initialized.setter
+    def _initialized(self, value: bool) -> None:
+        self._local.initialized = value
+
+    @property
+    def _browser(self):
+        return getattr(self._local, "browser", None)
+
+    @_browser.setter
+    def _browser(self, value) -> None:
+        self._local.browser = value
+
+    @property
+    def _context(self):
+        return getattr(self._local, "context", None)
+
+    @_context.setter
+    def _context(self, value) -> None:
+        self._local.context = value
+
+    @property
+    def _playwright(self):
+        return getattr(self._local, "playwright", None)
+
+    @_playwright.setter
+    def _playwright(self, value) -> None:
+        self._local.playwright = value
+
+    # ── initialisation ────────────────────────────────────────────────────
 
     def _ensure_initialized(self) -> None:
-        """Initialize Playwright browser if needed."""
+        """Initialize a Playwright browser for the **current thread** if needed.
+
+        Each thread that calls this gets its own browser instance so greenlets
+        never cross thread boundaries.
+        """
         if self._initialized:
             return
 
         try:
             import asyncio
 
-            asyncio.get_event_loop()
-        except RuntimeError:
-            asyncio.set_event_loop(asyncio.new_event_loop())
+            # Ensure there is an event loop in this thread (required on Python ≥ 3.10
+            # where get_event_loop() no longer creates one automatically).
+            try:
+                asyncio.get_event_loop()
+            except RuntimeError:
+                asyncio.set_event_loop(asyncio.new_event_loop())
+        except Exception:
+            pass
 
         try:
             from playwright.sync_api import sync_playwright
 
-            logger.debug("Initializing Playwright browser...")
+            logger.debug("Initializing Playwright browser (thread-local)...")
             self._playwright = sync_playwright().start()
 
             browser_type = self._cfg.browser_type
@@ -126,7 +180,7 @@ class WebSearcher:
                 }
             )
             self._initialized = True
-            logger.info("✅ Playwright browser initialized")
+            logger.info("✅ Playwright browser initialized (thread-local)")
 
         except ImportError:
             logger.warning("Playwright not installed. Install with: pip install playwright")
@@ -212,8 +266,8 @@ class WebSearcher:
 
         This provides reliable structured results without needing JavaScript rendering.
         """
-        import urllib.request
         import urllib.parse
+        import urllib.request
 
         try:
             encoded_query = urllib.parse.quote(query)
@@ -298,8 +352,8 @@ class WebSearcher:
             cache_key = _get_cache_key(query)
             cached = _load_cache(self._cache_dir, cache_key)
             if cached:
-           logger.info(f"🔍 Web search cache hit for query: {query}")
-            return cached["results"][:max_results]
+                logger.info(f"🔍 Web search cache hit for query: {query}")
+                return cached["results"][:max_results]
 
         # Try DuckDuckGo API first (reliable, no JavaScript needed)
         logger.info(f"🔍 Web search (API): {query}")
@@ -464,12 +518,21 @@ class WebSearcher:
         return results
 
     def close(self) -> None:
-        """Clean up browser resources."""
-        if hasattr(self, "_browser") and self._browser:
-            self._browser.close()
-        if hasattr(self, "_playwright") and self._playwright:
-            self._playwright.stop()
+        """Clean up the current thread's browser resources."""
+        if self._browser:
+            try:
+                self._browser.close()
+            except Exception:
+                pass
+        if self._playwright:
+            try:
+                self._playwright.stop()
+            except Exception:
+                pass
         self._initialized = False
+        self._browser = None
+        self._context = None
+        self._playwright = None
 
 
 # ──────────────────────────────────────────────────────────────────────────────
