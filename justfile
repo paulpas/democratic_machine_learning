@@ -83,8 +83,16 @@ env-info: sync
 # Core recipes
 # ---------------------------------------------------------------------------
 
+# Interactive profile selection and analysis launcher.
+# Opens a TUI menu to create/select/edit profiles and kick off a run.
+[doc("Launch interactive profile menu — create/select/edit profiles, then run")]
+[group("run")]
+menu: sync
+    {{ uv }} run {{ src / "ui" / "profile_menu.py" }}
+
 # Full production run — all 6 domains, full depth, geo fan-out enabled.
 # Pass domain names to limit scope: `just run economy healthcare`
+# Pass --profile <name> to use a named profile: `just run --profile default`
 [doc("Full production run — all domains, full depth, geo fan-out enabled")]
 [group("run")]
 run *domains="": sync

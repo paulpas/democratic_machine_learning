@@ -37,7 +37,7 @@ import logging
 import os
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, ClassVar, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -290,6 +290,101 @@ class WebSearchConfig:
 
 
 @dataclass
+class ProfileConfig:
+    """Profile-specific configuration for topic selection.
+
+    Domains may be any of the six built-in policy areas *or* any free-text
+    topic string entered by the user (e.g. "opioid crisis", "AI governance").
+    Custom topics are processed identically to built-in domains — the LLM
+    investigation and geo fan-out are topic-agnostic.
+    """
+
+    name: str
+    description: str
+    domains: List[str]
+    depth: int = 2
+    subtopics_per_level: int = 3
+    geo_fan_out: bool = True
+    expert_allocation: Dict[str, int] = field(default_factory=dict)
+    llm_budgets: Dict[str, Any] = field(default_factory=dict)
+    social_collection: Dict[str, Any] = field(default_factory=dict)
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+    # The six built-in production domains (used only as defaults; not a
+    # restriction — any non-empty string is a valid domain/topic).
+    BUILTIN_DOMAINS: ClassVar[List[str]] = [
+        "economy",
+        "healthcare",
+        "education",
+        "immigration",
+        "climate",
+        "infrastructure",
+    ]
+
+    def validate(self) -> bool:
+        """Validate profile configuration.
+
+        Domains are *not* restricted to the six built-in policy areas — any
+        non-empty string is accepted so that users can analyse arbitrary topics.
+        Validation only rejects structurally malformed data (empty name, empty
+        domain list, non-string domain entries, non-positive depth/subtopics).
+        """
+        if not self.name or not isinstance(self.name, str):
+            return False
+        if not self.domains or not isinstance(self.domains, list):
+            return False
+        # Each domain must be a non-empty string (arbitrary text is fine)
+        if not all(isinstance(d, str) and d.strip() for d in self.domains):
+            return False
+        if self.depth < 1:
+            return False
+        if self.subtopics_per_level < 1:
+            return False
+        return True
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "ProfileConfig":
+        """Create a ProfileConfig from a dictionary.
+
+        Args:
+            data: Mapping with at minimum ``name`` and ``domains`` keys.
+
+        Raises:
+            ValueError: If ``name`` or ``domains`` are absent from *data*.
+        """
+        missing = [k for k in ("name", "domains") if k not in data]
+        if missing:
+            raise ValueError(f"Missing required fields: {', '.join(missing)}")
+        return cls(
+            name=data["name"],
+            description=data.get("description", ""),
+            domains=data["domains"],
+            depth=data.get("depth", 2),
+            subtopics_per_level=data.get("subtopics_per_level", 3),
+            geo_fan_out=data.get("geo_fan_out", True),
+            expert_allocation=data.get("expert_allocation", {}),
+            llm_budgets=data.get("llm_budgets", {}),
+            social_collection=data.get("social_collection", {}),
+            metadata=data.get("metadata", {}),
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert ProfileConfig to dictionary."""
+        return {
+            "name": self.name,
+            "description": self.description,
+            "domains": self.domains,
+            "depth": self.depth,
+            "subtopics_per_level": self.subtopics_per_level,
+            "geo_fan_out": self.geo_fan_out,
+            "expert_allocation": self.expert_allocation,
+            "llm_budgets": self.llm_budgets,
+            "social_collection": self.social_collection,
+            "metadata": self.metadata,
+        }
+
+
+@dataclass
 class VoterPoolConfig:
     """Synthetic voter-pool generation parameters (run_all_domains.py)."""
 
@@ -373,6 +468,9 @@ class AppConfig:
     # Resume / checkpoint directory (top-level — not tied to any sub-section)
     # Env override: DML_CHECKPOINT_DIR=path
     checkpoint_dir: str = "output/checkpoints"
+
+    # Profile-specific configuration (loaded via profile_loader)
+    profile: Optional[ProfileConfig] = None
 
 
 # ─────────────────────────────────────────────────────────────────────────────

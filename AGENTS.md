@@ -5,6 +5,7 @@ When you need to look up library docs or API references, use context7 tools.
 ```bash
 # ── Preferred: use just (manages uv + venv automatically) ────────────────────
 just sync          # install / update .venv
+just menu          # interactive profile menu (entry point for custom topics)
 just test          # full test suite with ≥95% coverage
 just test-one tests/unit/test_config.py  # single file
 just lint          # ruff check
@@ -13,9 +14,11 @@ just typecheck     # mypy
 just check         # lint + typecheck + test
 
 # ── Direct uv commands (if just is not available) ────────────────────────────
+uv run src/ui/profile_menu.py            # profile menu
+uv run run_all_domains.py --profile default   # run named profile
 uv run pytest --cov=src --cov-report=term-missing --cov-fail-under=95 tests/
+uv run pytest tests/unit/test_profile_system.py   # profile system tests
 uv run pytest tests/unit/test_config.py
-uv run pytest tests/unit/test_config.py::TestDefaults::test_default_max_depth
 uv run ruff check src/ tests/
 uv run mypy src/
 uv run ruff format src/ tests/
@@ -23,23 +26,58 @@ uv run ruff format src/ tests/
 
 ## Output Location
 
-All generated thesis documents and analysis artifacts are written to **`output/`**:
+All generated thesis documents and analysis artifacts are written to
+**`output/<profile-name>/`**:
 
 ```
-output/us_<domain>_governance_model.md   ← final thesis per domain
-output/session_summary.json              ← run metadata (tokens, calls, outcomes)
-output/social_<domain>.json              ← collected Reddit + News data
-output/logs/                             ← LLM call audit logs
-cache/web_search/                        ← cached web search results
+output/<profile-name>/us_<domain>_governance_model.md   ← final thesis per topic
+output/<profile-name>/session_summary.json              ← run metadata (tokens, calls, outcomes)
+output/social_<domain>.json                             ← collected Reddit + News data
+output/logs/                                            ← LLM call audit logs
+cache/web_search/                                       ← cached web search results
+```
+
+Default profile output (backward-compatible with old `output/us_<domain>_…` layout):
+
+```
+output/default/us_economy_governance_model.md
+output/default/us_healthcare_governance_model.md
+…
 ```
 
 These files are **not committed** (generated artifacts). Reproduce them with:
 
 ```bash
-just run          # full production run
+just menu         # interactive profile selection + run
+just run          # full production run (default 6 domains)
+just run --profile <name>   # named profile
 just demo-run     # quick ~30 s smoke-test
 just collect      # social data only
 ```
+
+## Profile System
+
+Profiles are YAML files in `config/profiles/`. Key API:
+
+```python
+from src.ui.profile_loader import load_profile, list_available_profiles, get_default_domains
+from src.ui.profile_manager import create_profile, update_profile, delete_profile
+from src.config import ProfileConfig
+
+# Load a profile
+profile = load_profile("default")
+print(profile.domains)   # ['economy', 'healthcare', ...]
+
+# Create a custom profile programmatically
+profile = create_profile(
+    name="opioid-study",
+    domains=["opioid crisis", "addiction policy"],
+    config_overrides={"depth": 4, "geo_fan_out": True},
+)
+```
+
+`ProfileConfig.BUILTIN_DOMAINS` lists the six default topics. Any non-empty string is a
+valid domain — custom topics go through the exact same LLM pipeline.
 
 ## Code Style Guidelines
 
@@ -279,20 +317,23 @@ The system is fully operational. Key facts:
 
 | Component | Status |
 |-----------|--------|
-| Config system | `src/config.py` — YAML + env vars + defaults, 9 sections, ~90 params |
+| Config system | `src/config.py` — YAML + env vars + defaults, 9 sections, ~90 params + `ProfileConfig` |
+| Profile system | `config/profiles/` — YAML profiles; `src/ui/profile_{loader,manager,menu}.py` |
 | LLM client | `src/llm/integration.py` — parallel via ThreadPoolExecutor + Semaphore |
 | Social collector | `src/data/social_narrative_collector.py` — Reddit + Google News, thread-safe cache |
 | Decision engine | `src/core/decision_engine.py` — trust-weighted voting, anti-pattern detection |
-| Test suite | 129 tests passing, ≥95% coverage |
-| just recipes | `justfile` — run, demo-run, collect, test, lint, fmt, typecheck, check |
-| uv project | `pyproject.toml` + `uv.lock` — reproducible 39-package environment |
-| Output | `output/us_<domain>_governance_model.md` per domain (not committed) |
+| Test suite | 166+ tests passing, ≥95% coverage (incl. 36 profile system tests) |
+| just recipes | `justfile` — menu, run, demo-run, collect, test, lint, fmt, typecheck, check |
+| uv project | `pyproject.toml` + `uv.lock` — reproducible 44-package environment |
+| Output | `output/<profile-name>/us_<domain>_governance_model.md` per topic (not committed) |
 
 **Default parallel_workers: 2** — set `llm.parallel_workers` to match `--parallel N` on llama-server.
 
 **To resume work in a new session:**
 1. Read `ARCHITECTURE.md` for system overview and output location
 2. Read `CONFIG.md` for all configurable parameters
-3. Run `just env-info` to verify the environment
-4. Run `just demo-run` to smoke-test the full pipeline
-5. Run `just run` for full production analysis
+3. Read `PROFILES_WALKTHROUGH.md` for the profile/menu system
+4. Run `just env-info` to verify the environment
+5. Run `just demo-run` to smoke-test the full pipeline
+6. Run `just menu` for interactive profile selection
+7. Run `just run` for full production analysis (default 6 domains)

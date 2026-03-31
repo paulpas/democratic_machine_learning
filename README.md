@@ -5,30 +5,37 @@ It simulates multi-tiered decision-making (county → state → national), appli
 trust-weighted voting, collects live social data from Reddit and Google News, performs
 real-time web search for up-to-date information, runs deep recursive policy analysis
 through a local LLM (llama.cpp), and produces final governance **thesis documents**
-across six major policy domains.
+across any policy topic you choose.
+
+Comes pre-configured for six major US policy domains. An **interactive profile menu**
+(`just menu`) lets you define entirely new topics — "opioid crisis", "AI governance",
+"housing affordability" — and run the same PhD-quality analysis on them without touching
+any code.
 
 ---
 
 ## Table of Contents
 
 1. [What It Does](#what-it-does)
-2. [Where Output Lives](#where-output-lives)
-3. [Requirements](#requirements)
-4. [Installation](#installation)
-5. [LLM Setup (llama.cpp)](#llm-setup-llamacpp)
-6. [Quick Start — just recipes](#quick-start--just-recipes)
-7. [Configuration](#configuration)
-8. [Running Without just](#running-without-just)
-9. [Repository Structure](#repository-structure)
-10. [Key Concepts](#key-concepts)
-11. [Documentation Index](#documentation-index)
+2. [Profile System — Choose Your Topic](#profile-system--choose-your-topic)
+3. [Where Output Lives](#where-output-lives)
+4. [Requirements](#requirements)
+5. [Installation](#installation)
+6. [LLM Setup (llama.cpp)](#llm-setup-llamacpp)
+7. [Quick Start — just recipes](#quick-start--just-recipes)
+8. [Configuration](#configuration)
+9. [Running Without just](#running-without-just)
+10. [Repository Structure](#repository-structure)
+11. [Key Concepts](#key-concepts)
+12. [Documentation Index](#documentation-index)
 
 ---
 
 ## What It Does
 
-For each of six US policy domains — **economy, healthcare, education, immigration, climate,
-infrastructure** — the system:
+For any policy topic you define — the six built-in domains **economy, healthcare,
+education, immigration, climate, infrastructure** or any custom topic you create — the
+system:
 
 1. **Collects real-time web information** — Uses DuckDuckGo API with optional Playwright
    JavaScript rendering for up-to-date factual information (no API keys required)
@@ -40,31 +47,97 @@ infrastructure** — the system:
    each finding and synthesising evidence into a final conjecture
 5. **Makes a democratic decision** — trust-weighted voting with fairness constraints,
    anti-pattern detection, and feedback-loop adaptation
-6. **Writes a thesis document** — a structured markdown report containing the final
-   conjecture, confidence score, top-ranked policy solutions, and all supporting evidence
+6. **Writes a thesis document** — a PhD/scientific-paper-grade markdown report with
+   Abstract, Methodology, Evidence Base, National/State/County Findings, Principal Thesis,
+   Policy Recommendations, Democratic Deliberation record, and Conclusions
+
+---
+
+## Profile System — Choose Your Topic
+
+The **profile system** decouples *what* to analyse from *how* to analyse it. Each profile
+is a YAML file in `config/profiles/` that specifies topics, recursion depth, geographic
+scope, and LLM budgets.
+
+### Launch the interactive menu
+
+```bash
+just menu
+```
+
+The menu lets you:
+
+| Action | What happens |
+|--------|-------------|
+| **Select & run** | Pick any saved profile → confirm settings → analysis begins immediately |
+| **Create** | 4-step wizard: name → description → topics (checkbox + free-text) → depth |
+| **Edit** | Modify depth, geo scope, description, or topics for an existing profile |
+| **Delete** | Remove custom profiles (the `default` profile is protected) |
+| **View** | Inspect any profile in a formatted table |
+| **List** | See all profiles with their domain list, depth, and geo setting |
+
+### Built-in default profile
+
+`config/profiles/default.yaml` — the six production domains at full depth:
+
+```yaml
+name: "default"
+domains: [economy, healthcare, education, immigration, climate, infrastructure]
+depth: 4
+subtopics_per_level: 5
+geo_fan_out: true          # all 50 US states + representative counties
+```
+
+### Custom topics
+
+When creating a profile you can mix built-in domains with any free-text topic:
+
+```
+Built-in checkboxes:  ☑ economy  ☑ climate  ☐ healthcare  …
+Free-text additions:  opioid crisis, AI governance, housing affordability
+```
+
+The LLM investigation and 50-state fan-out work identically for custom topics —
+there is no restriction on what you can analyse.
+
+### Profile output isolation
+
+Every profile writes its reports to its own sub-directory:
+
+```
+output/default/us_economy_governance_model.md
+output/default/us_climate_governance_model.md
+output/my-ai-profile/us_ai-governance_governance_model.md
+output/my-ai-profile/session_summary.json
+```
+
+This means multiple profiles can coexist without overwriting each other.
+
+See **[PROFILES_WALKTHROUGH.md](PROFILES_WALKTHROUGH.md)** for a step-by-step guide
+covering every menu action with example output.
 
 ---
 
 ## Where Output Lives
 
-All generated artifacts are written to the **`output/`** directory:
+All generated artifacts are written to `output/<profile-name>/`:
 
 ```
 output/
-├── us_economy_governance_model.md        ← final thesis document
-├── us_healthcare_governance_model.md
-├── us_education_governance_model.md
-├── us_immigration_governance_model.md
-├── us_climate_governance_model.md
-├── us_infrastructure_governance_model.md
-├── governance_model_us_national.md       ← national-level overview
-├── session_summary.json                  ← machine-readable run summary
-├── social_economy.json                   ← collected Reddit + News data
-├── social_healthcare.json
-├── social_education.json
-├── social_immigration.json
-├── social_climate.json
-└── social_infrastructure.json
+├── default/                          ← default 6-domain profile
+│   ├── us_economy_governance_model.md
+│   ├── us_healthcare_governance_model.md
+│   ├── us_education_governance_model.md
+│   ├── us_immigration_governance_model.md
+│   ├── us_climate_governance_model.md
+│   ├── us_infrastructure_governance_model.md
+│   └── session_summary.json
+│
+├── my-opioid-profile/                ← any custom profile you create
+│   ├── us_opioid-crisis_governance_model.md
+│   └── session_summary.json
+│
+└── social_<domain>.json              ← collected Reddit + News data (just collect)
 ```
 
 ### Final Thesis Documents
@@ -178,10 +251,15 @@ just              # list all recipes with descriptions (grouped)
 
 just sync         # install / update .venv
 
+# ── Interactive profile menu (recommended entry point) ──────────────────────
+just menu                   # opens TUI: create/select/edit profiles → run
+
 # ── Production run ──────────────────────────────────────────────────────────
-just run                    # all 6 domains, full depth, all 50 states
-just run economy            # single domain
-just run economy healthcare # multiple domains
+just run                           # default profile — all 6 domains
+just run economy                   # single built-in domain (CLI shorthand)
+just run economy healthcare        # multiple built-in domains
+just run --profile default         # explicit profile name
+just run --profile my-opioid-study # any custom profile you created via menu
 
 # ── Demo run (~30 seconds) ──────────────────────────────────────────────────
 just demo-run               # economy domain, depth=1, no geo fan-out
@@ -216,7 +294,7 @@ just env-info               # show just/uv/Python versions
 | Group | Recipes |
 |-------|---------|
 | `setup` | `sync`, `env-info` |
-| `run` | `run`, `demo-run`, `collect` |
+| `run` | `menu`, `run`, `demo-run`, `collect` |
 | `config` | `show-config`, `show-config-demo`, `show-config-prod` |
 | `dev` | `test`, `test-one`, `lint`, `fmt`, `typecheck`, `check` |
 | `maintenance` | `clean`, `clean-output`, `upgrade` |
@@ -272,10 +350,17 @@ default value, valid range, runtime effect, and performance impact.
 ## Running Without just
 
 ```bash
-# Full run
+# Interactive profile menu
+uv run src/ui/profile_menu.py
+
+# Full run — built-in domains (CLI shorthand)
 uv run run_all_domains.py
 uv run run_all_domains.py economy healthcare
 uv run run_all_domains.py --config configs/demo.yaml economy
+
+# Full run — named profile (writes to output/<profile-name>/)
+uv run run_all_domains.py --profile default
+uv run run_all_domains.py --profile my-opioid-study
 
 # Show config
 uv run run_all_domains.py --show-config
@@ -306,24 +391,32 @@ democratic_machine_learning/
 │   ├── demo.yaml               # Minimal config for just demo-run (~30 s)
 │   └── production.yaml         # Explicit full-depth production reference
 │
+├── config/
+│   └── profiles/               ← PROFILE DEFINITIONS LIVE HERE
+│       ├── default.yaml        # Built-in 6-domain production profile
+│       └── README.md           # Profile authoring guide
+│
 ├── scripts/
 │   └── collect_social.py       # Standalone social data collector
 │
-├── run_all_domains.py          # Main production entry point
+├── run_all_domains.py          # Main production entry point (--profile NAME)
 │
 ├── output/                     ← ALL GENERATED THESIS DOCUMENTS LIVE HERE
-│   ├── us_economy_governance_model.md
-│   ├── us_healthcare_governance_model.md
-│   ├── us_education_governance_model.md
-│   ├── us_immigration_governance_model.md
-│   ├── us_climate_governance_model.md
-│   ├── us_infrastructure_governance_model.md
-│   ├── governance_model_us_national.md
-│   ├── session_summary.json    ← machine-readable run summary
+│   ├── default/                ← one sub-directory per profile
+│   │   ├── us_economy_governance_model.md
+│   │   ├── us_healthcare_governance_model.md
+│   │   ├── us_education_governance_model.md
+│   │   ├── us_immigration_governance_model.md
+│   │   ├── us_climate_governance_model.md
+│   │   ├── us_infrastructure_governance_model.md
+│   │   └── session_summary.json
+│   ├── <custom-profile>/       ← custom profile outputs isolated here
+│   │   └── us_<topic>_governance_model.md
 │   └── social_<domain>.json    ← collected Reddit + News data (from just collect)
 │
 ├── src/
 │   ├── config.py               # Config loader (YAML + env vars + defaults)
+│   │                           # Includes ProfileConfig dataclass
 │   ├── core/
 │   │   ├── decision_engine.py  # Central decision orchestrator
 │   │   ├── weighting_system.py # Adaptive voter weight calculation
@@ -334,7 +427,7 @@ democratic_machine_learning/
 │   │   │                       # parallel via ThreadPoolExecutor + Semaphore
 │   │   └── web_search.py       # Web search with DuckDuckGo API + Playwright
 │   ├── data/
-│   │   ├── social_narrative_collector.py  # Reddit + Google News, thread-safe
+│   │   └── social_narrative_collector.py  # Reddit + Google News, thread-safe
 │   ├── models/
 │   │   ├── voter.py            # Voter + VoterType
 │   │   ├── policy.py           # Policy + PolicyDomain
@@ -346,6 +439,10 @@ democratic_machine_learning/
 │   │   └── anti_patterns.py    # 15+ historical governance failure patterns
 │   ├── policy/
 │   │   └── policy_tree.py      # Hierarchical policy tree
+│   ├── ui/
+│   │   ├── profile_menu.py     # Interactive TUI menu (just menu entry point)
+│   │   ├── profile_loader.py   # Load/validate/list profiles from disk
+│   │   └── profile_manager.py  # Create/update/delete/import/export profiles
 │   └── utils/
 │       └── metrics.py          # FairnessMetrics, EfficiencyMetrics
 │
@@ -423,10 +520,12 @@ just run DML_LLM__PARALLEL_WORKERS=4        # client uses all 4 simultaneously
 | File | Contents |
 |------|---------|
 | [README.md](README.md) | This file — overview, quick start, output location |
+| [PROFILES_WALKTHROUGH.md](PROFILES_WALKTHROUGH.md) | **Step-by-step guide: menu, profiles, custom topics** |
 | [CONFIG.md](CONFIG.md) | Complete configuration reference — every parameter documented |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | System architecture, data flows, component diagrams |
 | [TUTORIAL.md](TUTORIAL.md) | API usage guide, code examples, advanced patterns |
 | [AGENTS.md](AGENTS.md) | Developer/AI agent guidelines, build commands, code style |
+| [config/profiles/README.md](config/profiles/README.md) | Profile YAML authoring reference |
 | [EXECUTIVE_SUMMARY.md](EXECUTIVE_SUMMARY.md) | Non-technical overview |
 | [DEEP_RECURSIVE_INVESTIGATION.md](DEEP_RECURSIVE_INVESTIGATION.md) | LLM investigation architecture |
 | [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) | Implementation details for major features |

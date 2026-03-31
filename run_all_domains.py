@@ -28,11 +28,13 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from src.ui.profile_loader import load_profile
+
 # ── path setup ────────────────────────────────────────────────────────────────
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
-from src.config import get_config, load_config  # must come before other src imports
+from src.config import dump_config, get_config, load_config  # must come before other src imports
 from src.core.decision_engine import DecisionEngine
 from src.data.social_narrative_collector import SocialNarrativeCollector
 from src.llm.integration import (
@@ -66,7 +68,14 @@ DOMAIN_ENUM_MAP: Dict[str, PolicyDomain] = {
     "infrastructure": PolicyDomain.INFRASTRUCTURE,
 }
 
+
+def _domain_enum(domain: str) -> PolicyDomain:
+    """Return the PolicyDomain enum for *domain*, defaulting to SOCIAL for custom topics."""
+    return DOMAIN_ENUM_MAP.get(domain.lower(), PolicyDomain.SOCIAL)
+
+
 OUTPUT_DIR = ROOT / "output"
+_PROFILE_DIR: Optional[str] = None
 
 
 # ── logging helpers ───────────────────────────────────────────────────────────
@@ -405,7 +414,7 @@ def run_domain(
                 policy_id=_policy_id_fast,
                 name=f"United States {domain.capitalize()} Policy 2026",
                 description=(f"Comprehensive {domain} policy reform for the United States."),
-                domain=DOMAIN_ENUM_MAP[domain],
+                domain=_domain_enum(domain),
             )
         )
         _engine_fast.register_region(
@@ -495,7 +504,7 @@ def run_domain(
             f"developed through democratic deliberation incorporating "
             f"national, state, and county-level perspectives."
         ),
-        domain=DOMAIN_ENUM_MAP[domain],
+        domain=_domain_enum(domain),
     )
     engine.register_policy(policy)
 
@@ -739,7 +748,9 @@ def write_report(result: Dict[str, Any]) -> Path:
     """
     domain = result["domain"]
     domain_full = _DOMAIN_FULL.get(domain, f"{domain.capitalize()} Policy")
-    out_path = OUTPUT_DIR / f"us_{domain}_governance_model.md"
+    output_subdir = OUTPUT_DIR / _PROFILE_DIR if _PROFILE_DIR else OUTPUT_DIR
+    output_subdir.mkdir(parents=True, exist_ok=True)
+    out_path = output_subdir / f"us_{domain}_governance_model.md"
 
     decision = result["decision"]
     social = result["social_data"]
@@ -1688,27 +1699,78 @@ def main() -> int:
         action="store_true",
         help="Ignore existing checkpoints and start every domain from scratch",
     )
+    parser.add_argument(
+        "--profile",
+        metavar="NAME",
+        default=None,
+        help="Profile name to load (loads config from config/profiles/<name>.yaml)",
+    )
     args = parser.parse_args()
 
-    # ── load configuration (before any src imports that call get_config()) ────
-    from src.config import dump_config
+    # ── load profile if specified (overrides config file) ─────────────────────
+    if args.profile:
+        profile_path = (
+            Path(__file__).resolve().parent / "config" / "profiles" / f"{args.profile}.yaml"
+        )
+        if not profile_path.exists():
+            print(
+                f"ERROR: Profile not found: {args.profile} (expected at: {profile_path})",
+                file=sys.stderr,
+            )
+            return 1
+        profile = load_profile(args.profile)
+        # Load base config.yaml first, then let profile LLM budgets override
+        cfg = load_config(args.config)
+        # Apply profile-level LLM budget overrides onto the loaded config
+        for budget_key, budget_val in profile.llm_budgets.items():
+            if hasattr(cfg.llm, budget_key):
+                setattr(cfg.llm, budget_key, budget_val)
+        # Apply profile-level voter pool overrides (expert allocation)
+        if profile.expert_allocation:
+            cfg.voter_pool.experts_per_domain.update(profile.expert_allocation)
+        # Apply profile-level social collection limits
+        for sc_key, sc_val in profile.social_collection.items():
+            if hasattr(cfg.social, sc_key):
+                setattr(cfg.social, sc_key, sc_val)
+        # Apply depth / subtopics from profile
+        cfg.voter_pool.prod_llm_max_depth = profile.depth
+        cfg.voter_pool.prod_llm_subtopics_per_level = profile.subtopics_per_level
+        cfg.voter_pool.prod_geo_fan_out = profile.geo_fan_out
+        _init_pool_constants()
+        print(f"Loaded profile '{args.profile}' from {profile_path}")
+        print(f"  Topics  : {', '.join(profile.domains)}")
+        print(f"  Depth   : {profile.depth}")
+        print(f"  Geo     : {'all 50 states' if profile.geo_fan_out else 'national only'}")
+        domains = profile.domains
+        global _PROFILE_DIR
+        _PROFILE_DIR = args.profile
+    else:
+        cfg = load_config(args.config)
+        if args.show_config:
+            print(dump_config(cfg))
+            return 0
 
-    cfg = load_config(args.config)
+        # Sync module-level constants with loaded config
+        _init_pool_constants()
 
-    if args.show_config:
-        print(dump_config(cfg))
-        return 0
+        # CLI args remain restricted to the six built-in domains for backward
+        # compatibility.  Custom free-text topics are entered via --profile
+        # (profiles are created through the interactive menu: `just menu`).
+        domains = [d.lower().strip() for d in args.domains]
+        if not domains:
+            domains = list(ALL_DOMAINS)
+        invalid = [d for d in domains if d not in ALL_DOMAINS]
+        if invalid:
+            print(
+                f"ERROR: unknown domains: {invalid}. "
+                f"Valid: {ALL_DOMAINS}. "
+                f"For custom topics, create a profile via: just menu",
+                file=sys.stderr,
+            )
+            return 1
 
-    # Sync module-level constants with loaded config
-    _init_pool_constants()
-
-    domains = [d.lower() for d in args.domains]
-    invalid = [d for d in domains if d not in ALL_DOMAINS]
-    if invalid:
-        print(f"ERROR: unknown domains: {invalid}", file=sys.stderr)
-        return 1
-
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    output_subdir = OUTPUT_DIR / _PROFILE_DIR if _PROFILE_DIR else OUTPUT_DIR
+    output_subdir.mkdir(parents=True, exist_ok=True)
 
     session_start = datetime.datetime.now()
     log_banner(
@@ -1717,7 +1779,7 @@ def main() -> int:
         f"started={session_start.strftime('%Y-%m-%d %H:%M:%S')}"
     )
     log(f"  domains: {domains}")
-    log(f"  output : {OUTPUT_DIR}")
+    log(f"  output : {output_subdir}")
     log("")
 
     # Shared clients — both are thread-safe:
@@ -1823,13 +1885,13 @@ def main() -> int:
         log(f"  FAILED domains  : {failed}")
     log("")
     log("  Output files:")
-    for f in sorted(OUTPUT_DIR.glob("us_*_governance_model.md")):
+    for f in sorted(output_subdir.glob("us_*_governance_model.md")):
         size_kb = f.stat().st_size / 1024
         log(f"    {f.name}  ({size_kb:.1f} KB)")
     log("")
 
-    # Write machine-readable session summary
-    summary_path = OUTPUT_DIR / "session_summary.json"
+    # Write machine-readable session summary into the profile output directory
+    summary_path = output_subdir / "session_summary.json"
     session_summary = {
         "started_at": session_start.isoformat(),
         "elapsed_seconds": elapsed,

@@ -1,0 +1,67 @@
+# ============================================================================
+# Default Profile — Full Production Analysis
+# ============================================================================
+#
+# This is the default profile for the Democratic Machine Learning System.
+# It configures analysis across all 6 policy domains with full geographic
+# fan-out and production-level recursion depth.
+#
+# To use this profile, run:
+#   just run
+#   or
+#   just run --profile default
+#
+# To run with a different profile, create a YAML file in config/profiles/
+# and specify it with: just run --profile <profile-name>
+# ============================================================================
+
+name: "default"
+description: "Full production analysis across all 6 policy domains"
+
+# Policy domains to analyze
+domains:
+  - economy
+  - healthcare
+  - education
+  - immigration
+  - climate
+  - infrastructure
+
+# Analysis depth (number of recursive levels)
+depth: 4
+
+# Number of subtopics to extract at each level
+subtopics_per_level: 5
+
+# Geographic fan-out — include all 50 US states and representative counties
+geo_fan_out: true
+
+# Expert allocation per domain (number of domain experts)
+expert_allocation:
+  economy: 12
+  healthcare: 10
+  education: 8
+  immigration: 7
+  climate: 9
+  infrastructure: 11
+
+# LLM token budgets per task type
+llm_budgets:
+  max_tokens_default: 16384
+  max_tokens_subtopic: 16384
+  max_tokens_elaboration: 16384
+  max_tokens_conjecture: 8192
+  max_tokens_policy_analysis: 8192
+  max_tokens_synthesis: 8192
+
+# Social data collection limits
+social_collection:
+  max_opinions: 15
+  max_narratives: 12
+
+# Profile metadata
+metadata:
+  author: "DML System"
+  created: "2026-03-30"
+  type: "production"
+  version: "1.0.0"

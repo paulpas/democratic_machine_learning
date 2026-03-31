@@ -1,16 +1,39 @@
 # Tutorial: Using the Democratic Machine Learning System
 
-## Quick Start — just (recommended)
+## Quick Start — Interactive Profile Menu (Recommended)
 
-The fastest way to use the system is through the `just` recipes, which handle
-dependency management via `uv` automatically.
+The **profile menu** is the primary entry point. It lets you choose what to analyse,
+create new custom topics, and launch a full run — all from a keyboard-driven TUI.
+
+```bash
+just menu
+```
+
+From there you can:
+- Run the default 6-domain analysis immediately
+- Create a profile for any custom topic ("opioid crisis", "AI governance", "water policy")
+- Edit depth, geographic scope, or topic list for any saved profile
+
+See **[PROFILES_WALKTHROUGH.md](PROFILES_WALKTHROUGH.md)** for a complete step-by-step
+guide with example terminal output for every action.
+
+---
+
+## Quick Start — just Recipes
 
 ```bash
 # Install dependencies once
 just sync
 
-# Full production run — all 6 domains
+# Interactive profile menu (recommended)
+just menu
+
+# Full production run — default 6 domains
 just run
+
+# Run a specific named profile
+just run --profile default
+just run --profile my-opioid-study
 
 # Quick demo (~30 s per domain, exercises every code path)
 just demo-run
@@ -25,23 +48,32 @@ just show-config-demo
 
 ### Where output goes
 
-All results — thesis documents, vote records, and social data — are written to the
-**`output/`** directory:
+All results are written to **`output/<profile-name>/`**:
 
 ```
-output/us_economy_governance_model.md        ← final thesis
-output/us_healthcare_governance_model.md
-output/us_education_governance_model.md
-output/us_immigration_governance_model.md
-output/us_climate_governance_model.md
-output/us_infrastructure_governance_model.md
-output/session_summary.json                  ← machine-readable summary
-output/social_<domain>.json                  ← collected social narratives
+output/default/                          ← default 6-domain profile
+├── us_economy_governance_model.md       ← PhD/thesis-format report
+├── us_healthcare_governance_model.md
+├── us_education_governance_model.md
+├── us_immigration_governance_model.md
+├── us_climate_governance_model.md
+├── us_infrastructure_governance_model.md
+└── session_summary.json                 ← machine-readable run summary
+
+output/my-opioid-study/                  ← custom profile
+├── us_opioid-crisis_governance_model.md
+└── session_summary.json
+
+output/social_<domain>.json              ← collected social narratives (just collect)
 ```
 
-Each thesis document contains the **Final Conjecture** — the LLM-synthesised policy
-statement with confidence score — along with ranked solutions, vote breakdown, fairness
-assessment, and anti-pattern detection results. This is the primary research output.
+Each thesis document is a structured scientific report containing:
+- **Abstract** with key finding and confidence score
+- **Methodology** section (DML framework, data sources, decision mechanism)
+- **National / State / County findings** (all 50 states when geo fan-out enabled)
+- **Principal Thesis** — the LLM-synthesised policy conjecture
+- **Policy Recommendations** ranked by evidence quality
+- **Democratic Deliberation** record (trust-weighted vote breakdown, anti-pattern detection)
 
 ---
 

@@ -48,6 +48,85 @@ files separately and is a prerequisite for the richest LLM context.
 
 ---
 
+## Profile System
+
+The **profile system** is the user-facing layer for defining *what* to analyse. It sits
+above the core pipeline and controls topic selection, analysis depth, geographic scope,
+and output routing — without requiring any code changes.
+
+### Component overview
+
+```
+config/profiles/<name>.yaml          ← profile definition (YAML)
+        │
+        ▼
+src/ui/profile_loader.py             ← load + validate ProfileConfig
+        │
+        ├── src/ui/profile_manager.py   ← CRUD (create / update / delete / import / export)
+        │
+        └── src/ui/profile_menu.py      ← interactive TUI (just menu)
+                │
+                └── run_all_domains.py --profile <name>
+                            │
+                            ├── ProfileConfig.domains → topic list
+                            ├── ProfileConfig.depth → voter_pool.prod_llm_max_depth
+                            ├── ProfileConfig.geo_fan_out → voter_pool.prod_geo_fan_out
+                            ├── ProfileConfig.llm_budgets → cfg.llm.*
+                            ├── ProfileConfig.expert_allocation → cfg.voter_pool.experts_per_domain
+                            └── output/<profile-name>/us_<topic>_governance_model.md
+```
+
+### ProfileConfig dataclass (`src/config.py`)
+
+```python
+@dataclass
+class ProfileConfig:
+    name: str                          # profile identifier; matches YAML filename
+    description: str                   # human label
+    domains: List[str]                 # any non-empty strings (topics)
+    depth: int = 2                     # recursion levels (production = 4)
+    subtopics_per_level: int = 3       # subtopics per level (production = 5)
+    geo_fan_out: bool = True           # True = all 50 states + 10 counties
+    expert_allocation: Dict[str,int]   # experts per topic (default = 8)
+    llm_budgets: Dict[str,Any]         # overrides for cfg.llm.* token limits
+    social_collection: Dict[str,Any]   # overrides for cfg.social.* limits
+    metadata: Dict[str,Any]            # freeform (author, date, tags)
+    BUILTIN_DOMAINS: ClassVar[List[str]] = [   # reference list (not a restriction)
+        "economy","healthcare","education","immigration","climate","infrastructure"
+    ]
+```
+
+**Domain openness:** `validate()` accepts any non-empty string. There are no restrictions
+beyond "not empty" — custom topics like `"opioid crisis"` and `"AI governance"` are fully
+supported. The `BUILTIN_DOMAINS` class variable is a reference list used by the menu
+checkbox, not a gate.
+
+### Custom domain fallback
+
+When `run_domain()` encounters a topic not in the built-in `DOMAIN_ENUM_MAP`, it maps it
+to `PolicyDomain.SOCIAL` for the internal `Policy` object. The LLM prompt and all report
+sections use the raw topic string, so the analysis is fully topic-specific.
+
+```python
+def _domain_enum(domain: str) -> PolicyDomain:
+    return DOMAIN_ENUM_MAP.get(domain.lower(), PolicyDomain.SOCIAL)
+```
+
+### Output isolation
+
+`_PROFILE_DIR` is set at startup to the profile name. All writes use:
+
+```python
+output_subdir = OUTPUT_DIR / _PROFILE_DIR if _PROFILE_DIR else OUTPUT_DIR
+out_path = output_subdir / f"us_{domain}_governance_model.md"
+```
+
+This guarantees that separate profile runs never overwrite each other, and that the old
+`output/us_<domain>_governance_model.md` layout is preserved for backward-compatible
+bare `just run` invocations.
+
+---
+
 ## System Components
 
 ### Core Principles
