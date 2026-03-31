@@ -65,7 +65,6 @@ from rich.table import Table
 
 from src.config import ProfileConfig
 from src.ui.profile_loader import (
-    get_default_domains,
     list_available_profiles,
     load_profile,
     profile_exists,
@@ -178,91 +177,218 @@ def display_profile_summary(profile: ProfileConfig) -> None:
     console.print(table)
 
 
+# ── LLM domain suggestion ─────────────────────────────────────────────────────
+
+
+def _llm_suggest_domains(subject: str, n: int = 10) -> List[str]:
+    """Ask the LLM to suggest *n* investigation angles for *subject*.
+
+    Makes a single lightweight HTTP call to the configured llama.cpp endpoint.
+    Returns an empty list if the LLM is unreachable or the response cannot
+    be parsed — callers must handle the fallback case.
+    """
+    import json
+    import urllib.request
+
+    try:
+        from src.config import get_config
+
+        endpoint = get_config().llm.endpoint
+    except Exception:
+        return []
+
+    prompt = (
+        f'A research panel wants to deeply investigate: "{subject}"\n\n'
+        f"Suggest exactly {n} distinct investigation angles or sub-domains that together "
+        f"give a comprehensive understanding of this subject.\n\n"
+        f"Requirements:\n"
+        f"- Each angle must be distinct and non-redundant\n"
+        f"- Use the natural vocabulary of the subject (not forced policy/governance framing)\n"
+        f"- Concise phrases, 2–6 words each\n\n"
+        f"Return ONLY a numbered list, one entry per line, no extra text:\n"
+        f"1. ...\n2. ...\n3. ..."
+    )
+
+    try:
+        data = json.dumps({"prompt": prompt, "max_tokens": 400, "temperature": 0.7}).encode()
+        req = urllib.request.Request(
+            f"{endpoint}/completion",
+            data=data,
+            headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            raw = json.loads(resp.read()).get("content", "")
+
+        domains: List[str] = []
+        for line in raw.strip().splitlines():
+            line = line.strip()
+            # Accept "1. Foo bar" or "1) Foo bar"
+            if line and line[0].isdigit():
+                rest = line.lstrip("0123456789").lstrip(".)- ").strip()
+                if rest:
+                    domains.append(rest)
+        return domains[:n]
+    except Exception:
+        return []
+
+
 # ── domain / topic selection helpers ─────────────────────────────────────────
+
+_MIN_DOMAINS = 3
+_MAX_DOMAINS = 10
 
 
 def _select_domains_interactive() -> Optional[List[str]]:
-    """Collect topics for a profile.
+    """Collect investigation domains for a profile via LLM suggestion.
 
-    Flow (free-text first, built-in checkboxes as an optional shortcut):
-      1. Free-text entry — type *any* topic(s), comma-separated.
-         This is the primary path; no restriction on subject matter.
-      2. Optional built-in shortcut — checkbox list of the 6 default
-         policy domains, all **unchecked** by default.  Useful when the
-         user wants standard domains without typing them out.
+    Flow:
+      1. User types the subject they want to investigate (single free-text).
+      2. The LLM generates up to 10 relevant investigation angles for that subject.
+      3. A checkbox list shows all LLM suggestions pre-checked.
+         User toggles to select between 3 and 10.
+      4. If the LLM is unreachable, falls back to manual comma-entry.
+      5. User may add extra free-text domains on top of the LLM suggestions.
 
     Returns:
-        Combined, deduplicated list of topics, or ``None`` if cancelled.
+        List of 3–10 domain strings, or ``None`` if cancelled.
     """
-    # ── Step 1: free-text entry (primary path) ────────────────────────────
-    custom_raw = input_dialog(
-        title=HTML("<b>Enter Topics to Analyse</b>"),
+    # ── Step 1: enter the subject ─────────────────────────────────────────
+    subject_raw = input_dialog(
+        title=HTML("<b>What do you want to investigate?</b>"),
         text=(
-            "Type one or more topics separated by commas.\n"
-            "Any subject is valid — policy, science, history, recipes, world events.\n\n"
+            "Describe your subject in a few words.\n"
+            "The LLM will then suggest 10 investigation angles to choose from.\n\n"
+            "Any subject is valid — history, science, cooking, policy, philosophy …\n\n"
             "Examples:\n"
-            "  opioid crisis\n"
-            "  AI governance, data privacy\n"
+            "  history of German philosophy\n"
             "  grandmother's apple pie recipe\n"
-            "  US immigration, housing affordability, climate\n\n"
-            "Leave blank to skip to the built-in domain shortcut list."
+            "  opioid crisis in the United States\n"
+            "  AI safety and alignment\n"
+            "  jazz music evolution"
         ),
         style=STYLE,
     ).run()
 
-    if custom_raw is None:
-        return None  # user pressed Escape
+    if subject_raw is None:
+        return None  # Escape pressed
+    subject = subject_raw.strip()
+    if not subject:
+        return None
 
-    custom_topics = [t.strip() for t in custom_raw.split(",") if t.strip()]
+    # ── Step 2: LLM suggestion with spinner ───────────────────────────────
+    console.print(
+        f"\n[bold yellow]Asking the LLM to suggest investigation angles for "
+        f"'[cyan]{subject}[/cyan]' …[/bold yellow]"
+    )
+    suggestions = _llm_suggest_domains(subject, n=_MAX_DOMAINS)
 
-    # ── Step 2: optional built-in domain shortcuts (all unchecked) ────────
-    add_builtin = yes_no_dialog(
-        title=HTML("<b>Add Built-in Domain Shortcuts?</b>"),
-        text=(
-            "Would you like to also pick from the 6 standard policy domains?\n"
-            "(economy, healthcare, education, immigration, climate, infrastructure)\n\n"
-            "None are selected by default — this is purely a convenience shortcut."
-        ),
-        yes_text="Show shortcut list",
-        no_text="No — use my topics only",
-        style=STYLE,
-    ).run()
+    # ── Step 3a: LLM succeeded — checkbox list ────────────────────────────
+    if suggestions:
+        console.print(
+            f"[green]  ✓ LLM suggested {len(suggestions)} angles — "
+            f"select {_MIN_DOMAINS}–{_MAX_DOMAINS} below.[/green]\n"
+        )
+        while True:
+            selected = (
+                checkboxlist_dialog(
+                    title=HTML(f"<b>Select Investigation Angles for: {subject}</b>"),
+                    text=HTML(
+                        f"Space = toggle  ·  Enter = confirm  ·  Esc = cancel\n"
+                        f"Select between {_MIN_DOMAINS} and {_MAX_DOMAINS} angles.\n"
+                        f"All are pre-checked — untick any you don't want."
+                    ),
+                    values=[(s, s) for s in suggestions],
+                    default_values=suggestions,  # all pre-checked
+                    style=STYLE,
+                ).run()
+                or []
+            )
 
-    builtin_selected: list = []
-    if add_builtin:
-        builtin = get_default_domains()
-        builtin_selected = (
-            checkboxlist_dialog(
-                title=HTML("<b>Built-in Domain Shortcuts  (all optional)</b>"),
-                text=HTML(
-                    "Space = toggle  ·  Enter = confirm  ·  Esc = skip\n"
-                    "None are pre-selected. Pick any you want added to your topic list."
-                ),
-                values=[(d, d.capitalize().replace("_", " ")) for d in builtin],
-                default_values=[],  # ← nothing pre-checked
+            if selected is None:
+                return None  # Escape
+
+            if len(selected) < _MIN_DOMAINS:
+                message_dialog(
+                    title="Too Few Selected",
+                    text=f"Please select at least {_MIN_DOMAINS} angles.\n"
+                    f"You selected {len(selected)}.",
+                    style=STYLE,
+                ).run()
+                continue
+
+            if len(selected) > _MAX_DOMAINS:
+                message_dialog(
+                    title="Too Many Selected",
+                    text=f"Please select at most {_MAX_DOMAINS} angles.\n"
+                    f"You selected {len(selected)}.",
+                    style=STYLE,
+                ).run()
+                continue
+
+            break  # valid selection
+
+    # ── Step 3b: LLM unavailable — fall back to manual entry ─────────────
+    else:
+        console.print("[yellow]  ⚠  LLM unavailable — falling back to manual entry.[/yellow]\n")
+        fallback_raw = input_dialog(
+            title=HTML("<b>Enter Investigation Angles Manually</b>"),
+            text=(
+                f"LLM could not generate suggestions.\n"
+                f"Type {_MIN_DOMAINS}–{_MAX_DOMAINS} angles separated by commas:\n\n"
+                f"Example for '{subject}':\n"
+                f"  Historical origins, Key figures, Core concepts, Influence on later thought"
+            ),
+            style=STYLE,
+        ).run()
+
+        if not fallback_raw:
+            return None
+
+        selected = [t.strip() for t in fallback_raw.split(",") if t.strip()]
+        selected = selected[:_MAX_DOMAINS]
+
+        if len(selected) < _MIN_DOMAINS:
+            message_dialog(
+                title="Too Few Angles",
+                text=f"Enter at least {_MIN_DOMAINS} angles (you entered {len(selected)}).",
                 style=STYLE,
             ).run()
-            or []
-        )
+            return None
 
-    # ── Merge, deduplicate, preserve order ────────────────────────────────
+    # ── Step 4: optional extra free-text additions ────────────────────────
+    add_extra = yes_no_dialog(
+        title=HTML("<b>Add Extra Angles?</b>"),
+        text=(
+            f"You have {len(selected)} angle(s) selected.\n"
+            "Would you like to add any extra angles not in the list above?"
+        ),
+        yes_text="Yes — add more",
+        no_text="No — done",
+        style=STYLE,
+    ).run()
+
+    if add_extra:
+        extra_raw = input_dialog(
+            title=HTML("<b>Extra Investigation Angles</b>"),
+            text="Type additional angles separated by commas:",
+            style=STYLE,
+        ).run()
+        if extra_raw:
+            extras = [t.strip() for t in extra_raw.split(",") if t.strip()]
+            # Add up to the max
+            room = _MAX_DOMAINS - len(selected)
+            selected = list(selected) + extras[:room]
+
+    # ── Deduplicate, preserve order ───────────────────────────────────────
     seen: set = set()
     topics: list = []
-    for t in custom_topics + builtin_selected:
+    for t in selected:
         key = t.lower().strip()
         if key and key not in seen:
             seen.add(key)
             topics.append(t)
 
-    if not topics:
-        message_dialog(
-            title="No Topics Entered",
-            text="At least one topic is required.\nPlease enter a topic or select a built-in domain.",
-            style=STYLE,
-        ).run()
-        return None
-
-    return topics
+    return topics or None
 
 
 # ── main menu actions ─────────────────────────────────────────────────────────
