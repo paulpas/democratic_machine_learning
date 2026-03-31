@@ -29,12 +29,9 @@ domains:
 
 # Analysis depth (number of recursive levels)
 depth: 4
-
-# Number of subtopics to extract at each level
 subtopics_per_level: 5
-
-# Geographic fan-out — include all 50 US states and representative counties
 geo_fan_out: true
+parallel_workers: 1        # match llama-server --parallel N; max = your GPU count
 
 # Expert allocation per domain (number of domain experts)
 expert_allocation:

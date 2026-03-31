@@ -305,6 +305,7 @@ class ProfileConfig:
     depth: int = 2
     subtopics_per_level: int = 3
     geo_fan_out: bool = True
+    parallel_workers: int = 1  # concurrent LLM calls; match llama-server --parallel N
     expert_allocation: Dict[str, int] = field(default_factory=dict)
     llm_budgets: Dict[str, Any] = field(default_factory=dict)
     social_collection: Dict[str, Any] = field(default_factory=dict)
@@ -362,6 +363,7 @@ class ProfileConfig:
             depth=data.get("depth", 2),
             subtopics_per_level=data.get("subtopics_per_level", 3),
             geo_fan_out=data.get("geo_fan_out", True),
+            parallel_workers=data.get("parallel_workers", 1),
             expert_allocation=data.get("expert_allocation", {}),
             llm_budgets=data.get("llm_budgets", {}),
             social_collection=data.get("social_collection", {}),
@@ -377,6 +379,7 @@ class ProfileConfig:
             "depth": self.depth,
             "subtopics_per_level": self.subtopics_per_level,
             "geo_fan_out": self.geo_fan_out,
+            "parallel_workers": self.parallel_workers,
             "expert_allocation": self.expert_allocation,
             "llm_budgets": self.llm_budgets,
             "social_collection": self.social_collection,

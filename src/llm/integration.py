@@ -1157,7 +1157,96 @@ class LLMClient:
         return ""
 
     # ──────────────────────────────────────────────────────────────────────────
-    # Public high-level methods
+    # Topic framing — one LLM call that determines the expert panel and
+    # investigation framework for any topic (policy or otherwise)
+    # ──────────────────────────────────────────────────────────────────────────
+
+    _BUILTIN_POLICY_DOMAINS = frozenset(
+        ["economy", "healthcare", "education", "immigration", "climate", "infrastructure"]
+    )
+
+    def determine_topic_framing(self, topic: str) -> Dict[str, Any]:
+        """Use one LLM call to determine the appropriate expert panel and analysis
+        framework for *any* topic — governance, history, science, cooking, etc.
+
+        Returns a framing dict consumed by the investigation prompt methods.
+        Falls back to a generic policy framing if the LLM call fails or the
+        topic is one of the six built-in policy domains.
+        """
+        if topic.lower().strip() in self._BUILTIN_POLICY_DOMAINS:
+            return self._default_policy_framing(topic)
+
+        prompt = (
+            f'A research panel wants to thoroughly investigate this topic: "{topic}"\n\n'
+            f"Design the expert panel and investigation framework.\n"
+            f"Return ONLY valid JSON (no markdown fences, no extra text):\n"
+            f"{{\n"
+            f'  "full_name": "Full descriptive title for the topic",\n'
+            f'  "expert_role": "You are [one-sentence expert identity for this topic]",\n'
+            f'  "investigation_focus": "The central question or goal of this investigation",\n'
+            f'  "analysis_framework": "governance|historical|scientific|culinary|cultural|philosophical|technical|comparative|other",\n'
+            f'  "dimension_label": "The dimension to fan out across (e.g. US state, country, time period, culinary tradition, academic discipline)",\n'
+            f'  "principles": ["principle1", "principle2", "principle3", "principle4", "principle5"],\n'
+            f'  "context_paragraph": "2-3 sentences on the scope and significance of this topic"\n'
+            f"}}"
+        )
+        raw = self._call_llm(
+            prompt,
+            max_tokens=512,
+            label=f"topic_framing domain={topic[:40]}",
+        )
+        try:
+            # Strip accidental markdown fences
+            cleaned = raw.strip()
+            if cleaned.startswith("```"):
+                cleaned = "\n".join(cleaned.split("\n")[1:])
+            if cleaned.endswith("```"):
+                cleaned = "\n".join(cleaned.split("\n")[:-1])
+            framing = json.loads(cleaned)
+            # Ensure required keys exist
+            framing.setdefault("full_name", topic.title())
+            framing.setdefault("expert_role", f"You are an expert researcher on {topic}")
+            framing.setdefault(
+                "investigation_focus", f"What are the key dimensions and insights about {topic}?"
+            )
+            framing.setdefault("analysis_framework", "comparative")
+            framing.setdefault("dimension_label", "perspective")
+            framing.setdefault("principles", ["Rigor", "Clarity", "Evidence", "Balance", "Depth"])
+            framing.setdefault(
+                "context_paragraph",
+                f"This investigation examines {topic} through multiple expert perspectives.",
+            )
+            _log(
+                f"  🎯 Topic framing: {framing['analysis_framework']} | expert: {framing['expert_role'][:60]}"
+            )
+            return framing
+        except Exception as exc:
+            _log(f"  ⚠️  Topic framing parse failed ({exc}), using generic framing")
+            return self._default_policy_framing(topic)
+
+    def _default_policy_framing(self, topic: str) -> Dict[str, Any]:
+        """Generic framing used for the six built-in policy domains."""
+        return {
+            "full_name": f"{topic.capitalize()} Policy",
+            "expert_role": "You are a US policy expert",
+            "investigation_focus": f"What is the optimal governance approach to {topic} policy in the United States?",
+            "analysis_framework": "governance",
+            "dimension_label": "US state",
+            "principles": [
+                "Inclusivity",
+                "Transparency",
+                "Accountability",
+                "Equity",
+                "Evidence-Based",
+            ],
+            "context_paragraph": (
+                f"The United States {topic} landscape presents multifaceted governance "
+                f"challenges requiring analysis across national, state, and local levels."
+            ),
+        }
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Public high-level methods — all framing-aware
     # ──────────────────────────────────────────────────────────────────────────
 
     def investigate_domain_initial(
@@ -1165,14 +1254,27 @@ class LLMClient:
         domain: str,
         context: Dict[str, Any],
         principles: List[str],
+        framing: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Level-0 domain investigation — returns full reasoning text."""
         pop = context.get("population", US_NATIONAL_POPULATION)
-        prompt = (
-            f"You are a US policy expert. Analyze {domain} policy for the United States "
-            f"(population {pop:,}). List the 5 most important subtopics as a numbered list, "
-            f"then briefly explain each. Principles: {', '.join(principles[:5])}."
-        )
+        if framing and framing.get("analysis_framework") != "governance":
+            expert_role = framing["expert_role"]
+            focus = framing["investigation_focus"]
+            dim_label = framing.get("dimension_label", "perspective")
+            prompt = (
+                f'{expert_role}. Investigate: "{domain}"\n'
+                f"Focus: {focus}\n"
+                f"List the 5 most important dimensions or subtopics as a numbered list, "
+                f"then briefly explain each. Consider diverse {dim_label}s where relevant.\n"
+                f"Guiding principles: {', '.join(principles[:5])}."
+            )
+        else:
+            prompt = (
+                f"You are a US policy expert. Analyze {domain} policy for the United States "
+                f"(population {pop:,}). List the 5 most important subtopics as a numbered list, "
+                f"then briefly explain each. Principles: {', '.join(principles[:5])}."
+            )
         return self._call_llm(
             prompt,
             max_tokens=self._cfg.max_tokens_domain_initial,
@@ -1190,20 +1292,36 @@ class LLMClient:
         principles: List[str],
         parent_context: str = "",
         search_query: Optional[str] = None,
+        framing: Optional[Dict[str, Any]] = None,
     ) -> str:
-        """Investigate a subtopic at a specific geographic tier."""
+        """Investigate a subtopic at a specific tier."""
         context_snippet = (
             parent_context[: self._cfg.context_snippet_chars] if parent_context else ""
         )
-        prompt = (
-            f"You are a US {tier}-level policy expert. "
-            f"Analyze '{subtopic}' as a subtopic of {domain} policy "
-            f"for {tier_label} (population {tier_population:,}). "
-            f"Provide: (1) current state, (2) key challenges, (3) best policy approaches, "
-            f"(4) implementation steps, (5) expected outcomes. "
-            f"Principles: {', '.join(principles[:5])}."
-            + (f" Context: {context_snippet}" if context_snippet else "")
-        )
+        if framing and framing.get("analysis_framework") != "governance":
+            expert_role = framing["expert_role"]
+            dim_label = framing.get("dimension_label", "perspective")
+            prompt = (
+                f"{expert_role}. "
+                f"Investigate '{subtopic}' as a dimension of '{domain}' "
+                f"from the {dim_label} of {tier_label}"
+                + (f" (population {tier_population:,})" if tier_population > 1000 else "")
+                + f".\n"
+                f"Provide: (1) current understanding, (2) key challenges or tensions, "
+                f"(3) best approaches, (4) practical steps, (5) expected outcomes.\n"
+                f"Guiding principles: {', '.join(principles[:5])}."
+                + (f"\nContext: {context_snippet}" if context_snippet else "")
+            )
+        else:
+            prompt = (
+                f"You are a US {tier}-level policy expert. "
+                f"Analyze '{subtopic}' as a subtopic of {domain} policy "
+                f"for {tier_label} (population {tier_population:,}). "
+                f"Provide: (1) current state, (2) key challenges, (3) best policy approaches, "
+                f"(4) implementation steps, (5) expected outcomes. "
+                f"Principles: {', '.join(principles[:5])}."
+                + (f" Context: {context_snippet}" if context_snippet else "")
+            )
         return self._call_llm(
             prompt,
             max_tokens=self._cfg.max_tokens_subtopic,
@@ -1222,16 +1340,28 @@ class LLMClient:
         principles: List[str],
         prior_reasoning: str,
         search_query: Optional[str] = None,
+        framing: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Deep elaboration on a subtopic — calls after initial investigation."""
         snippet = prior_reasoning[: self._cfg.prior_snippet_chars] if prior_reasoning else ""
-        prompt = (
-            f"Elaborate further on '{subtopic}' in {domain} policy at the {tier} level "
-            f"({tier_label}, population {tier_population:,}). "
-            f"Prior analysis: {snippet} "
-            f"Provide: evidence for each approach, equity implications, "
-            f"stakeholder concerns, and measurable success metrics."
-        )
+        if framing and framing.get("analysis_framework") != "governance":
+            expert_role = framing["expert_role"]
+            dim_label = framing.get("dimension_label", "perspective")
+            prompt = (
+                f"{expert_role}. Elaborate on '{subtopic}' within '{domain}' "
+                f"from the {dim_label} of {tier_label}.\n"
+                f"Prior analysis: {snippet}\n"
+                f"Provide: supporting evidence, broader implications, "
+                f"stakeholder perspectives, and measurable indicators of success."
+            )
+        else:
+            prompt = (
+                f"Elaborate further on '{subtopic}' in {domain} policy at the {tier} level "
+                f"({tier_label}, population {tier_population:,}). "
+                f"Prior analysis: {snippet} "
+                f"Provide: evidence for each approach, equity implications, "
+                f"stakeholder concerns, and measurable success metrics."
+            )
         return self._call_llm(
             prompt,
             max_tokens=self._cfg.max_tokens_elaboration,
@@ -1254,6 +1384,7 @@ class LLMClient:
         principles: List[str],
         parent_context: str = "",
         search_query: Optional[str] = None,
+        framing: Optional[Dict[str, Any]] = None,
     ) -> Tuple[str, str]:
         """Single LLM call covering both investigation AND elaboration for a geo tier.
 
@@ -1267,18 +1398,36 @@ class LLMClient:
         context_snippet = (
             parent_context[: self._cfg.context_snippet_chars] if parent_context else ""
         )
-        prompt = (
-            f"You are a US {tier}-level policy expert analyzing '{subtopic}' "
-            f"as part of {domain} policy for {tier_label} (population {tier_population:,}).\n\n"
-            f"## Part 1 — Investigation\n"
-            f"Provide: (1) current state, (2) key challenges, (3) best policy approaches, "
-            f"(4) implementation steps, (5) expected outcomes.\n"
-            f"Principles: {', '.join(principles[:5])}.\n"
-            + (f"Context: {context_snippet}\n\n" if context_snippet else "\n")
-            + f"## Part 2 — Elaboration\n"
-            f"Provide: evidence for each approach, equity implications, "
-            f"stakeholder concerns, and measurable success metrics specific to {tier_label}."
-        )
+        if framing and framing.get("analysis_framework") != "governance":
+            expert_role = framing["expert_role"]
+            dim_label = framing.get("dimension_label", "perspective")
+            pop_str = f" (population {tier_population:,})" if tier_population > 1000 else ""
+            prompt = (
+                f"{expert_role}. Analyze '{subtopic}' within '{domain}' "
+                f"from the {dim_label} of {tier_label}{pop_str}.\n\n"
+                f"## Part 1 — Investigation\n"
+                f"Provide: (1) current understanding, (2) key challenges or tensions, "
+                f"(3) best approaches, (4) practical steps, (5) expected outcomes.\n"
+                f"Guiding principles: {', '.join(principles[:5])}.\n"
+                + (f"Context: {context_snippet}\n\n" if context_snippet else "\n")
+                + f"## Part 2 — Elaboration\n"
+                f"Provide: supporting evidence, broader implications, "
+                f"stakeholder perspectives, and measurable indicators of success "
+                f"specific to {tier_label}."
+            )
+        else:
+            prompt = (
+                f"You are a US {tier}-level policy expert analyzing '{subtopic}' "
+                f"as part of {domain} policy for {tier_label} (population {tier_population:,}).\n\n"
+                f"## Part 1 — Investigation\n"
+                f"Provide: (1) current state, (2) key challenges, (3) best policy approaches, "
+                f"(4) implementation steps, (5) expected outcomes.\n"
+                f"Principles: {', '.join(principles[:5])}.\n"
+                + (f"Context: {context_snippet}\n\n" if context_snippet else "\n")
+                + f"## Part 2 — Elaboration\n"
+                f"Provide: evidence for each approach, equity implications, "
+                f"stakeholder concerns, and measurable success metrics specific to {tier_label}."
+            )
         raw = self._call_llm(
             prompt,
             max_tokens=self._cfg.max_tokens_geo_combined,
@@ -1446,6 +1595,7 @@ class LLMClient:
         max_tokens: Optional[int] = None,
         domain: str = "general",
         use_level_conjectures: bool = False,
+        framing: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Form a final conjecture synthesizing all evidence.
 
@@ -1459,43 +1609,68 @@ class LLMClient:
             max_tokens = _cfg.max_tokens_conjecture
         year = datetime.datetime.now().year
 
+        is_custom = framing and framing.get("analysis_framework") != "governance"
+        expert_role = (framing or {}).get("expert_role", "You are a research expert")
+        dim_label = (framing or {}).get("dimension_label", "geographic tier")
+
         if use_level_conjectures and evidence:
-            # Build a rich prompt from per-level intermediate conjectures
             level_summaries = "\n\n".join(
                 f"Depth-{e.get('depth', i + 1)} findings "
                 f"({e.get('subtopic_count', '?')} subtopics):\n"
                 f"  {e.get('statement', '')[:400]}\n"
-                f"  State/county needs: {e.get('cross_subtopic_needs', '')[:200]}"
+                f"  {dim_label.capitalize()} needs: {e.get('cross_subtopic_needs', '')[:200]}"
                 for i, e in enumerate(evidence)
             )
-            prompt = (
-                f"Based on {len(evidence)} depth-level investigations of {domain} policy "
-                f"(year: {year}), synthesise a final governance conjecture.\n\n"
-                f"DEPTH-LEVEL SUMMARIES:\n{level_summaries}\n\n"
-                f"Answer: {question}\n\n"
-                f"Provide:\n"
-                f"1. Conjecture statement: A final governance framework for {domain} policy "
-                f"in the United States that explicitly accommodates all 50 states and "
-                f"county-level diversity\n"
-                f"2. Confidence: 0.0–1.0\n"
-                f"3. Supporting evidence: Top 5 cross-tier consensus points\n"
-                f"4. Contradictions: Key unresolved tensions between geographic tiers"
-            )
+            if is_custom:
+                prompt = (
+                    f"{expert_role}. Based on {len(evidence)} depth-level investigations of "
+                    f"'{domain}' (year: {year}), synthesise a final analysis and conclusion.\n\n"
+                    f"DEPTH-LEVEL SUMMARIES:\n{level_summaries}\n\n"
+                    f"Answer: {question}\n\n"
+                    f"Provide:\n"
+                    f"1. Principal thesis: A comprehensive synthesis of findings on '{domain}' "
+                    f"that accommodates the full range of {dim_label}s examined\n"
+                    f"2. Confidence: 0.0–1.0\n"
+                    f"3. Supporting evidence: Top 5 consensus points across all perspectives\n"
+                    f"4. Contradictions: Key unresolved tensions between different {dim_label}s"
+                )
+            else:
+                prompt = (
+                    f"Based on {len(evidence)} depth-level investigations of {domain} policy "
+                    f"(year: {year}), synthesise a final governance conjecture.\n\n"
+                    f"DEPTH-LEVEL SUMMARIES:\n{level_summaries}\n\n"
+                    f"Answer: {question}\n\n"
+                    f"Provide:\n"
+                    f"1. Conjecture statement: A final governance framework for {domain} policy "
+                    f"in the United States that explicitly accommodates all 50 states and "
+                    f"county-level diversity\n"
+                    f"2. Confidence: 0.0–1.0\n"
+                    f"3. Supporting evidence: Top 5 cross-tier consensus points\n"
+                    f"4. Contradictions: Key unresolved tensions between geographic tiers"
+                )
         else:
-            # Fallback: plain evidence list (used when progressive_synthesis=False)
             evidence_limit = _cfg.conjecture_evidence_limit
             evidence_text = "\n".join(
                 f"- [{e.get('tier', '?')} depth={e.get('depth', 0)}] "
                 f"{e.get('finding', e.get('reasoning', ''))[:200]}"
                 for e in evidence[:evidence_limit]
             )
-            prompt = (
-                f"Based on the following evidence about {domain} policy (year: {year}), "
-                f"answer: {question}\n\n"
-                f"Evidence:\n{evidence_text}\n\n"
-                f"Provide: (1) Conjecture statement, (2) Confidence 0-1, "
-                f"(3) Top 3 supporting points, (4) Key contradictions."
-            )
+            if is_custom:
+                prompt = (
+                    f"{expert_role}. Based on the following evidence about '{domain}' "
+                    f"(year: {year}), answer: {question}\n\n"
+                    f"Evidence:\n{evidence_text}\n\n"
+                    f"Provide: (1) Principal thesis, (2) Confidence 0-1, "
+                    f"(3) Top 3 supporting points, (4) Key contradictions."
+                )
+            else:
+                prompt = (
+                    f"Based on the following evidence about {domain} policy (year: {year}), "
+                    f"answer: {question}\n\n"
+                    f"Evidence:\n{evidence_text}\n\n"
+                    f"Provide: (1) Conjecture statement, (2) Confidence 0-1, "
+                    f"(3) Top 3 supporting points, (4) Key contradictions."
+                )
         raw = self._call_llm(
             prompt,
             max_tokens=max_tokens,
@@ -1539,15 +1714,20 @@ class LLMClient:
         principles: Optional[List[str]] = None,
         include_state_county_rep: bool = True,
         search_query: Optional[str] = None,
+        framing: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Full deep-recursive LLM investigation with geographic fan-out.
+
+        For non-policy custom topics pass ``framing`` (from
+        ``determine_topic_framing()``) to replace US-policy-centric prompt
+        language with topic-appropriate expert panel language.
 
         Architecture:
           Level 0 : Initial domain overview → extract top-N subtopics
           Level 1…N: For each subtopic:
                         - national investigation
-                        - (if enabled) all 50 states
+                        - (if enabled) all 50 states / dimensions
                         - (if enabled) representative counties
                         - elaborate on each finding
                         - extract sub-subtopics for next level
@@ -1564,16 +1744,20 @@ class LLMClient:
             subtopics_per_level = _cfg.subtopics_per_level
         subtopics_per_level_int: int = subtopics_per_level
 
+        # Use framing-supplied principles for custom topics, else defaults
         if principles is None:
-            principles = [
-                "Inclusivity",
-                "Transparency",
-                "Accountability",
-                "Adaptability",
-                "Equity",
-                "Evidence-Based",
-                "Context-Aware",
-            ]
+            if framing and framing.get("principles"):
+                principles = framing["principles"]
+            else:
+                principles = [
+                    "Inclusivity",
+                    "Transparency",
+                    "Accountability",
+                    "Adaptability",
+                    "Equity",
+                    "Evidence-Based",
+                    "Context-Aware",
+                ]
         principles_list: List[str] = principles
 
         started_at = datetime.datetime.now()
@@ -1663,9 +1847,11 @@ class LLMClient:
             level0_reasoning, current_subtopics = _l0_cached
             _log("  ⏩ LEVEL 0 loaded from checkpoint")
         else:
-            level0_reasoning = self.investigate_domain_initial(domain, context, principles)
+            level0_reasoning = self.investigate_domain_initial(
+                domain, context, principles, framing=framing
+            )
             if not level0_reasoning:
-                level0_reasoning = f"Overview of {domain} policy for the United States."
+                level0_reasoning = f"Overview of {domain}."
             current_subtopics = self._extract_subtopics_from_text(
                 level0_reasoning, domain, subtopics_per_level
             )
@@ -1730,7 +1916,7 @@ class LLMClient:
                 if _nat_cached:
                     nat_entry = _nat_cached
                     nat_reasoning: str = nat_entry["reasoning"]
-                    _log(f"  ⏩ national cached")
+                    _log("  ⏩ national cached")
                 else:
                     _log(f"  🌐 NATIONAL  population={US_NATIONAL_POPULATION:,}")
                     nat_reasoning = self.investigate_subtopic(
@@ -1743,6 +1929,7 @@ class LLMClient:
                         principles=_principles,
                         parent_context=_level0,
                         search_query=search_query,
+                        framing=framing,
                     )
                     nat_elab = self.elaborate_subtopic(
                         domain=_domain,
@@ -1754,6 +1941,7 @@ class LLMClient:
                         principles=_principles,
                         prior_reasoning=nat_reasoning,
                         search_query=search_query,
+                        framing=framing,
                     )
                     nat_entry = {
                         "domain": _domain,
@@ -1783,6 +1971,7 @@ class LLMClient:
                         search_query=search_query,
                         ckpt=_ckpt_ref,
                         subtopic_idx=idx,
+                        framing=framing,
                     )
                     elab_list.extend(st_entries)
                     elab_list.extend(co_entries)
@@ -1797,7 +1986,7 @@ class LLMClient:
                     _conj_cached = _ckpt_ref.load_subtopic_conj(_depth, idx)
                     if _conj_cached:
                         subtopic_conj = _conj_cached
-                        _log(f"  ⏩ subtopic conjecture cached")
+                        _log("  ⏩ subtopic conjecture cached")
                     else:
                         _log(f"  🔬 Intermediate synthesis: subtopic='{subtopic}' depth={_depth}")
                         subtopic_conj = self._intermediate_conjecture_subtopic(
@@ -1942,6 +2131,7 @@ class LLMClient:
                 domain=domain,
                 max_tokens=_cfg.max_tokens_synthesis,
                 use_level_conjectures=use_progressive,
+                framing=framing,
             )
 
             _log("")
@@ -2006,11 +2196,13 @@ class LLMClient:
         principles: List[str],
         prior_reasoning: str,
         search_query: Optional[str] = None,
+        framing: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        """Investigate + elaborate a single state.  Called from a thread pool."""
+        """Investigate + elaborate a single state/dimension.  Called from a thread pool."""
         state_name = state_data["name"]
         state_pop = state_data["population"]
-        _log(f"    🏛️  STATE {abbr} | {state_name} | pop={state_pop:,}")
+        dim_label = (framing or {}).get("dimension_label", "state")
+        _log(f"    🏛️  {dim_label.upper()} {abbr} | {state_name} | pop={state_pop:,}")
         if self._cfg.combine_geo_investigate_elaborate:
             reasoning, elab = self._investigate_and_elaborate_combined(
                 domain=domain,
@@ -2022,6 +2214,7 @@ class LLMClient:
                 principles=principles,
                 parent_context=prior_reasoning,
                 search_query=search_query,
+                framing=framing,
             )
         else:
             reasoning = self.investigate_subtopic(
@@ -2034,6 +2227,7 @@ class LLMClient:
                 principles=principles,
                 parent_context=prior_reasoning,
                 search_query=search_query,
+                framing=framing,
             )
             elab = self.elaborate_subtopic(
                 domain=domain,
@@ -2045,6 +2239,7 @@ class LLMClient:
                 principles=principles,
                 prior_reasoning=reasoning,
                 search_query=search_query,
+                framing=framing,
             )
         return {
             "domain": domain,
@@ -2068,8 +2263,9 @@ class LLMClient:
         principles: List[str],
         prior_reasoning: str,
         search_query: Optional[str] = None,
+        framing: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        """Investigate + elaborate a single county.  Called from a thread pool."""
+        """Investigate + elaborate a single county/sub-dimension.  Called from a thread pool."""
         county_name = county_data["name"]
         county_pop = county_data["population"]
         county_type = county_data.get("type", "mixed")
@@ -2085,6 +2281,7 @@ class LLMClient:
                 principles=principles,
                 parent_context=prior_reasoning,
                 search_query=search_query,
+                framing=framing,
             )
         else:
             reasoning = self.investigate_subtopic(
@@ -2097,6 +2294,7 @@ class LLMClient:
                 principles=principles,
                 parent_context=prior_reasoning,
                 search_query=search_query,
+                framing=framing,
             )
             elab = self.elaborate_subtopic(
                 domain=domain,
@@ -2108,6 +2306,7 @@ class LLMClient:
                 principles=principles,
                 prior_reasoning=reasoning,
                 search_query=search_query,
+                framing=framing,
             )
         return {
             "domain": domain,
@@ -2133,6 +2332,7 @@ class LLMClient:
         search_query: Optional[str] = None,
         ckpt: Optional[CheckpointManager] = None,
         subtopic_idx: int = 0,
+        framing: Optional[Dict[str, Any]] = None,
     ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
         """
         Investigate a subtopic across all 50 states and representative counties.
@@ -2216,6 +2416,7 @@ class LLMClient:
                 principles,
                 prior_reasoning,
                 search_query,
+                framing=framing,
             )
             if ckpt is not None:
                 ckpt.save_state(depth, subtopic_idx, abbr, entry)
@@ -2237,6 +2438,7 @@ class LLMClient:
                 principles,
                 prior_reasoning,
                 search_query,
+                framing=framing,
             )
             if ckpt is not None:
                 ckpt.save_county(depth, subtopic_idx, county_name, entry)

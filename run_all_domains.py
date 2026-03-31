@@ -533,7 +533,18 @@ def run_domain(
         f"participation={len(decision.voters_participated)}"
     )
 
-    # ── 3. Deep recursive LLM investigation ──────────────────────────────────
+    # ── 3a. Topic framing — determine expert panel for custom topics ──────────
+    # For the six built-in policy domains the framing falls back to standard
+    # US-governance language.  For any custom topic the LLM designs a
+    # topic-appropriate expert panel and investigation framework.
+    log(f"  Determining topic framing for domain='{domain}' ...")
+    topic_framing = llm_client.determine_topic_framing(domain)
+    log(
+        f"  🎯 Framing: [{topic_framing['analysis_framework']}]  "
+        f"Expert: {topic_framing['expert_role'][:70]}"
+    )
+
+    # ── 3b. Deep recursive LLM investigation ─────────────────────────────────
     _vp_ctx = get_config().voter_pool
     initial_context = {
         "population": US_NATIONAL_POPULATION,
@@ -542,6 +553,7 @@ def run_domain(
         "domain": domain,
         "region_type": "national",
         "social_summary": social_data["summary"],
+        "framing": topic_framing,
     }
 
     llm_results = llm_client.generate_reasoning_with_recursion(
@@ -550,6 +562,7 @@ def run_domain(
         max_depth=_vp_ctx.prod_llm_max_depth,
         subtopics_per_level=_vp_ctx.prod_llm_subtopics_per_level,
         include_state_county_rep=_vp_ctx.prod_geo_fan_out,
+        framing=topic_framing,
     )
 
     # ── 4. Assemble report ────────────────────────────────────────────────────
@@ -558,6 +571,7 @@ def run_domain(
 
     return {
         "domain": domain,
+        "topic_framing": topic_framing,
         "policy_id": policy_id,
         "timestamp": started.isoformat(),
         "elapsed_seconds": elapsed,
@@ -747,7 +761,11 @@ def write_report(result: Dict[str, Any]) -> Path:
       Technical Appendix
     """
     domain = result["domain"]
-    domain_full = _DOMAIN_FULL.get(domain, f"{domain.capitalize()} Policy")
+    # Use LLM-determined framing for title/context when available
+    framing = result.get("topic_framing") or {}
+    domain_full = (
+        framing.get("full_name") or _DOMAIN_FULL.get(domain) or f"{domain.capitalize()} Analysis"
+    )
     output_subdir = OUTPUT_DIR / _PROFILE_DIR if _PROFILE_DIR else OUTPUT_DIR
     output_subdir.mkdir(parents=True, exist_ok=True)
     out_path = output_subdir / f"us_{domain}_governance_model.md"
@@ -864,13 +882,17 @@ def write_report(result: Dict[str, Any]) -> Path:
     lines += _section_hr()
     lines += ["## 1. Introduction", ""]
 
-    domain_context = _DOMAIN_CONTEXT.get(
-        domain,
-        (
+    # Use LLM-determined context paragraph for custom topics
+    domain_context = (
+        framing.get("context_paragraph")
+        or _DOMAIN_CONTEXT.get(domain)
+        or (
             f"The United States {domain_full} landscape presents multifaceted governance "
             f"challenges requiring analysis across national, state, and local levels."
-        ),
+        )
     )
+    if framing.get("investigation_focus"):
+        domain_context += f" The central research question of this investigation is: *{framing['investigation_focus']}*"
     lines += _para(domain_context)
 
     # Summarise what subtopics were identified
@@ -1725,6 +1747,9 @@ def main() -> int:
         for budget_key, budget_val in profile.llm_budgets.items():
             if hasattr(cfg.llm, budget_key):
                 setattr(cfg.llm, budget_key, budget_val)
+        # Apply parallel_workers from profile
+        if profile.parallel_workers >= 1:
+            cfg.llm.parallel_workers = profile.parallel_workers
         # Apply profile-level voter pool overrides (expert allocation)
         if profile.expert_allocation:
             cfg.voter_pool.experts_per_domain.update(profile.expert_allocation)

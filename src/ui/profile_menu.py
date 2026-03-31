@@ -20,6 +20,29 @@ import sys
 from pathlib import Path
 from typing import List, Optional
 
+
+def _detect_gpu_count() -> int:
+    """Return the number of NVIDIA GPUs visible on this machine.
+
+    Uses ``nvidia-smi`` if available; falls back to 0 (CPU-only).
+    The result determines the maximum recommended ``parallel_workers`` value
+    shown in the TUI (minimum 1 is always allowed regardless of GPU count).
+    """
+    try:
+        result = subprocess.run(
+            ["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            gpus = [line.strip() for line in result.stdout.strip().splitlines() if line.strip()]
+            return len(gpus)
+    except Exception:
+        pass
+    return 0
+
+
 # Ensure the repo root is on sys.path so `src.*` imports work when this
 # script is invoked directly (e.g. `uv run src/ui/profile_menu.py`).
 # __file__ = src/ui/profile_menu.py  →  .parents[2] = repo root
@@ -138,6 +161,7 @@ def display_profile_summary(profile: ProfileConfig) -> None:
     table.add_row("Topics / Domains", "\n".join(f"  • {d}" for d in profile.domains))
     table.add_row("Recursion Depth", str(profile.depth))
     table.add_row("Subtopics / Level", str(profile.subtopics_per_level))
+    table.add_row("Parallel Workers", str(profile.parallel_workers))
     table.add_row(
         "Geographic Scope",
         "All 50 US states + counties" if profile.geo_fan_out else "National only",
@@ -358,6 +382,34 @@ def _action_create() -> None:
         except ValueError:
             depth = 4
 
+    # ── Step 5: parallel workers ──────────────────────────────────────────
+    gpu_count = _detect_gpu_count()
+    gpu_info = (
+        f"  {gpu_count} GPU{'s' if gpu_count != 1 else ''} detected — "
+        f"recommended max: {max(1, gpu_count)}\n"
+        if gpu_count > 0
+        else "  No NVIDIA GPU detected — CPU inference, keep at 1\n"
+    )
+    workers_raw = input_dialog(
+        title=HTML("<b>Create Profile — Parallel LLM Workers</b>"),
+        text=(
+            "How many concurrent LLM calls to run?\n\n" + gpu_info + "\n"
+            "  Must match llama-server --parallel N\n"
+            "  1 = sequential (safe default)\n"
+            "  N = one slot per GPU (fastest)\n\n"
+            "Press Enter to accept the default."
+        ),
+        default=str(max(1, gpu_count)) if gpu_count > 0 else "1",
+        style=STYLE,
+    ).run()
+
+    parallel_workers = 1
+    if workers_raw:
+        try:
+            parallel_workers = max(1, int(workers_raw))
+        except ValueError:
+            parallel_workers = 1
+
     try:
         profile = create_profile(
             name=name,
@@ -367,6 +419,7 @@ def _action_create() -> None:
                 "depth": depth,
                 "subtopics_per_level": 5,
                 "geo_fan_out": True,
+                "parallel_workers": parallel_workers,
             },
         )
         console.print(
@@ -423,6 +476,10 @@ def _action_edit() -> None:
             ("depth", f"Recursion depth  (current: {profile.depth})"),
             ("subtopics", f"Subtopics per level  (current: {profile.subtopics_per_level})"),
             (
+                "parallel",
+                f"Parallel workers  (current: {profile.parallel_workers})",
+            ),
+            (
                 "geo",
                 f"Geo fan-out  (current: {'enabled' if profile.geo_fan_out else 'disabled'})",
             ),
@@ -469,6 +526,30 @@ def _action_edit() -> None:
         if val:
             try:
                 updates["subtopics_per_level"] = max(1, int(val))
+            except ValueError:
+                pass
+
+    elif field == "parallel":
+        gpu_count = _detect_gpu_count()
+        gpu_info = (
+            f"  {gpu_count} GPU{'s' if gpu_count != 1 else ''} detected — "
+            f"recommended max: {max(1, gpu_count)}\n"
+            if gpu_count > 0
+            else "  No NVIDIA GPU detected — CPU inference, keep at 1\n"
+        )
+        val = input_dialog(
+            title="Edit Parallel Workers",
+            text=(
+                "Number of concurrent LLM calls (must match llama-server --parallel N):\n\n"
+                + gpu_info
+                + "\n  1 = sequential (safe default)"
+            ),
+            default=str(profile.parallel_workers),
+            style=STYLE,
+        ).run()
+        if val:
+            try:
+                updates["parallel_workers"] = max(1, int(val))
             except ValueError:
                 pass
 
