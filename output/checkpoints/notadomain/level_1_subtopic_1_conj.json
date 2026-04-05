@@ -1,0 +1,1 @@
+{"config_hash": "5bffc50c1d162447", "conj": {"statement": "1. Topic A 2. Topic B 3. Topic C", "confidence": 0.75, "supporting_evidence": [], "contradicting_evidence": [], "update_reason": "LLM synthesis via llama.cpp", "evidence_count": 60, "subtopic": "Topic A", "depth": 1, "tier_count": 61, "state_variations": "", "county_variations": ""}}

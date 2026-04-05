@@ -1,0 +1,101 @@
+{
+  "started_at": "2026-04-05T00:39:08.580254",
+  "elapsed_seconds": 1.928236,
+  "domains_processed": [
+    "Pre-Kantian rationalism and empiricism",
+    "Kant\u2019s critical philosophy and transgression",
+    "German Idealism: Fichte, Schelling, Hegel",
+    "Romanticism and philosophical anthropology",
+    "19th-century materialism and historicism",
+    "Neo-Kantian revivals and schools",
+    "Phenomenology and existential inquiry",
+    "Critical Theory and Frankfurt School",
+    "Heidegger and hermeneutic ontology",
+    "Post-structuralist receptions and critiques"
+  ],
+  "domains_failed": [],
+  "total_llm_calls": 0,
+  "total_tokens": 0,
+  "results": [
+    {
+      "domain": "Pre-Kantian rationalism and empiricism",
+      "outcome": "approved",
+      "confidence": 0.9467,
+      "llm_calls": 0,
+      "tokens": 0,
+      "elapsed": 0.233872
+    },
+    {
+      "domain": "Kant\u2019s critical philosophy and transgression",
+      "outcome": "approved",
+      "confidence": 0.9467,
+      "llm_calls": 0,
+      "tokens": 0,
+      "elapsed": 0.146531
+    },
+    {
+      "domain": "German Idealism: Fichte, Schelling, Hegel",
+      "outcome": "approved",
+      "confidence": 0.9467,
+      "llm_calls": 0,
+      "tokens": 0,
+      "elapsed": 0.145885
+    },
+    {
+      "domain": "Romanticism and philosophical anthropology",
+      "outcome": "approved",
+      "confidence": 0.9467,
+      "llm_calls": 0,
+      "tokens": 0,
+      "elapsed": 0.145743
+    },
+    {
+      "domain": "19th-century materialism and historicism",
+      "outcome": "approved",
+      "confidence": 0.9467,
+      "llm_calls": 0,
+      "tokens": 0,
+      "elapsed": 0.147013
+    },
+    {
+      "domain": "Neo-Kantian revivals and schools",
+      "outcome": "approved",
+      "confidence": 0.9467,
+      "llm_calls": 0,
+      "tokens": 0,
+      "elapsed": 0.145695
+    },
+    {
+      "domain": "Phenomenology and existential inquiry",
+      "outcome": "approved",
+      "confidence": 0.9467,
+      "llm_calls": 0,
+      "tokens": 0,
+      "elapsed": 0.145419
+    },
+    {
+      "domain": "Critical Theory and Frankfurt School",
+      "outcome": "approved",
+      "confidence": 0.9467,
+      "llm_calls": 0,
+      "tokens": 0,
+      "elapsed": 0.146111
+    },
+    {
+      "domain": "Heidegger and hermeneutic ontology",
+      "outcome": "approved",
+      "confidence": 0.9467,
+      "llm_calls": 0,
+      "tokens": 0,
+      "elapsed": 0.153508
+    },
+    {
+      "domain": "Post-structuralist receptions and critiques",
+      "outcome": "approved",
+      "confidence": 0.9467,
+      "llm_calls": 0,
+      "tokens": 0,
+      "elapsed": 0.145178
+    }
+  ]
+}
