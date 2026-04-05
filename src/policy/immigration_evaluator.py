@@ -10,11 +10,11 @@ Key findings from research:
 4. ML mitigation: Multi-tiered representation, adaptive weighting, fairness constraints
 """
 
-from typing import Dict, List, Optional
 from dataclasses import dataclass
 from enum import Enum
+from typing import Dict, List, Optional
 
-from src.history.anti_patterns import AntiPatternDatabase, AntiPatternCategory
+from src.history.anti_patterns import AntiPatternDatabase
 from src.models.voter import Voter, VoterType
 
 
@@ -46,9 +46,7 @@ class ImmigrationPolicy:
 
     def get_net_benefit(self) -> float:
         """Calculate net benefit (effectiveness - anti-pattern impact)."""
-        anti_pattern_impact = (
-            len(self.anti_patterns) * 0.1
-        )  # Each pattern reduces by 10%
+        anti_pattern_impact = len(self.anti_patterns) * 0.1  # Each pattern reduces by 10%
         return max(0.0, self.effectiveness_score - anti_pattern_impact)
 
 
@@ -245,14 +243,10 @@ class ImmigrationPolicyEvaluator:
             "affected_percentage": affected_percentage,
             "anti_patterns": policy.anti_patterns,
             "detected_patterns": detected_patterns,
-            "recommendation": self._get_recommendation(
-                net_benefit, fairness, detected_patterns
-            ),
+            "recommendation": self._get_recommendation(net_benefit, fairness, detected_patterns),
         }
 
-    def _calculate_fairness(
-        self, policy: ImmigrationPolicy, voters: Dict[str, Voter]
-    ) -> float:
+    def _calculate_fairness(self, policy: ImmigrationPolicy, voters: Dict[str, Voter]) -> float:
         """Calculate fairness score for a policy."""
         # In real implementation, would analyze voter preferences
         # For now, use policy-specific fairness estimates
@@ -302,14 +296,10 @@ class ImmigrationPolicyEvaluator:
 
     def get_worst_policies(self, bottom_n: int = 5) -> List[ImmigrationPolicy]:
         """Get worst policies by net benefit."""
-        sorted_policies = sorted(
-            self.policies.values(), key=lambda p: p.get_net_benefit()
-        )
+        sorted_policies = sorted(self.policies.values(), key=lambda p: p.get_net_benefit())
         return sorted_policies[:bottom_n]
 
-    def get_policies_by_type(
-        self, policy_type: ImmigrationPolicyType
-    ) -> List[ImmigrationPolicy]:
+    def get_policies_by_type(self, policy_type: ImmigrationPolicyType) -> List[ImmigrationPolicy]:
         """Get policies by type."""
         return [p for p in self.policies.values() if p.policy_type == policy_type]
 
@@ -317,7 +307,7 @@ class ImmigrationPolicyEvaluator:
 def main() -> None:
     """Main function to run immigration policy evaluation."""
     from src.history.anti_patterns import AntiPatternDatabase
-    from src.models.voter import Voter, VoterType
+    from src.models.voter import Voter
 
     # Initialize evaluator
     anti_pattern_db = AntiPatternDatabase()
@@ -361,7 +351,7 @@ def main() -> None:
         print(f"  Recommendation: {result['recommendation']}")
 
         if result["detected_patterns"]:
-            print(f"  Anti-Patterns Detected:")
+            print("  Anti-Patterns Detected:")
             for pattern in result["detected_patterns"]:
                 print(f"    - {pattern['name']}: {pattern['description']}")
 

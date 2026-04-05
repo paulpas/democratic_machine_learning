@@ -6,9 +6,9 @@ that can be detected and avoided in democratic decision-making systems.
 Source research: Academic political science, history, and governance studies
 """
 
-from typing import Dict, List, Optional
 from dataclasses import dataclass
 from enum import Enum
+from typing import Dict, List, Optional
 
 
 class AntiPatternCategory(Enum):
@@ -639,9 +639,7 @@ class AntiPatternDatabase:
 
         return detected
 
-    def _matches_thresholds(
-        self, decision_data: Dict, metrics: Dict[str, float]
-    ) -> bool:
+    def _matches_thresholds(self, decision_data: Dict, metrics: Dict[str, float]) -> bool:
         """Check if decision data matches pattern thresholds."""
         for metric_name, threshold in metrics.items():
             if metric_name in decision_data:

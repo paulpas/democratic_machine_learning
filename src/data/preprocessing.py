@@ -1,9 +1,10 @@
 """Preprocessing utilities for democratic data."""
 
-from typing import Dict, List, Optional
+from typing import Dict, List
+
 import numpy as np
+
 from src.models.voter import Voter
-from src.models.policy import Policy
 
 
 class Preprocessor:
@@ -38,8 +39,7 @@ class Preprocessor:
 
         for voter in voters:
             voter.preferences = {
-                k: float((v - min_pref) / range_pref)
-                for k, v in voter.preferences.items()
+                k: float((v - min_pref) / range_pref) for k, v in voter.preferences.items()
             }
 
         return voters
@@ -65,15 +65,12 @@ class Preprocessor:
 
         for voter in voters:
             voter.preferences = {
-                k: float((v - mean_pref) / std_pref)
-                for k, v in voter.preferences.items()
+                k: float((v - mean_pref) / std_pref) for k, v in voter.preferences.items()
             }
 
         return voters
 
-    def encode_categorical(
-        self, data: List[Dict], categorical_cols: List[str]
-    ) -> tuple:
+    def encode_categorical(self, data: List[Dict], categorical_cols: List[str]) -> tuple:
         """Encode categorical features as numeric.
 
         Args:

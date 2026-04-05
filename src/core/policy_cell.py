@@ -1,8 +1,8 @@
 """Policy cell for organizing policy decisions."""
 
-from typing import Dict, List, Optional
-from src.models.policy import Policy, PolicyDomain
-from src.models.voter import Voter
+from typing import Dict, List
+
+from src.models.policy import Policy
 from src.models.region import Region
 
 

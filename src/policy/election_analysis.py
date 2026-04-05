@@ -5,13 +5,12 @@ This module implements a comprehensive analysis framework covering 12 societal p
 cross-reference analysis, anti-investigation mechanisms, and social science integration.
 """
 
-from typing import Dict, List, Optional, Tuple
-from dataclasses import dataclass, field
-from enum import Enum
 import statistics
+from dataclasses import dataclass
 from datetime import datetime
+from enum import Enum
+from typing import Dict, List
 
-from src.models.voter import Voter, VoterType
 from src.utils.metrics import FairnessMetrics
 
 
@@ -676,9 +675,7 @@ class ElectionMultiPerspectiveAnalysis:
         for concern in policy.get("key_concerns", []):
             if concern in perspective.key_concerns:
                 base_support += 0.1
-            elif concern in [
-                c for c in perspective.key_concerns if "opposes" in c.lower()
-            ]:
+            elif concern in [c for c in perspective.key_concerns if "opposes" in c.lower()]:
                 base_support -= 0.1
 
         if (
@@ -763,9 +760,7 @@ class ElectionMultiPerspectiveAnalysis:
 
         return min(1.0, base_confidence)
 
-    def compare_perspectives(
-        self, perspective_a: str, perspective_b: str
-    ) -> ElectionComparison:
+    def compare_perspectives(self, perspective_a: str, perspective_b: str) -> ElectionComparison:
         """Compare two election policy perspectives."""
         p_a = self.perspectives[perspective_a]
         p_b = self.perspectives[perspective_b]
@@ -909,52 +904,34 @@ class ElectionMultiPerspectiveAnalysis:
         for policy_id in self.policies:
             support_scores = []
             for perspective_id in self.perspectives:
-                analysis = self.analyze_policy_from_perspective(
-                    policy_id, perspective_id
-                )
+                analysis = self.analyze_policy_from_perspective(policy_id, perspective_id)
                 support_scores.append(analysis.support_level)
 
             avg_support = statistics.mean(support_scores) if support_scores else 0.0
-            variance = (
-                statistics.variance(support_scores) if len(support_scores) > 1 else 0.0
-            )
+            variance = statistics.variance(support_scores) if len(support_scores) > 1 else 0.0
             consensus_score = avg_support - (variance * 0.1)
 
             consensus[policy_id] = max(-1.0, min(1.0, consensus_score))
 
         return consensus
 
-    def generate_counter_arguments(
-        self, perspective_id: str
-    ) -> List[ElectionCounterArgument]:
+    def generate_counter_arguments(self, perspective_id: str) -> List[ElectionCounterArgument]:
         """Generate counter-arguments to an election policy perspective."""
         perspective = self.perspectives[perspective_id]
         counter_arguments = []
 
         if perspective.category == ElectionPerspectiveCategory.DISENFRANCHISED:
-            counter_arguments.extend(
-                self._generate_election_disenfranchised_counters(perspective)
-            )
+            counter_arguments.extend(self._generate_election_disenfranchised_counters(perspective))
         elif perspective.category == ElectionPerspectiveCategory.PRIVILEGED:
-            counter_arguments.extend(
-                self._generate_election_privileged_counters(perspective)
-            )
+            counter_arguments.extend(self._generate_election_privileged_counters(perspective))
         elif perspective.category == ElectionPerspectiveCategory.EXPERTS:
-            counter_arguments.extend(
-                self._generate_election_expert_counters(perspective)
-            )
+            counter_arguments.extend(self._generate_election_expert_counters(perspective))
         elif perspective.category == ElectionPerspectiveCategory.IDEOLOGICAL:
-            counter_arguments.extend(
-                self._generate_election_ideological_counters(perspective)
-            )
+            counter_arguments.extend(self._generate_election_ideological_counters(perspective))
         elif perspective.category == ElectionPerspectiveCategory.ENVIRONMENTAL:
-            counter_arguments.extend(
-                self._generate_election_environmental_counters(perspective)
-            )
+            counter_arguments.extend(self._generate_election_environmental_counters(perspective))
         else:
-            counter_arguments.extend(
-                self._generate_election_general_counters(perspective)
-            )
+            counter_arguments.extend(self._generate_election_general_counters(perspective))
 
         self.counter_arguments.extend(counter_arguments)
         return counter_arguments
@@ -1148,9 +1125,7 @@ class ElectionMultiPerspectiveAnalysis:
             ElectionCounterArgument(
                 argument_id="CA-GEN-002",
                 perspective_id=perspective.perspective_id,
-                argument_text=(
-                    "Implementation challenges may undermine theoretical benefits"
-                ),
+                argument_text=("Implementation challenges may undermine theoretical benefits"),
                 evidence_quality="strong",
                 supporting_sources=["Implementation research", "Election case studies"],
                 potential_bias="Potential for忽视 practical constraints",
@@ -1255,9 +1230,7 @@ class ElectionMultiPerspectiveAnalysis:
         for policy_id in self.policies:
             policy_analyses = []
             for perspective_id in self.perspectives:
-                analysis_result = self.analyze_policy_from_perspective(
-                    policy_id, perspective_id
-                )
+                analysis_result = self.analyze_policy_from_perspective(policy_id, perspective_id)
                 policy_analyses.append(analysis_result)
 
             analysis["policy_analyses"][policy_id] = policy_analyses
@@ -1394,9 +1367,7 @@ def main() -> None:
     print("-" * 80)
     print(f"Perspectives analyzed: {results['perspectives_analyzed']}")
     print(f"Policies analyzed: {results['policies_analyzed']}")
-    print(
-        f"Total policy analyses: {sum(len(v) for v in results['policy_analyses'].values())}"
-    )
+    print(f"Total policy analyses: {sum(len(v) for v in results['policy_analyses'].values())}")
     print()
 
     print("CONSENSUS SCORES BY POLICY AREA")

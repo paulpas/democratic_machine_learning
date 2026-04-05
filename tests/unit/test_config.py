@@ -1,29 +1,19 @@
 """Unit tests for src/config.py — configuration loading and override mechanics."""
 
 import os
-import textwrap
 import tempfile
+import textwrap
 from pathlib import Path
 
 import pytest
 
 from src.config import (
     AppConfig,
-    LLMConfig,
-    DecisionConfig,
-    WeightingConfig,
-    FeedbackConfig,
-    TrustConfig,
-    FairnessConfig,
-    SocialConfig,
-    VoterPoolConfig,
-    LoggingConfig,
-    load_config,
-    get_config,
-    reset_config,
     dump_config,
+    get_config,
+    load_config,
+    reset_config,
 )
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers
@@ -32,9 +22,7 @@ from src.config import (
 
 def _write_yaml(content: str) -> Path:
     """Write content to a temp YAML file and return the path."""
-    tf = tempfile.NamedTemporaryFile(
-        mode="w", suffix=".yaml", delete=False, encoding="utf-8"
-    )
+    tf = tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False, encoding="utf-8")
     tf.write(textwrap.dedent(content))
     tf.flush()
     tf.close()

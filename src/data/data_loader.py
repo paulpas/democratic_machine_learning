@@ -1,12 +1,13 @@
 """Data loading and preprocessing utilities."""
 
-from typing import Dict, List, Optional
-import json
 import csv
+import json
 from pathlib import Path
-from src.models.voter import Voter, VoterType
+from typing import List, Optional
+
 from src.models.policy import Policy, PolicyDomain
 from src.models.region import Region
+from src.models.voter import Voter, VoterType
 
 
 class DataLoader:

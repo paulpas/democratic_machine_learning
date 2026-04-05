@@ -1,6 +1,7 @@
 """Display utilities for the democratic decision-making system."""
 
 from typing import Dict, Optional
+
 from src.models.decision import Decision
 from src.utils.metrics import FairnessMetrics
 
@@ -12,9 +13,7 @@ class DecisionDisplay:
         """Initialize the display."""
         self.metrics = FairnessMetrics()
 
-    def display_decision(
-        self, decision: Decision, fairness: Optional[float] = None
-    ) -> str:
+    def display_decision(self, decision: Decision, fairness: Optional[float] = None) -> str:
         """Display a decision with formatting.
 
         Args:
@@ -39,9 +38,7 @@ class DecisionDisplay:
 
         return "\n".join(lines)
 
-    def display_batch(
-        self, decisions: list, fairness_scores: Optional[Dict] = None
-    ) -> str:
+    def display_batch(self, decisions: list, fairness_scores: Optional[Dict] = None) -> str:
         """Display multiple decisions.
 
         Args:
@@ -54,9 +51,7 @@ class DecisionDisplay:
         lines = ["\n" + "=" * 50, "DECISION BATCH RESULTS", "=" * 50]
 
         for i, decision in enumerate(decisions, 1):
-            fairness = (
-                fairness_scores.get(decision.region_id) if fairness_scores else None
-            )
+            fairness = fairness_scores.get(decision.region_id) if fairness_scores else None
             lines.append(f"\n--- Decision {i} ---")
             lines.append(self.display_decision(decision, fairness))
 

@@ -7,16 +7,14 @@ and report generation.
 """
 
 import json
-import unittest
-import tempfile
-from pathlib import Path
-from unittest.mock import MagicMock, patch, call
-from typing import Dict, Any
 
 # ── minimal stubs for heavy imports that require live services ────────────────
-
 import sys
-import os
+import tempfile
+import unittest
+from pathlib import Path
+from typing import Any, Dict
+from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
@@ -78,10 +76,10 @@ class TestRunAllDomainsVoterPool(unittest.TestCase):
         self.patcher.stop()
 
     def _setup_engine(self, domain: str, policy_id: str):
-        from src.core.decision_engine import DecisionEngine
-        from src.models.policy import Policy, PolicyDomain
-        from src.models.region import Region
         from run_all_domains import DOMAIN_ENUM_MAP
+        from src.core.decision_engine import DecisionEngine
+        from src.models.policy import Policy
+        from src.models.region import Region
 
         engine = DecisionEngine()
         engine.register_region(Region("US", "United States", "national", 331000000))
@@ -92,7 +90,7 @@ class TestRunAllDomainsVoterPool(unittest.TestCase):
 
     def test_voter_pool_registers_correct_expert_count(self):
         """Expert count matches _EXPERTS_PER_DOMAIN for each domain."""
-        from run_all_domains import _build_national_voter_pool, _EXPERTS_PER_DOMAIN
+        from run_all_domains import _EXPERTS_PER_DOMAIN, _build_national_voter_pool
 
         for domain, expected in _EXPERTS_PER_DOMAIN.items():
             policy_id = f"us_{domain}_2026"
@@ -110,24 +108,20 @@ class TestRunAllDomainsVoterPool(unittest.TestCase):
         _build_national_voter_pool(engine, "economy", "us_economy_2026")
 
         state_count = sum(
-            1
-            for v in engine.voters.values()
-            if v.voter_id.startswith("state_delegate_")
+            1 for v in engine.voters.values() if v.voter_id.startswith("state_delegate_")
         )
         self.assertEqual(state_count, 50)
 
     def test_voter_pool_registers_county_delegates(self):
         from run_all_domains import (
-            _build_national_voter_pool,
             REPRESENTATIVE_COUNTIES_INFO,
+            _build_national_voter_pool,
         )
 
         engine = self._setup_engine("climate", "us_climate_2026")
         _build_national_voter_pool(engine, "climate", "us_climate_2026")
 
-        county_count = sum(
-            1 for v in engine.voters.values() if v.voter_id.startswith("county_")
-        )
+        county_count = sum(1 for v in engine.voters.values() if v.voter_id.startswith("county_"))
         self.assertEqual(county_count, len(REPRESENTATIVE_COUNTIES_INFO))
 
     def test_voter_pool_registers_public_sample(self):
@@ -136,9 +130,7 @@ class TestRunAllDomainsVoterPool(unittest.TestCase):
         engine = self._setup_engine("education", "us_education_2026")
         _build_national_voter_pool(engine, "education", "us_education_2026")
 
-        public_count = sum(
-            1 for v in engine.voters.values() if v.voter_id.startswith("public_")
-        )
+        public_count = sum(1 for v in engine.voters.values() if v.voter_id.startswith("public_"))
         self.assertGreater(public_count, 0)
 
     def test_public_sample_proportional_to_population(self):
@@ -148,12 +140,8 @@ class TestRunAllDomainsVoterPool(unittest.TestCase):
         engine = self._setup_engine("economy", "us_economy_2026")
         _build_national_voter_pool(engine, "economy", "us_economy_2026")
 
-        ca_count = sum(
-            1 for v in engine.voters.values() if v.voter_id.startswith("public_CA_")
-        )
-        wy_count = sum(
-            1 for v in engine.voters.values() if v.voter_id.startswith("public_WY_")
-        )
+        ca_count = sum(1 for v in engine.voters.values() if v.voter_id.startswith("public_CA_"))
+        wy_count = sum(1 for v in engine.voters.values() if v.voter_id.startswith("public_WY_"))
         self.assertGreater(ca_count, wy_count)
 
     def test_expert_weights_match_expertise(self):
@@ -204,14 +192,8 @@ class TestRunAllDomainsVoterPool(unittest.TestCase):
         engine2 = self._setup_engine("economy", "us_economy_2026")
         _build_national_voter_pool(engine2, "economy", "us_economy_2026")
 
-        prefs1 = {
-            vid: v.get_preference("us_economy_2026")
-            for vid, v in engine1.voters.items()
-        }
-        prefs2 = {
-            vid: v.get_preference("us_economy_2026")
-            for vid, v in engine2.voters.items()
-        }
+        prefs1 = {vid: v.get_preference("us_economy_2026") for vid, v in engine1.voters.items()}
+        prefs2 = {vid: v.get_preference("us_economy_2026") for vid, v in engine2.voters.items()}
         self.assertEqual(prefs1, prefs2)
 
     def test_all_voters_have_preference_set(self):
@@ -245,16 +227,16 @@ class TestRunDomain(unittest.TestCase):
         self.llm_patcher.stop()
 
     def test_run_domain_returns_dict(self):
-        from src.llm.integration import LLMClient
         from run_all_domains import run_domain
+        from src.llm.integration import LLMClient
 
         llm_client = LLMClient()
         result = run_domain("healthcare", llm_client, self.social_mock)
         self.assertIsInstance(result, dict)
 
     def test_run_domain_required_keys(self):
-        from src.llm.integration import LLMClient
         from run_all_domains import run_domain
+        from src.llm.integration import LLMClient
 
         llm_client = LLMClient()
         result = run_domain("economy", llm_client, self.social_mock)
@@ -270,8 +252,8 @@ class TestRunDomain(unittest.TestCase):
             self.assertIn(key, result)
 
     def test_run_domain_decision_structure(self):
-        from src.llm.integration import LLMClient
         from run_all_domains import run_domain
+        from src.llm.integration import LLMClient
 
         llm_client = LLMClient()
         result = run_domain("climate", llm_client, self.social_mock)
@@ -284,8 +266,8 @@ class TestRunDomain(unittest.TestCase):
         self.assertIn("total_voters", decision)
 
     def test_run_domain_has_voters(self):
-        from src.llm.integration import LLMClient
         from run_all_domains import run_domain
+        from src.llm.integration import LLMClient
 
         llm_client = LLMClient()
         result = run_domain("climate", llm_client, self.social_mock)
@@ -293,26 +275,24 @@ class TestRunDomain(unittest.TestCase):
         self.assertGreater(result["decision"]["total_voters"], 100)
 
     def test_run_domain_outcome_valid(self):
-        from src.llm.integration import LLMClient
         from run_all_domains import run_domain
+        from src.llm.integration import LLMClient
 
         llm_client = LLMClient()
         result = run_domain("immigration", llm_client, self.social_mock)
-        self.assertIn(
-            result["decision"]["outcome"], ("approved", "rejected", "abstain")
-        )
+        self.assertIn(result["decision"]["outcome"], ("approved", "rejected", "abstain"))
 
     def test_run_domain_social_data_collected(self):
-        from src.llm.integration import LLMClient
         from run_all_domains import run_domain
+        from src.llm.integration import LLMClient
 
         llm_client = LLMClient()
         run_domain("infrastructure", llm_client, self.social_mock)
         self.social_mock.get_comprehensive_social_data.assert_called_once()
 
     def test_run_domain_elapsed_tracked(self):
-        from src.llm.integration import LLMClient
         from run_all_domains import run_domain
+        from src.llm.integration import LLMClient
 
         llm_client = LLMClient()
         result = run_domain("healthcare", llm_client, self.social_mock)
@@ -321,13 +301,11 @@ class TestRunDomain(unittest.TestCase):
 
     def test_run_domain_social_error_graceful(self):
         """Social data collection errors should not abort the domain analysis."""
-        from src.llm.integration import LLMClient
         from run_all_domains import run_domain
+        from src.llm.integration import LLMClient
 
         social_err = MagicMock()
-        social_err.get_comprehensive_social_data.side_effect = RuntimeError(
-            "network fail"
-        )
+        social_err.get_comprehensive_social_data.side_effect = RuntimeError("network fail")
 
         llm_client = LLMClient()
         # Should not raise
@@ -487,9 +465,7 @@ class TestMainFunction(unittest.TestCase):
         try:
             with (
                 patch("sys.argv", ["run_all_domains.py", "healthcare"]),
-                patch(
-                    "run_all_domains.SocialNarrativeCollector", return_value=social_mock
-                ),
+                patch("run_all_domains.SocialNarrativeCollector", return_value=social_mock),
             ):
                 code = run_all_domains.main()
             self.assertEqual(code, 0)
@@ -509,9 +485,7 @@ class TestMainFunction(unittest.TestCase):
         try:
             with (
                 patch("sys.argv", ["run_all_domains.py", "climate"]),
-                patch(
-                    "run_all_domains.SocialNarrativeCollector", return_value=social_mock
-                ),
+                patch("run_all_domains.SocialNarrativeCollector", return_value=social_mock),
             ):
                 run_all_domains.main()
             summary_path = Path(self.tmpdir) / "session_summary.json"

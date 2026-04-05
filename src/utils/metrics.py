@@ -1,11 +1,13 @@
 """Fairness and efficiency metrics for democratic decision-making."""
 
 from typing import Dict, List, Optional
+
 import numpy as np
-from src.models.decision import Decision
-from src.models.voter import Voter, VoterType
-from src.models.region import Region
+
 from src.config import get_config
+from src.models.decision import Decision
+from src.models.region import Region
+from src.models.voter import Voter
 
 
 class FairnessMetrics:
@@ -24,12 +26,8 @@ class FairnessMetrics:
             Both parameters default to ``config.yaml`` ``fairness.*`` values.
         """
         _cfg = get_config().fairness
-        self.min_proportion = (
-            min_proportion if min_proportion is not None else _cfg.min_proportion
-        )
-        self.max_disparity = (
-            max_disparity if max_disparity is not None else _cfg.max_disparity
-        )
+        self.min_proportion = min_proportion if min_proportion is not None else _cfg.min_proportion
+        self.max_disparity = max_disparity if max_disparity is not None else _cfg.max_disparity
 
     def calculate_fairness(
         self, decision: Decision, voters: Dict[str, Voter], regions: Dict[str, Region]
@@ -100,9 +98,7 @@ class FairnessMetrics:
         group_scores = {}
         for group_id, group_voters in groups.items():
             group_voters_dict = {v.voter_id: v for v in group_voters}
-            group_scores[group_id] = self.calculate_fairness(
-                decision, group_voters_dict, {}
-            )
+            group_scores[group_id] = self.calculate_fairness(decision, group_voters_dict, {})
 
         return group_scores
 
@@ -134,14 +130,10 @@ class FairnessMetrics:
                 group_id = voter.region_id
                 group_totals[group_id] = group_totals.get(group_id, 0) + 1
 
-                if (
-                    decision.outcome == "approved"
-                    and voter.get_preference(decision.policy_id) > 0
-                ):
+                if decision.outcome == "approved" and voter.get_preference(decision.policy_id) > 0:
                     group_outcomes[group_id] = group_outcomes.get(group_id, 0) + 1
                 elif (
-                    decision.outcome == "rejected"
-                    and voter.get_preference(decision.policy_id) < 0
+                    decision.outcome == "rejected" and voter.get_preference(decision.policy_id) < 0
                 ):
                     group_outcomes[group_id] = group_outcomes.get(group_id, 0) + 1
 
@@ -203,9 +195,7 @@ class EfficiencyMetrics:
 
         return voters_participated / voters_in_region
 
-    def calculate_system_efficiency(
-        self, decisions: List[Decision], total_voters: int
-    ) -> float:
+    def calculate_system_efficiency(self, decisions: List[Decision], total_voters: int) -> float:
         """Calculate overall system efficiency.
 
         Args:
@@ -223,8 +213,6 @@ class EfficiencyMetrics:
 
         participation_rate = min(avg_participation / total_voters, 1.0)
 
-        avg_consensus = sum(self.calculate_consensus_score(d) for d in decisions) / len(
-            decisions
-        )
+        avg_consensus = sum(self.calculate_consensus_score(d) for d in decisions) / len(decisions)
 
         return (participation_rate + avg_consensus) / 2.0

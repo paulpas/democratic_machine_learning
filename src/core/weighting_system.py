@@ -1,10 +1,11 @@
 """Weighting system for adaptive voter representation."""
 
 from typing import Dict, List, Optional
-from src.models.voter import Voter
-from src.models.region import Region
-from src.models.policy import Policy, PolicyDomain
+
 from src.config import get_config
+from src.models.policy import Policy, PolicyDomain
+from src.models.region import Region
+from src.models.voter import Voter
 
 
 class WeightingSystem:
@@ -35,9 +36,7 @@ class WeightingSystem:
             proximity_boost if proximity_boost is not None else _cfg.proximity_boost
         )
         self.historical_weight = (
-            historical_weight
-            if historical_weight is not None
-            else _cfg.historical_weight
+            historical_weight if historical_weight is not None else _cfg.historical_weight
         )
 
         self.voter_weights: Dict[str, float] = {}
@@ -69,17 +68,13 @@ class WeightingSystem:
             weight += self.proximity_boost
 
         participation = self.voter_participation.get(voter.voter_id, 0)
-        weight += self.historical_weight * min(
-            participation / _cfg.participation_norm, 1.0
-        )
+        weight += self.historical_weight * min(participation / _cfg.participation_norm, 1.0)
 
         return weight
 
     def update_participation(self, voter_id: str) -> None:
         """Update participation count for a voter."""
-        self.voter_participation[voter_id] = (
-            self.voter_participation.get(voter_id, 0) + 1
-        )
+        self.voter_participation[voter_id] = self.voter_participation.get(voter_id, 0) + 1
 
     def normalize_weights(self, voters: List[Voter]) -> Dict[str, float]:
         """Normalize weights so average is 1.0.

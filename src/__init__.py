@@ -10,9 +10,9 @@ __author__ = "Paul Pas"
 
 from src.core.decision_engine import DecisionEngine
 from src.core.policy_cell import PolicyCell
-from src.models.voter import Voter
-from src.models.policy import Policy
 from src.data.data_loader import DataLoader
+from src.models.policy import Policy
+from src.models.voter import Voter
 from src.utils.metrics import FairnessMetrics
 
 __all__ = [

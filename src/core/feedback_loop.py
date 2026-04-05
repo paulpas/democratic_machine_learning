@@ -6,11 +6,10 @@ based on outcomes and fairness metrics.
 """
 
 from typing import Dict, List, Optional
-from src.models.decision import Decision
-from src.models.voter import Voter
-from src.models.region import Region
-from src.utils.metrics import FairnessMetrics
+
 from src.config import get_config
+from src.models.decision import Decision
+from src.utils.metrics import FairnessMetrics
 
 
 class FeedbackLoop:
@@ -31,16 +30,12 @@ class FeedbackLoop:
             All parameters default to ``config.yaml`` ``feedback.*`` values.
         """
         _cfg = get_config().feedback
-        self.learning_rate = (
-            learning_rate if learning_rate is not None else _cfg.learning_rate
-        )
+        self.learning_rate = learning_rate if learning_rate is not None else _cfg.learning_rate
         self.fairness_target = (
             fairness_target if fairness_target is not None else _cfg.fairness_target
         )
         self.stability_threshold = (
-            stability_threshold
-            if stability_threshold is not None
-            else _cfg.stability_threshold
+            stability_threshold if stability_threshold is not None else _cfg.stability_threshold
         )
 
         self.fairness_metrics = FairnessMetrics()
@@ -119,9 +114,7 @@ class FeedbackLoop:
         Args:
             metrics: Dictionary of metrics to record
         """
-        self.history.append(
-            {**metrics, "adaptation_factors": self.adaptation_factors.copy()}
-        )
+        self.history.append({**metrics, "adaptation_factors": self.adaptation_factors.copy()})
 
     def get_trends(self, window: Optional[int] = None) -> Dict:
         """Get trends from recent history.
@@ -142,14 +135,10 @@ class FeedbackLoop:
 
         return {
             "avg_fairness": sum(h.get("fairness", 0) for h in recent) / len(recent),
-            "avg_effectiveness": sum(h.get("effectiveness", 0) for h in recent)
-            / len(recent),
+            "avg_effectiveness": sum(h.get("effectiveness", 0) for h in recent) / len(recent),
             "avg_balance": sum(h.get("balance", 0) for h in recent) / len(recent),
             "variance": sum(
-                (
-                    h.get("fairness", 0)
-                    - sum(r.get("fairness", 0) for r in recent) / len(recent)
-                )
+                (h.get("fairness", 0) - sum(r.get("fairness", 0) for r in recent) / len(recent))
                 ** 2
                 for h in recent
             )

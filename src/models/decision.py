@@ -1,8 +1,8 @@
 """Data models for decisions in the democratic decision-making system."""
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 
 @dataclass

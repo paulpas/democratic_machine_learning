@@ -4,12 +4,12 @@ This module implements a tree structure that drills down from national policies
 to localized laws and ordinances, identifying anti-patterns at each level.
 """
 
-from typing import Dict, List, Optional, Any
+import os
 from dataclasses import dataclass, field
 from enum import Enum
-import os
+from typing import Any, Dict, List, Optional
 
-from src.history.anti_patterns import AntiPatternDatabase, AntiPatternCategory
+from src.history.anti_patterns import AntiPatternDatabase
 
 
 class PolicyHierarchyLevel(Enum):
@@ -223,9 +223,7 @@ class PolicyTree:
                     {
                         "policy_id": node.policy_id,
                         "depth": depth,
-                        "path": [
-                            n.policy_id for n in self.get_policy_path(node.policy_id)
-                        ],
+                        "path": [n.policy_id for n in self.get_policy_path(node.policy_id)],
                     }
                 )
 

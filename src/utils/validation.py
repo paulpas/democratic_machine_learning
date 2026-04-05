@@ -1,9 +1,10 @@
 """Validation utilities for the democratic decision-making system."""
 
-from typing import Dict, List, Optional
-from src.models.voter import Voter
+from typing import List
+
 from src.models.policy import Policy
 from src.models.region import Region
+from src.models.voter import Voter
 
 
 class Validator:
@@ -75,9 +76,7 @@ class Validator:
 
         return len(self.errors) == 0
 
-    def validate_decision(
-        self, decision_id: str, policy_id: str, region_id: str
-    ) -> bool:
+    def validate_decision(self, decision_id: str, policy_id: str, region_id: str) -> bool:
         """Validate decision parameters.
 
         Args:

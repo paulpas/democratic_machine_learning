@@ -14,16 +14,16 @@ Features:
     - Configurable timeout and result limits
 """
 
-import os
-import re
-import time
-import threading
-from typing import List, Dict, Any, Optional
-from urllib.parse import quote
 import asyncio
+import re
+import threading
+import time
+from typing import Any, Dict, List, Optional
+from urllib.parse import quote
 
 try:
-    from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
+    from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
+    from playwright.sync_api import sync_playwright
 
     PLAYWRIGHT_AVAILABLE = True
 except ImportError:
@@ -440,7 +440,7 @@ class WebSearchClient:
                     )
 
                     if not response or response.status != 200:
-                        _log(f"Failed to load search results")
+                        _log("Failed to load search results")
                         context.close()
                         browser.close()
                         return []

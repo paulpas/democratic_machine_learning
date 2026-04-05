@@ -10,9 +10,7 @@ This system provides comprehensive logging with:
 
 import json
 import logging
-import os
-import sys
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
@@ -20,9 +18,8 @@ from typing import Any, Dict, List, Optional
 
 from rich.console import Console
 from rich.logging import RichHandler
-from rich.table import Table
 from rich.panel import Panel
-from rich.text import Text
+from rich.table import Table
 
 
 class LogStep(Enum):
@@ -198,7 +195,7 @@ class VerboseLogger:
         # Setup file logger
         self._setup_logger()
 
-        self.log(f"Verbose logging system initialized", level=logging.INFO)
+        self.log("Verbose logging system initialized", level=logging.INFO)
         self.log(f"Output directory: {self.output_dir}", level=logging.INFO)
         self.log(f"Log file: {self.log_file}", level=logging.INFO)
 
@@ -289,25 +286,17 @@ class VerboseLogger:
             self.console.print(f"[white]{step.content}[/white]")
 
             if step.metadata.get("reasoning"):
-                self.console.print(
-                    f"[dim]Reasoning: {step.metadata['reasoning']}[/dim]"
-                )
+                self.console.print(f"[dim]Reasoning: {step.metadata['reasoning']}[/dim]")
 
         elif step.step_type == LogStep.SOURCE_DISCOVERY:
             source = step.metadata.get("source", {})
-            self.console.print(
-                f"\n[bold green][{timestamp}] SOURCE DISCOVERY[/bold green]"
-            )
-            self.console.print(
-                f"[white]Title: {source.get('title', 'Unknown')}[/white]"
-            )
+            self.console.print(f"\n[bold green][{timestamp}] SOURCE DISCOVERY[/bold green]")
+            self.console.print(f"[white]Title: {source.get('title', 'Unknown')}[/white]")
             self.console.print(f"[white]URL: {source.get('url', 'N/A')}[/white]")
             self.console.print(
                 f"[white]Source Type: {source.get('source_type', 'Unknown')}[/white]"
             )
-            self.console.print(
-                f"[yellow]Relevance: {source.get('relevance_rating', 0)}%[/yellow]"
-            )
+            self.console.print(f"[yellow]Relevance: {source.get('relevance_rating', 0)}%[/yellow]")
             self.console.print(
                 f"[yellow]Usefulness: {source.get('usefulness_rating', 0)}%[/yellow]"
             )
@@ -321,19 +310,13 @@ class VerboseLogger:
             )
             self.console.print(f"[white]{step.content}[/white]")
             if step.metadata.get("rating"):
-                self.console.print(
-                    f"[yellow]Rating: {step.metadata['rating']}%[/yellow]"
-                )
+                self.console.print(f"[yellow]Rating: {step.metadata['rating']}%[/yellow]")
 
         elif step.step_type == LogStep.SOURCE_RELEVANCE:
-            self.console.print(
-                f"\n[bold yellow][{timestamp}] SOURCE RELEVANCE RATED[/bold yellow]"
-            )
+            self.console.print(f"\n[bold yellow][{timestamp}] SOURCE RELEVANCE RATED[/bold yellow]")
             self.console.print(f"[white]{step.content}[/white]")
             if step.metadata.get("rating"):
-                self.console.print(
-                    f"[yellow]Rating: {step.metadata['rating']}%[/yellow]"
-                )
+                self.console.print(f"[yellow]Rating: {step.metadata['rating']}%[/yellow]")
 
         elif step.step_type == LogStep.INITIAL_CONJECTURE:
             self.console.print(
@@ -341,62 +324,46 @@ class VerboseLogger:
             )
             self.console.print(f"[white]{step.content}[/white]")
             if step.metadata.get("confidence"):
-                self.console.print(
-                    f"[cyan]Confidence: {step.metadata['confidence']:.0%}[/cyan]"
-                )
+                self.console.print(f"[cyan]Confidence: {step.metadata['confidence']:.0%}[/cyan]")
 
         elif step.step_type == LogStep.CONJECTURE_UPDATE:
-            self.console.print(
-                f"\n[bold blue][{timestamp}] CONJECTURE UPDATED[/bold blue]"
-            )
+            self.console.print(f"\n[bold blue][{timestamp}] CONJECTURE UPDATED[/bold blue]")
             self.console.print(f"[white]{step.content}[/white]")
             if step.metadata.get("updated_confidence"):
                 self.console.print(
                     f"[cyan]Updated Confidence: {step.metadata['updated_confidence']:.0%}[/cyan]"
                 )
             if step.metadata.get("update_reason"):
-                self.console.print(
-                    f"[dim]Update Reason: {step.metadata['update_reason']}[/dim]"
-                )
+                self.console.print(f"[dim]Update Reason: {step.metadata['update_reason']}[/dim]")
 
         elif step.step_type == LogStep.EVIDENCE_EVALUATION:
-            self.console.print(
-                f"\n[bold cyan][{timestamp}] EVIDENCE EVALUATED[/bold cyan]"
-            )
+            self.console.print(f"\n[bold cyan][{timestamp}] EVIDENCE EVALUATED[/bold cyan]")
             self.console.print(f"[white]{step.content}[/white]")
             if step.metadata.get("supporting"):
-                self.console.print(f"[green]Supporting Evidence:[/green]")
+                self.console.print("[green]Supporting Evidence:[/green]")
                 for evidence in step.metadata["supporting"]:
                     self.console.print(f"  ✓ {evidence}")
             if step.metadata.get("contradicting"):
-                self.console.print(f"[red]Contradicting Evidence:[/red]")
+                self.console.print("[red]Contradicting Evidence:[/red]")
                 for evidence in step.metadata["contradicting"]:
                     self.console.print(f"  ✗ {evidence}")
 
         elif step.step_type == LogStep.FINAL_CONCLUSION:
-            self.console.print(
-                f"\n[bold green][{timestamp}] FINAL CONCLUSION[/bold green]"
-            )
+            self.console.print(f"\n[bold green][{timestamp}] FINAL CONCLUSION[/bold green]")
             self.console.print(f"[white]{step.content}[/white]")
 
             # Print supporting evidence summary
             if step.metadata.get("supporting_evidence"):
-                self.console.print(f"[green]Supporting Evidence:[/green]")
+                self.console.print("[green]Supporting Evidence:[/green]")
                 for evidence in step.metadata["supporting_evidence"]:
                     self.console.print(f"  ✓ {evidence}")
 
             if step.metadata.get("confidence"):
-                self.console.print(
-                    f"[cyan]Confidence: {step.metadata['confidence']:.0%}[/cyan]"
-                )
+                self.console.print(f"[cyan]Confidence: {step.metadata['confidence']:.0%}[/cyan]")
 
         elif step.step_type == LogStep.PROMPT_USED:
-            self.console.print(
-                f"\n[bold cyan][{timestamp}] PROMPT USED IN CHAIN[/bold cyan]"
-            )
-            self.console.print(
-                f"[white]Purpose: {step.metadata.get('purpose', 'N/A')}[/white]"
-            )
+            self.console.print(f"\n[bold cyan][{timestamp}] PROMPT USED IN CHAIN[/bold cyan]")
+            self.console.print(f"[white]Purpose: {step.metadata.get('purpose', 'N/A')}[/white]")
             self.console.print(
                 f"[dim]Chain Position: {step.metadata.get('chain_position', 0)}[/dim]"
             )
@@ -410,14 +377,10 @@ class VerboseLogger:
                 self.console.print(f"[dim]Response: {response}[/dim]")
 
         elif step.step_type == LogStep.INSPIRATION:
-            self.console.print(
-                f"\n[bold magenta][{timestamp}] UPDATE INSPIRED BY[/bold magenta]"
-            )
+            self.console.print(f"\n[bold magenta][{timestamp}] UPDATE INSPIRED BY[/bold magenta]")
             self.console.print(f"[white]{step.content}[/white]")
             if step.metadata.get("inspired_by"):
-                self.console.print(
-                    f"[dim]Inspired By: {step.metadata['inspired_by']}[/dim]"
-                )
+                self.console.print(f"[dim]Inspired By: {step.metadata['inspired_by']}[/dim]")
 
         else:
             self.console.print(f"\n[{timestamp}] {step.step_type.value}")
@@ -529,9 +492,7 @@ class VerboseLogger:
 
         return step
 
-    def log_source_usefulness(
-        self, source_id: str, usefulness_rating: int
-    ) -> ReasoningStep:
+    def log_source_usefulness(self, source_id: str, usefulness_rating: int) -> ReasoningStep:
         """Log a source usefulness rating.
 
         Args:
@@ -552,9 +513,7 @@ class VerboseLogger:
             rating=usefulness_rating,
         )
 
-    def log_source_relevance(
-        self, source_id: str, relevance_rating: int
-    ) -> ReasoningStep:
+    def log_source_relevance(self, source_id: str, relevance_rating: int) -> ReasoningStep:
         """Log a source relevance rating.
 
         Args:
@@ -575,9 +534,7 @@ class VerboseLogger:
             rating=relevance_rating,
         )
 
-    def log_initial_conjecture(
-        self, conjecture: str, confidence: float = 0.0
-    ) -> ReasoningStep:
+    def log_initial_conjecture(self, conjecture: str, confidence: float = 0.0) -> ReasoningStep:
         """Log an initial conjecture.
 
         Args:
@@ -649,9 +606,7 @@ class VerboseLogger:
             self.conjectures[conjecture_id].supporting_evidence.extend(evidence_for)
 
         if evidence_against:
-            self.conjectures[conjecture_id].contradicting_evidence.extend(
-                evidence_against
-            )
+            self.conjectures[conjecture_id].contradicting_evidence.extend(evidence_against)
 
         metadata = {
             "conjecture_id": conjecture_id,
@@ -860,9 +815,7 @@ class VerboseLogger:
 
     def print_full_chain(self) -> None:
         """Print the complete chain of reasoning to console."""
-        self.console.print(
-            "\n[bold underline]COMPLETE CHAIN OF REASONING[/bold underline]\n"
-        )
+        self.console.print("\n[bold underline]COMPLETE CHAIN OF REASONING[/bold underline]\n")
 
         for step in self.reasoning_steps:
             self._print_step(step)

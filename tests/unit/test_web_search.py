@@ -14,9 +14,8 @@ Coverage targets:
 """
 
 import unittest
-from unittest.mock import MagicMock, patch, AsyncMock, call
-import asyncio
-from typing import List, Dict, Any
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 
 class MockPage:
@@ -566,8 +565,9 @@ class TestThreadSafety(unittest.TestCase):
     @patch("playwright.sync_api.sync_playwright")
     def test_concurrent_searches(self, mock_sync_pw):
         """Multiple concurrent searches should work without errors."""
-        from src.search.web_search import WebSearchClient
         import threading
+
+        from src.search.web_search import WebSearchClient
 
         mock_pw_instance = MagicMock()
         mock_browser = MagicMock()
@@ -691,8 +691,9 @@ class TestErrorHandling(unittest.TestCase):
     @patch("playwright.sync_api.sync_playwright")
     def test_timeout_error_handling(self, mock_sync_pw):
         """Should handle timeout errors gracefully."""
-        from src.search.web_search import WebSearchClient
         from playwright._impl._errors import TimeoutError as PlaywrightTimeoutError
+
+        from src.search.web_search import WebSearchClient
 
         mock_sync_pw.side_effect = PlaywrightTimeoutError("Timeout")
 

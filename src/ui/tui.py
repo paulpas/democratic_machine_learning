@@ -1,15 +1,14 @@
 """TUI interface for the democratic decision-making system."""
 
-from typing import Dict, List, Optional
 import argparse
 import json
+from typing import Dict
 
 from src.core.decision_engine import DecisionEngine
 from src.core.feedback_loop import FeedbackLoop
-from src.data.data_loader import DataLoader
-from src.models.voter import Voter, VoterType
 from src.models.policy import Policy, PolicyDomain
 from src.models.region import Region
+from src.models.voter import Voter, VoterType
 
 
 def parse_args() -> argparse.Namespace:
@@ -20,9 +19,7 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument("--data", "-d", type=str, help="Path to data file (JSON)")
     parser.add_argument("--region", "-r", type=str, required=True, help="Region ID")
-    parser.add_argument(
-        "--policy", "-p", type=str, default="default_policy", help="Policy ID"
-    )
+    parser.add_argument("--policy", "-p", type=str, default="default_policy", help="Policy ID")
     parser.add_argument(
         "--type",
         "-t",
@@ -32,9 +29,7 @@ def parse_args() -> argparse.Namespace:
         help="Decision type",
     )
     parser.add_argument("--feedback", action="store_true", help="Enable feedback loop")
-    parser.add_argument(
-        "--fairness", type=float, default=0.7, help="Fairness threshold (0.0-1.0)"
-    )
+    parser.add_argument("--fairness", type=float, default=0.7, help="Fairness threshold (0.0-1.0)")
     parser.add_argument(
         "--output",
         "-o",
@@ -129,7 +124,7 @@ def display_text(decision, evaluation) -> None:
     print("=" * 60)
     print(f"\nPolicy: {decision.policy_id}")
     print(f"Region: {decision.region_id}")
-    print(f"\nVoting Results:")
+    print("\nVoting Results:")
     print(f"  For:      {decision.votes_for}")
     print(f"  Against:  {decision.votes_against}")
     print(f"  Margin:   {decision.get_margin():.2%}")
@@ -156,11 +151,7 @@ def display_rich(decision, evaluation) -> None:
     print(f"  [red]Against:[/red]  {decision.votes_against}")
     print(f"  [cyan]Margin:[/cyan]    {decision.get_margin():.2%}")
 
-    status = (
-        "[green]APPROVED[/green]"
-        if decision.outcome == "approved"
-        else "[red]REJECTED[/red]"
-    )
+    status = "[green]APPROVED[/green]" if decision.outcome == "approved" else "[red]REJECTED[/red]"
     print(f"\nDecision: {status}")
     print(f"Confidence: {decision.confidence:.2%}")
 

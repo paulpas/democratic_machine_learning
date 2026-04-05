@@ -4,8 +4,8 @@ Each skill defines a discrete capability that the LLM can use to perform
 specific functions within the democratic decision-making system.
 """
 
-from typing import Protocol, Dict, List, Optional
 from abc import abstractmethod
+from typing import Dict, List, Protocol
 
 # ============================================================================
 # DATA ACQUISITION SKILLS
@@ -126,9 +126,7 @@ class SkillGeographicWeighting(Protocol):
     """Skill: Apply geographic factors to decision weighting."""
 
     @abstractmethod
-    def calculate_proximity_weight(
-        self, voter_region: str, policy_region: str
-    ) -> float:
+    def calculate_proximity_weight(self, voter_region: str, policy_region: str) -> float:
         """Calculate weight based on geographic proximity."""
         ...
 
@@ -200,9 +198,7 @@ class SkillFairnessAssessment(Protocol):
         ...
 
     @abstractmethod
-    def assess_minority_protection(
-        self, decision: Dict, minority_groups: List[str]
-    ) -> float:
+    def assess_minority_protection(self, decision: Dict, minority_groups: List[str]) -> float:
         """Assess protection of minority interests."""
         ...
 
@@ -211,9 +207,7 @@ class SkillMultiTieredDecision(Protocol):
     """Skill: Handle multi-tiered decision making."""
 
     @abstractmethod
-    def propagate_decision_tier(
-        self, decision: Dict, from_tier: str, to_tier: str
-    ) -> Dict:
+    def propagate_decision_tier(self, decision: Dict, from_tier: str, to_tier: str) -> Dict:
         """Propagate decision from one tier to another."""
         ...
 
@@ -263,9 +257,7 @@ class SkillWeightAdaptation(Protocol):
         ...
 
     @abstractmethod
-    def adjust_weight_for_participation(
-        self, voter_id: str, participation_count: int
-    ) -> None:
+    def adjust_weight_for_participation(self, voter_id: str, participation_count: int) -> None:
         """Adjust voter weight based on participation history."""
         ...
 

@@ -1,8 +1,8 @@
 """Data models for voters in the democratic decision-making system."""
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
 from enum import Enum
+from typing import Dict, Optional
 
 
 class VoterType(Enum):

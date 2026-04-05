@@ -1,22 +1,23 @@
 """Core decision engine for democratic decision-making."""
 
-from typing import Dict, List, Optional, Tuple, Any
 from datetime import datetime
-from src.models.voter import Voter, VoterType
+from typing import Any, Dict, List, Optional, Tuple
+
+from src.config import get_config
+from src.data.social_narrative_collector import SocialNarrativeCollector
+from src.history.anti_patterns import AntiPatternDatabase
+from src.llm.integration import LLMClient
+from src.models.decision import Decision
 from src.models.policy import Policy
 from src.models.region import Region
-from src.models.decision import Decision
-from src.utils.metrics import FairnessMetrics
-from src.policy.policy_tree import PolicyTree, PolicyHierarchyLevel
-from src.history.anti_patterns import AntiPatternDatabase
+from src.models.voter import Voter
+from src.policy.policy_tree import PolicyHierarchyLevel, PolicyTree
 from src.security.trust_system import (
-    TrustScorer,
     EvidenceValidator,
     SocialInfluenceAnalyzer,
+    TrustScorer,
 )
-from src.llm.integration import LLMClient
-from src.data.social_narrative_collector import SocialNarrativeCollector
-from src.config import get_config
+from src.utils.metrics import FairnessMetrics
 
 
 class DecisionEngine:
@@ -31,9 +32,7 @@ class DecisionEngine:
         """
         _cfg = get_config().decision
         self.fairness_threshold = (
-            fairness_threshold
-            if fairness_threshold is not None
-            else _cfg.fairness_threshold
+            fairness_threshold if fairness_threshold is not None else _cfg.fairness_threshold
         )
         self.voters: Dict[str, Voter] = {}
         self.policies: Dict[str, Policy] = {}
@@ -159,9 +158,7 @@ class DecisionEngine:
         state_voters = []
         if len(region_id) == 2:  # Likely state abbreviation
             state_voters = [
-                v
-                for v in self.voters.values()
-                if v.region_id.upper().startswith(region_id.upper())
+                v for v in self.voters.values() if v.region_id.upper().startswith(region_id.upper())
             ]
 
         if state_voters:
@@ -186,9 +183,7 @@ class DecisionEngine:
         """
         _window = get_config().decision.fairness_check_window
         recent_decisions = (
-            self.decisions[-_window:]
-            if len(self.decisions) > _window
-            else self.decisions
+            self.decisions[-_window:] if len(self.decisions) > _window else self.decisions
         )
 
         for decision in recent_decisions:
@@ -200,9 +195,7 @@ class DecisionEngine:
 
         return True
 
-    def build_policy_tree_for_domain(
-        self, domain: str, legislation_data: Dict
-    ) -> PolicyTree:
+    def build_policy_tree_for_domain(self, domain: str, legislation_data: Dict) -> PolicyTree:
         """Build a policy tree for a specific domain using legislation data.
 
         Args:
@@ -278,9 +271,7 @@ class DecisionEngine:
         voter_list = list(self.voters.values())
         return self.trust_scorer.get_trusted_voters(voter_list, min_trust)
 
-    def analyze_decision_for_manipulation(
-        self, voter: Voter
-    ) -> Tuple[bool, float, bool, float]:
+    def analyze_decision_for_manipulation(self, voter: Voter) -> Tuple[bool, float, bool, float]:
         """Analyze a voter for bot activity and manipulation.
 
         Args:
@@ -290,17 +281,13 @@ class DecisionEngine:
             Tuple of (is_bot, bot_confidence, is_manipulated, manipulation_confidence)
         """
         is_bot, bot_confidence = self.influence_analyzer.detect_bot(voter)
-        is_manipulated, manipulation_confidence = (
-            self.influence_analyzer.detect_manipulation(voter)
-        )
+        is_manipulated, manipulation_confidence = self.influence_analyzer.detect_manipulation(voter)
         return is_bot, bot_confidence, is_manipulated, manipulation_confidence
 
     def _analyze_policy_context(
         self, policy: Policy, region: Region, voters: List[Voter]
     ) -> Dict[str, Any]:
-        print(
-            f"Analyzing policy context for policy: {policy.name} in region: {region.name}"
-        )
+        print(f"Analyzing policy context for policy: {policy.name} in region: {region.name}")
         """Analyze policy context using LLM and real-world social data for enhanced understanding.
 
         :param policy: Policy being decided on
@@ -358,9 +345,7 @@ class DecisionEngine:
                 "policy_domain": str(policy.domain),
                 "voter_count": len(voters),
                 "voter_types": list(set([v.voter_type.value for v in voters])),
-                "avg_trust_score": sum(
-                    [self.trust_scorer.calculate_trust_score(v) for v in voters]
-                )
+                "avg_trust_score": sum([self.trust_scorer.calculate_trust_score(v) for v in voters])
                 / max(len(voters), 1),
                 # Add real-world social context
                 "social_sentiment_summary": {
@@ -372,12 +357,8 @@ class DecisionEngine:
                     "avg_narrative_sentiment": social_data.get("summary", {}).get(
                         "average_narrative_sentiment", 0.0
                     ),
-                    "total_engagement": social_data.get("summary", {}).get(
-                        "total_engagement", 0
-                    ),
-                    "data_sources": social_data.get("summary", {}).get(
-                        "data_sources", []
-                    ),
+                    "total_engagement": social_data.get("summary", {}).get("total_engagement", 0),
+                    "data_sources": social_data.get("summary", {}).get("data_sources", []),
                 },
                 # Include sample of real social data for LLM to analyze
                 "sample_opinions": [
@@ -407,10 +388,10 @@ class DecisionEngine:
 
             research_questions = [
                 f"What are the key implications of policy '{policy.name}' for region {region.name} based on current social narratives?",
-                f"How do real-world public opinions and media narratives reflect the potential impact of this policy on different voter groups?",
-                f"What social media and news narratives reveal about historical precedents for similar policies in similar contexts?",
-                f"What are the potential benefits and drawbacks of this policy for this specific region based on current public discourse?",
-                f"How should decision-makers weigh expert analysis against real-world social sentiment from Reddit and news sources?",
+                "How do real-world public opinions and media narratives reflect the potential impact of this policy on different voter groups?",
+                "What social media and news narratives reveal about historical precedents for similar policies in similar contexts?",
+                "What are the potential benefits and drawbacks of this policy for this specific region based on current public discourse?",
+                "How should decision-makers weigh expert analysis against real-world social sentiment from Reddit and news sources?",
             ]
 
             principles = [

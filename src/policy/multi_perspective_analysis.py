@@ -5,13 +5,12 @@ This module implements a comprehensive analysis framework covering 12 societal p
 cross-reference analysis, anti-investigation mechanisms, and social science integration.
 """
 
-from typing import Dict, List, Optional, Tuple
-from dataclasses import dataclass, field
-from enum import Enum
 import statistics
+from dataclasses import dataclass
 from datetime import datetime
+from enum import Enum
+from typing import Dict, List
 
-from src.models.voter import Voter, VoterType
 from src.utils.metrics import FairnessMetrics
 
 
@@ -679,9 +678,7 @@ class MultiPerspectiveAnalysis:
         for concern in policy.get("key_concerns", []):
             if concern in perspective.key_concerns:
                 base_support += 0.1
-            elif concern in [
-                c for c in perspective.key_concerns if "opposes" in c.lower()
-            ]:
+            elif concern in [c for c in perspective.key_concerns if "opposes" in c.lower()]:
                 base_support -= 0.1
 
         # Adjust based on primary stance
@@ -732,9 +729,7 @@ class MultiPerspectiveAnalysis:
 
         return benefits
 
-    def _generate_recommendations(
-        self, policy: Dict, perspective: Perspective
-    ) -> List[str]:
+    def _generate_recommendations(self, policy: Dict, perspective: Perspective) -> List[str]:
         """Generate recommendations from the perspective."""
         recommendations = []
 
@@ -764,9 +759,7 @@ class MultiPerspectiveAnalysis:
 
         return min(1.0, base_confidence)
 
-    def compare_perspectives(
-        self, perspective_a: str, perspective_b: str
-    ) -> PerspectiveComparison:
+    def compare_perspectives(self, perspective_a: str, perspective_b: str) -> PerspectiveComparison:
         """Compare two perspectives to find agreements and contradictions."""
         p_a = self.perspectives[perspective_a]
         p_b = self.perspectives[perspective_b]
@@ -919,16 +912,12 @@ class MultiPerspectiveAnalysis:
         for policy_id in self.policies:
             support_scores = []
             for perspective_id in self.perspectives:
-                analysis = self.analyze_policy_from_perspective(
-                    policy_id, perspective_id
-                )
+                analysis = self.analyze_policy_from_perspective(policy_id, perspective_id)
                 support_scores.append(analysis.support_level)
 
             # Calculate consensus as average support with variance penalty
             avg_support = statistics.mean(support_scores) if support_scores else 0.0
-            variance = (
-                statistics.variance(support_scores) if len(support_scores) > 1 else 0.0
-            )
+            variance = statistics.variance(support_scores) if len(support_scores) > 1 else 0.0
             consensus_score = avg_support - (variance * 0.1)
 
             consensus[policy_id] = max(-1.0, min(1.0, consensus_score))
@@ -942,9 +931,7 @@ class MultiPerspectiveAnalysis:
 
         # Generate counter-arguments based on perspective type
         if perspective.category == PerspectiveCategory.DISENFRANCHISED:
-            counter_arguments.extend(
-                self._generate_disenfranchised_counters(perspective)
-            )
+            counter_arguments.extend(self._generate_disenfranchised_counters(perspective))
 
         elif perspective.category == PerspectiveCategory.PRIVILEGED:
             counter_arguments.extend(self._generate_privileged_counters(perspective))
@@ -964,9 +951,7 @@ class MultiPerspectiveAnalysis:
         self.counter_arguments.extend(counter_arguments)
         return counter_arguments
 
-    def _generate_disenfranchised_counters(
-        self, perspective: Perspective
-    ) -> List[CounterArgument]:
+    def _generate_disenfranchised_counters(self, perspective: Perspective) -> List[CounterArgument]:
         """Generate counter-arguments to disenfranchised perspective."""
         return [
             CounterArgument(
@@ -1001,9 +986,7 @@ class MultiPerspectiveAnalysis:
             ),
         ]
 
-    def _generate_privileged_counters(
-        self, perspective: Perspective
-    ) -> List[CounterArgument]:
+    def _generate_privileged_counters(self, perspective: Perspective) -> List[CounterArgument]:
         """Generate counter-arguments to privileged perspective."""
         return [
             CounterArgument(
@@ -1035,9 +1018,7 @@ class MultiPerspectiveAnalysis:
             ),
         ]
 
-    def _generate_expert_counters(
-        self, perspective: Perspective
-    ) -> List[CounterArgument]:
+    def _generate_expert_counters(self, perspective: Perspective) -> List[CounterArgument]:
         """Generate counter-arguments to expert perspective."""
         return [
             CounterArgument(
@@ -1069,9 +1050,7 @@ class MultiPerspectiveAnalysis:
             ),
         ]
 
-    def _generate_ideological_counters(
-        self, perspective: Perspective
-    ) -> List[CounterArgument]:
+    def _generate_ideological_counters(self, perspective: Perspective) -> List[CounterArgument]:
         """Generate counter-arguments to ideological perspective."""
         return [
             CounterArgument(
@@ -1103,9 +1082,7 @@ class MultiPerspectiveAnalysis:
             ),
         ]
 
-    def _generate_environmental_counters(
-        self, perspective: Perspective
-    ) -> List[CounterArgument]:
+    def _generate_environmental_counters(self, perspective: Perspective) -> List[CounterArgument]:
         """Generate counter-arguments to environmental perspective."""
         return [
             CounterArgument(
@@ -1134,17 +1111,13 @@ class MultiPerspectiveAnalysis:
             ),
         ]
 
-    def _generate_general_counters(
-        self, perspective: Perspective
-    ) -> List[CounterArgument]:
+    def _generate_general_counters(self, perspective: Perspective) -> List[CounterArgument]:
         """Generate general counter-arguments."""
         return [
             CounterArgument(
                 argument_id="CA-GEN-001",
                 perspective_id=perspective.perspective_id,
-                argument_text=(
-                    "This perspective may overlook trade-offs between competing values"
-                ),
+                argument_text=("This perspective may overlook trade-offs between competing values"),
                 evidence_quality="moderate",
                 supporting_sources=["Public policy analysis", "Decision theory"],
                 potential_bias="Potential for one-sided analysis",
@@ -1153,9 +1126,7 @@ class MultiPerspectiveAnalysis:
             CounterArgument(
                 argument_id="CA-GEN-002",
                 perspective_id=perspective.perspective_id,
-                argument_text=(
-                    "Implementation challenges may undermine theoretical benefits"
-                ),
+                argument_text=("Implementation challenges may undermine theoretical benefits"),
                 evidence_quality="strong",
                 supporting_sources=["Implementation research", "Case studies"],
                 potential_bias="Potential for忽视 practical constraints",
@@ -1167,9 +1138,7 @@ class MultiPerspectiveAnalysis:
         """Verify a claim through multiple sources."""
         return {
             "claim": claim,
-            "verification_status": "partially verified"
-            if len(sources) > 0
-            else "unverified",
+            "verification_status": "partially verified" if len(sources) > 0 else "unverified",
             "sources_count": len(sources),
             "sources": sources,
             "confidence": min(1.0, len(sources) * 0.3),
@@ -1296,9 +1265,7 @@ class MultiPerspectiveAnalysis:
         for policy_id in self.policies:
             policy_analyses = []
             for perspective_id in self.perspectives:
-                analysis_result = self.analyze_policy_from_perspective(
-                    policy_id, perspective_id
-                )
+                analysis_result = self.analyze_policy_from_perspective(policy_id, perspective_id)
                 policy_analyses.append(analysis_result)
 
             analysis["policy_analyses"][policy_id] = policy_analyses
@@ -1310,8 +1277,8 @@ class MultiPerspectiveAnalysis:
                 analysis["counter_arguments"][policy_id].extend(counter_args)
 
             # Social science integration
-            analysis["social_science_integration"][policy_id] = (
-                self.integrate_social_science(policy_id)
+            analysis["social_science_integration"][policy_id] = self.integrate_social_science(
+                policy_id
             )
 
         return analysis
@@ -1445,9 +1412,7 @@ def main() -> None:
     print("-" * 80)
     print(f"Perspectives analyzed: {results['perspectives_analyzed']}")
     print(f"Policies analyzed: {results['policies_analyzed']}")
-    print(
-        f"Total policy analyses: {sum(len(v) for v in results['policy_analyses'].values())}"
-    )
+    print(f"Total policy analyses: {sum(len(v) for v in results['policy_analyses'].values())}")
     print()
 
     # Print consensus scores

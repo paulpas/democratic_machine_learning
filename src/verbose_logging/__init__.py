@@ -1,12 +1,12 @@
 """Verbose logging module for democratic machine learning."""
 
 from src.logging.verbose_logger import (
-    VerboseLogger,
-    LogStep,
-    SourceInfo,
     Conjecture,
+    LogStep,
     PromptInfo,
     ReasoningStep,
+    SourceInfo,
+    VerboseLogger,
     get_logger,
 )
 

@@ -16,10 +16,9 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 from urllib.parse import quote
 
 from playwright.sync_api import Page, Playwright, sync_playwright

@@ -1,0 +1,26 @@
+name: germain-philosophypre-kantian-rationalism-
+description: 'history of german philosophyPre-Kantian rationalism and empiricism,
+  Kant’s critical philosophy and transgression, German Idealism: Fichte, Schelling,
+  Hegel …'
+domains:
+- Pre-Kantian rationalism and empiricism
+- Kant’s critical philosophy and transgression
+- 'German Idealism: Fichte, Schelling, Hegel'
+- Romanticism and philosophical anthropology
+- 19th-century materialism and historicism
+- Neo-Kantian revivals and schools
+- Phenomenology and existential inquiry
+- Critical Theory and Frankfurt School
+- Heidegger and hermeneutic ontology
+- Post-structuralist receptions and critiques
+depth: 4
+subtopics_per_level: 5
+geo_fan_out: false
+parallel_workers: 1
+expert_allocation: {}
+llm_budgets: {}
+social_collection: {}
+metadata:
+  author: Profile Manager
+  created: '2026-03-31'
+  type: custom

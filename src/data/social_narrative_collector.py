@@ -4,16 +4,15 @@ This module collects real-world social narratives and media opinions from free i
 to enhance the democratic system with realistic public sentiment data.
 """
 
-import requests
-import json
-import time
-import threading
-from typing import Dict, List, Optional, Any
-from datetime import datetime, timedelta
 import hashlib
-from urllib.parse import quote_plus, urljoin
 import logging
-import re
+import threading
+import time
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
+from urllib.parse import quote_plus
+
+import requests
 from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
@@ -34,11 +33,7 @@ class SocialNarrativeCollector:
         )  # local import to avoid circular at module load
 
         _cfg = get_config().social
-        hours = (
-            cache_duration_hours
-            if cache_duration_hours is not None
-            else _cfg.cache_hours
-        )
+        hours = cache_duration_hours if cache_duration_hours is not None else _cfg.cache_hours
         self.cache_duration = timedelta(hours=hours)
         self._social_cfg = _cfg
         self.cache: Dict[str, Dict[str, Any]] = {}
@@ -105,9 +100,7 @@ class SocialNarrativeCollector:
             data = None
             for url in endpoints:
                 try:
-                    time.sleep(
-                        _cfg.reddit_rate_limit_sleep
-                    )  # respect Reddit rate limit
+                    time.sleep(_cfg.reddit_rate_limit_sleep)  # respect Reddit rate limit
                     response = self.session.get(url, timeout=_cfg.reddit_timeout)
                     if response.status_code == 429:
                         logger.debug(
@@ -155,8 +148,7 @@ class SocialNarrativeCollector:
                 ):
                     perspective = "supportive"
                 elif (
-                    score < _cfg.reddit_critical_score
-                    or upvote_ratio < _cfg.reddit_critical_ratio
+                    score < _cfg.reddit_critical_score or upvote_ratio < _cfg.reddit_critical_ratio
                 ):
                     perspective = "critical"
                 elif abs(score) <= 5 and 0.4 <= upvote_ratio <= 0.6:
@@ -175,9 +167,7 @@ class SocialNarrativeCollector:
                         post_data.get("created_utc", time.time())
                     ).isoformat(),
                     "engagement_score": max(1, abs(score) + 10),
-                    "sentiment_score": self._calculate_reddit_sentiment(
-                        score, upvote_ratio
-                    ),
+                    "sentiment_score": self._calculate_reddit_sentiment(score, upvote_ratio),
                     "relevance_score": min(
                         1.0, len(full_text) / _cfg.relevance_text_norm
                     ),  # Longer = more relevant
@@ -247,9 +237,7 @@ class SocialNarrativeCollector:
                     "results": narratives[:max_results],
                 }
 
-            logger.info(
-                f"Collected {len(narratives[:max_results])} news narratives for {topic}"
-            )
+            logger.info(f"Collected {len(narratives[:max_results])} news narratives for {topic}")
             return narratives[:max_results]
 
         except Exception as e:
@@ -325,13 +313,9 @@ class SocialNarrativeCollector:
                     "outlet": source,
                     "timestamp": pub_date.isoformat(),
                     "word_count": len((description or title).split()),
-                    "sentiment_score": self._calculate_news_sentiment(
-                        title, description
-                    ),
+                    "sentiment_score": self._calculate_news_sentiment(title, description),
                     "credibility_score": self._calculate_source_credibility(source),
-                    "relevance_score": min(
-                        1.0, (len(title) + len(description)) / 300.0
-                    ),
+                    "relevance_score": min(1.0, (len(title) + len(description)) / 300.0),
                     "collected_at": datetime.now().isoformat(),
                     "url": link,
                 }
@@ -350,23 +334,15 @@ class SocialNarrativeCollector:
 
         if any(word in combined for word in ["break", "breaking", "alert", "update"]):
             return "news_article"
-        elif any(
-            word in combined for word in ["opinion", "editorial", "view", "column"]
-        ):
+        elif any(word in combined for word in ["opinion", "editorial", "view", "column"]):
             return "editorial"
-        elif any(
-            word in combined for word in ["analysis", "examine", "investigate", "study"]
-        ):
+        elif any(word in combined for word in ["analysis", "examine", "investigate", "study"]):
             return "analysis_piece"
-        elif any(
-            word in combined for word in ["investigation", "investigative", "expose"]
-        ):
+        elif any(word in combined for word in ["investigation", "investigative", "expose"]):
             return "investigative_report"
         elif any(word in combined for word in ["feature", "story", "profile", "human"]):
             return "feature_story"
-        elif any(
-            word in combined for word in ["broadcast", "segment", "report", "live"]
-        ):
+        elif any(word in combined for word in ["broadcast", "segment", "report", "live"]):
             return "broadcast_segment"
         else:
             return "news_article"  # Default
@@ -406,12 +382,7 @@ class SocialNarrativeCollector:
             domain = parsed.netloc.lower()
             if domain.startswith("www."):
                 domain = domain[4:]
-            return (
-                domain.replace(".com", "")
-                .replace(".org", "")
-                .replace(".net", "")
-                .title()
-            )
+            return domain.replace(".com", "").replace(".org", "").replace(".net", "").title()
         except:
             pass
 
@@ -421,9 +392,7 @@ class SocialNarrativeCollector:
         """Calculate sentiment score (-1 to 1) based on Reddit metrics."""
         _cfg = self._social_cfg
         # Normalize score to -1 to 1 range
-        normalized_score = (
-            max(-1, min(1, score / _cfg.reddit_score_norm)) if score != 0 else 0
-        )
+        normalized_score = max(-1, min(1, score / _cfg.reddit_score_norm)) if score != 0 else 0
 
         # Combine with upvote ratio (0 to 1 mapped to -1 to 1)
         ratio_sentiment = (upvote_ratio - 0.5) * 2  # -1 to 1
@@ -637,9 +606,7 @@ class SocialNarrativeCollector:
             outlet = outlets[i % len(outlets)]
 
             # Generate realistic-looking narrative based on topic and domain
-            narrative_text = self._generate_narrative_text(
-                topic, domain, narrative_type
-            )
+            narrative_text = self._generate_narrative_text(topic, domain, narrative_type)
 
             narrative = {
                 "id": f"narrative_{domain}_{topic}_{i}_{int(time.time())}",
@@ -651,9 +618,7 @@ class SocialNarrativeCollector:
                 "outlet": outlet,
                 "timestamp": (datetime.now() - timedelta(hours=i * 3)).isoformat(),
                 "word_count": len(narrative_text.split()),
-                "sentiment_score": self._calculate_narrative_sentiment(
-                    narrative_type, outlet
-                ),
+                "sentiment_score": self._calculate_narrative_sentiment(narrative_type, outlet),
                 "credibility_score": self._calculate_credibility_score(outlet),
                 "relevance_score": max(0.6, 1.0 - i * 0.04),
                 "collected_at": datetime.now().isoformat(),
@@ -720,9 +685,7 @@ class SocialNarrativeCollector:
         template_list = templates.get(perspective, templates["neutral"])
         return random.choice(template_list)
 
-    def _generate_narrative_text(
-        self, topic: str, domain: str, narrative_type: str
-    ) -> str:
+    def _generate_narrative_text(self, topic: str, domain: str, narrative_type: str) -> str:
         """Generate realistic narrative text based on topic, domain, and type."""
         if narrative_type == "news_article":
             return f"Recent developments in {topic} policy have sparked debate among {domain} stakeholders. Officials report [metrics] while advocates push for [alternative approach]. The situation remains fluid as [recent event] influences public opinion."
@@ -835,12 +798,10 @@ class SocialNarrativeCollector:
             engagement_total = 0
 
         if narratives:
-            avg_narrative_sentiment = sum(
-                n["sentiment_score"] for n in narratives
-            ) / len(narratives)
-            avg_credibility = sum(n["credibility_score"] for n in narratives) / len(
+            avg_narrative_sentiment = sum(n["sentiment_score"] for n in narratives) / len(
                 narratives
             )
+            avg_credibility = sum(n["credibility_score"] for n in narratives) / len(narratives)
         else:
             avg_narrative_sentiment = 0.0
             avg_credibility = 0.0
@@ -882,9 +843,7 @@ def collect_social_narratives_for_policy(topic: str, domain: str) -> Dict[str, A
     return collector.get_comprehensive_social_data(topic, domain)
 
 
-def get_recent_public_opinion(
-    topic: str, domain: str, limit: int = 5
-) -> List[Dict[str, Any]]:
+def get_recent_public_opinion(topic: str, domain: str, limit: int = 5) -> List[Dict[str, Any]]:
     """Get recent public opinion on a topic from free sources.
 
     Args:
@@ -899,9 +858,7 @@ def get_recent_public_opinion(
     return collector.search_public_opinion(topic, domain, max_results=limit)
 
 
-def get_recent_media_narratives(
-    topic: str, domain: str, limit: int = 5
-) -> List[Dict[str, Any]]:
+def get_recent_media_narratives(topic: str, domain: str, limit: int = 5) -> List[Dict[str, Any]]:
     """Get recent media narratives on a topic from free sources.
 
     Args:

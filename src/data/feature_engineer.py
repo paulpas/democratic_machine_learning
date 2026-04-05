@@ -1,10 +1,12 @@
 """Feature engineering utilities."""
 
 from typing import Dict, List
+
 import numpy as np
-from src.models.voter import Voter
+
 from src.models.policy import Policy
 from src.models.region import Region
+from src.models.voter import Voter
 
 
 class FeatureEngineer:
@@ -30,9 +32,7 @@ class FeatureEngineer:
         features = {
             "voter_weight": voter.voting_weight,
             "preference": voter.get_preference(policy.policy_id),
-            "is_representative": 1.0
-            if voter.voter_type.value == "representative"
-            else 0.0,
+            "is_representative": 1.0 if voter.voter_type.value == "representative" else 0.0,
             "is_expert": 1.0 if voter.voter_type.value == "expert" else 0.0,
             "expertise_level": voter.expertise.get(policy.policy_id, 0.0),
             "proximity_to_region": 1.0 if voter.region_id == region.region_id else 0.0,
@@ -70,9 +70,7 @@ class FeatureEngineer:
             "preference_std": np.std(preferences) if preferences else 0.0,
             "max_preference": max(preferences) if preferences else 0.0,
             "min_preference": min(preferences) if preferences else 0.0,
-            "consensus_score": 1.0 - (np.std(preferences) / 2.0)
-            if preferences
-            else 0.0,
+            "consensus_score": 1.0 - (np.std(preferences) / 2.0) if preferences else 0.0,
         }
 
         return features

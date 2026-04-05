@@ -1,11 +1,11 @@
 """Security and trust verification utilities."""
 
 from typing import Dict, List, Optional, Tuple
+
 import numpy as np
-from src.models.voter import Voter, VoterType
-from src.models.policy import Policy
-from src.utils.metrics import FairnessMetrics
+
 from src.config import get_config
+from src.models.voter import Voter, VoterType
 
 
 class TrustScorer:
@@ -35,14 +35,10 @@ class TrustScorer:
             expertise_boost if expertise_boost is not None else _cfg.expertise_boost
         )
         self.consistency_weight = (
-            consistency_weight
-            if consistency_weight is not None
-            else _cfg.consistency_weight
+            consistency_weight if consistency_weight is not None else _cfg.consistency_weight
         )
         self.participation_weight = (
-            participation_weight
-            if participation_weight is not None
-            else _cfg.participation_weight
+            participation_weight if participation_weight is not None else _cfg.participation_weight
         )
         self.evidence_weight = (
             evidence_weight if evidence_weight is not None else _cfg.evidence_weight
@@ -74,9 +70,7 @@ class TrustScorer:
 
         # Boost for participation
         participation = self.participation_history.get(voter.voter_id, 0)
-        participation_factor = min(
-            participation / get_config().trust.participation_norm, 1.0
-        )
+        participation_factor = min(participation / get_config().trust.participation_norm, 1.0)
         score += participation_factor * self.participation_weight
 
         # Boost for evidence quality
@@ -110,9 +104,7 @@ class TrustScorer:
 
         return False
 
-    def detect_inconsistency(
-        self, voter: Voter, threshold: Optional[float] = None
-    ) -> bool:
+    def detect_inconsistency(self, voter: Voter, threshold: Optional[float] = None) -> bool:
         """Detect inconsistent preferences that may indicate manipulation.
 
         Args:
@@ -374,10 +366,7 @@ class SocialInfluenceAnalyzer:
         # This would track history of preference changes
 
         # Check for suspicious patterns
-        if (
-            len(voter.preferences) == 1
-            and abs(list(voter.preferences.values())[0]) > 0.8
-        ):
+        if len(voter.preferences) == 1 and abs(list(voter.preferences.values())[0]) > 0.8:
             manipulation_score += 0.3
 
         is_manipulated = manipulation_score >= self.manipulation_threshold
@@ -441,8 +430,8 @@ class ObjectiveGovernanceEngine:
                 continue
 
             # Check for manipulation
-            is_manipulated, manipulation_confidence = (
-                self.influence_analyzer.detect_manipulation(voter)
+            is_manipulated, manipulation_confidence = self.influence_analyzer.detect_manipulation(
+                voter
             )
             if is_manipulated:
                 continue

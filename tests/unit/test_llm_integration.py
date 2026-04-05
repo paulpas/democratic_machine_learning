@@ -23,21 +23,19 @@ Coverage targets:
 
 import json
 import unittest
-from unittest.mock import MagicMock, patch, call
-from io import StringIO
 from typing import Any, Dict
+from unittest.mock import MagicMock, patch
 
 from src.llm.integration import (
-    LLMClient,
-    US_STATES,
-    US_NATIONAL_POPULATION,
-    REPRESENTATIVE_COUNTIES,
     DOMAIN_SUBTOPICS,
+    REPRESENTATIVE_COUNTIES,
+    US_NATIONAL_POPULATION,
+    US_STATES,
+    LLMClient,
     _log,
     _log_section,
     _log_subsection,
 )
-
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Helpers
@@ -108,7 +106,7 @@ class TestConstants(unittest.TestCase):
 
 class TestLoggingHelpers(unittest.TestCase):
     def test_log_outputs_to_stdout(self):
-        import io, sys
+        import io
 
         buf = io.StringIO()
         with patch("sys.stdout", buf):
@@ -164,9 +162,7 @@ class TestLLMClientInit(unittest.TestCase):
     @patch("urllib.request.urlopen")
     def test_init_env_endpoint(self, mock_urlopen):
         mock_urlopen.return_value = _fake_urlopen_factory("ok", 1)
-        with patch.dict(
-            "os.environ", {"LLAMA_CPP_ENDPOINT": "http://example.com:8080"}
-        ):
+        with patch.dict("os.environ", {"LLAMA_CPP_ENDPOINT": "http://example.com:8080"}):
             client = LLMClient()
         self.assertEqual(client.endpoint, "http://example.com:8080")
 
@@ -237,9 +233,7 @@ class TestInvestigateDomainInitial(unittest.TestCase):
     @patch("urllib.request.urlopen")
     def test_returns_string(self, mock_urlopen):
         client = self._client()
-        mock_urlopen.return_value = _fake_urlopen_factory(
-            "Healthcare overview text.", 20
-        )
+        mock_urlopen.return_value = _fake_urlopen_factory("Healthcare overview text.", 20)
         result = client.investigate_domain_initial(
             "healthcare", {"population": 331000000}, ["Equity"]
         )
@@ -400,9 +394,7 @@ class TestFormConjecture(unittest.TestCase):
     def test_evidence_count_preserved(self, mock_urlopen):
         client = self._client()
         mock_urlopen.return_value = _fake_urlopen_factory("answer", 5)
-        evidence = [
-            {"finding": f"f{i}", "tier": "national", "depth": 0} for i in range(7)
-        ]
+        evidence = [{"finding": f"f{i}", "tier": "national", "depth": 0} for i in range(7)]
         result = client.form_conjecture("Q?", {}, evidence, domain="test")
         self.assertEqual(result["evidence_count"], 7)
 
@@ -477,9 +469,7 @@ class TestExtractSubtopics(unittest.TestCase):
 
     def test_falls_back_to_domain_seeds(self):
         client = self._client()
-        result = client._extract_subtopics_from_text(
-            "no list here at all", "economy", 5
-        )
+        result = client._extract_subtopics_from_text("no list here at all", "economy", 5)
         self.assertGreaterEqual(len(result), 3)
         seeds = DOMAIN_SUBTOPICS["economy"]
         self.assertTrue(any(s in seeds for s in result))
@@ -761,9 +751,7 @@ class TestGenerateReasoningWithRecursion(unittest.TestCase):
                 subtopics_per_level=1,
                 include_state_county_rep=True,
             )
-        state_abbrs = {
-            e["state_abbr"] for e in result["all_elaborations"] if e["tier"] == "state"
-        }
+        state_abbrs = {e["state_abbr"] for e in result["all_elaborations"] if e["tier"] == "state"}
         self.assertEqual(len(state_abbrs), 50)
 
     def test_final_conjecture_has_statement(self):
@@ -841,7 +829,9 @@ class TestFallbacks(unittest.TestCase):
 
 
 class TestGeographicFanOut(unittest.TestCase):
-    NUMBERED_LIST = "1. Health Insurance Coverage\n2. Cost Control\n3. Quality\n4. Prevention\n5. Equity\n"
+    NUMBERED_LIST = (
+        "1. Health Insurance Coverage\n2. Cost Control\n3. Quality\n4. Prevention\n5. Equity\n"
+    )
 
     def _client(self) -> LLMClient:
         with patch("urllib.request.urlopen") as m:

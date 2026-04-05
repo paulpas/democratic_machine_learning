@@ -6,18 +6,14 @@ from the ground up.
 """
 
 import asyncio
-import json
-import sys
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from src.verbose_logging.verbose_logger import (
-    VerboseLogger,
     LogStep,
-    get_logger,
-    reset_logger,
+    VerboseLogger,
 )
 
 try:
@@ -68,9 +64,7 @@ class ConceptNode:
 class DeepResearchEngine:
     """Engine that performs deep, multi-layered research on policy topics."""
 
-    def __init__(
-        self, verbose_logger: Optional[VerboseLogger] = None, use_llm: bool = True
-    ):
+    def __init__(self, verbose_logger: Optional[VerboseLogger] = None, use_llm: bool = True):
         """Initialize the deep research engine.
 
         Args:
@@ -239,9 +233,7 @@ class DeepResearchEngine:
             f"How should success be measured for {topic}?",
         ]
 
-    def build_knowledge_graph(
-        self, questions: List[ResearchQuestion]
-    ) -> Dict[str, List[str]]:
+    def build_knowledge_graph(self, questions: List[ResearchQuestion]) -> Dict[str, List[str]]:
         """Build a knowledge graph showing relationships between concepts.
 
         Args:
@@ -373,9 +365,7 @@ class DeepResearchEngine:
 
         return question
 
-    async def synthesize_findings(
-        self, questions: List[ResearchQuestion]
-    ) -> Dict[str, Any]:
+    async def synthesize_findings(self, questions: List[ResearchQuestion]) -> Dict[str, Any]:
         """Synthesize findings across all research questions.
 
         Args:
@@ -395,14 +385,9 @@ class DeepResearchEngine:
         synthesis = {}
         for category, cat_questions in by_category.items():
             synthesis[category] = {
-                "questions_answered": len(
-                    [q for q in cat_questions if q.status == "investigated"]
-                ),
-                "average_confidence": sum(q.confidence for q in cat_questions)
-                / len(cat_questions),
-                "key_findings": [
-                    q.question for q in cat_questions[:3]
-                ],  # Top 3 questions
+                "questions_answered": len([q for q in cat_questions if q.status == "investigated"]),
+                "average_confidence": sum(q.confidence for q in cat_questions) / len(cat_questions),
+                "key_findings": [q.question for q in cat_questions[:3]],  # Top 3 questions
                 "evidence_summary": [e for q in cat_questions for e in q.evidence][
                     :10
                 ],  # Top 10 evidence items
@@ -411,9 +396,7 @@ class DeepResearchEngine:
         return {
             "categories_analyzed": len(by_category),
             "total_questions": len(questions),
-            "questions_resolved": len(
-                [q for q in questions if q.status == "investigated"]
-            ),
+            "questions_resolved": len([q for q in questions if q.status == "investigated"]),
             "overall_confidence": sum(q.confidence for q in questions) / len(questions)
             if questions
             else 0,
